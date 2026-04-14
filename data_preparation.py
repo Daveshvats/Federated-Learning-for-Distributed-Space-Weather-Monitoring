@@ -43,12 +43,16 @@ def load_or_generate_data() -> pd.DataFrame:
             print("║" + "      SF-9 DATA LOADING PIPELINE".center(66) + "║")
             print("╚" + "═"*66 + "╝\n")
             print("[Priority 1] Attempting to load CLEANED dataset...")
-            from load_cleaned_data import load_cleaned_partition
-            X_tr, y_tr, X_te, y_te, feat_names = load_cleaned_partition(
-                combine_all_partitions=COMBINE_PARTITIONS,
-                data_dir=CLEANED_DATA_DIR
-            )
-            return _arrays_to_dataframe(X_tr, y_tr, X_te, y_te, feat_names)
+            # WITH THIS:
+        from load_cleaned_data import load_cleaned_partition
+        from config import FLATTEN_METHOD  # Add this import at top
+
+        X_tr, y_tr, X_te, y_te, feat_names = load_cleaned_partition(
+            combine_all_partitions=COMBINE_PARTITIONS,
+            data_dir=CLEANED_DATA_DIR,
+            flatten_method=FLATTEN_METHOD  # ← ADD THIS PARAMETER!
+        )
+        return _arrays_to_dataframe(X_tr, y_tr, X_te, y_te, feat_names)
     except Exception as e:
         print(f"[Priority 1] Cleaned data load failed: {e}")
 
@@ -81,12 +85,12 @@ def load_or_generate_data() -> pd.DataFrame:
 def _arrays_to_dataframe(X_tr, y_tr, X_te, y_te, feat_names):
     """
     Convert pre-split arrays (from cleaned pkl loader) back to a single
-    DataFrame with a 'split' column so preprocess() can respect the
+    DataFrame with a '_split' column so preprocess() can respect the
     original train/test boundary.
     """
     n_feat = X_tr.shape[1]
     if len(feat_names) != n_feat:
-        feat_names = [f"feature_{i}" for i in range(n_feat)]
+        feat_names = [f'feature_{i}' for i in range(n_feat)]
 
     cols = feat_names + [LABEL_COL]
 
@@ -102,14 +106,55 @@ def _arrays_to_dataframe(X_tr, y_tr, X_te, y_te, feat_names):
 
     df = pd.concat([df_tr, df_te], ignore_index=True)
 
-    # Add HARPNUM_MOD for partitioning if missing
+    # ════════════════════════════════════════════════════════════════════
+    # 🔧 IMPROVED: Add HARPNUM_MOD with VARIATION (not just sequential)
+    # This helps partitioning create more realistic distributions
+    # ════════════════════════════════════════════════════════════════════
     if "HARPNUM_MOD" not in df.columns:
-        df["HARPNUM_MOD"] = np.tile(
-            np.arange(N_CLIENTS), int(np.ceil(len(df) / N_CLIENTS))
-        )[:len(df)]
+        np.random.seed(42)
+        n_total = len(df)
+        
+        # Create varied client assignments (not perfectly uniform)
+        # Simulates different observatories having different amounts of data
+        base_distribution = [0.22, 0.20, 0.18, 0.16, 0.14, 0.10]  # Americas has most
+        
+        client_ids = []
+        cumulative = 0
+        for client_id, proportion in enumerate(base_distribution):
+            n_for_client = int(n_total * proportion)
+            if client_id == len(base_distribution) - 1:
+                n_for_client = n_total - cumulative  # Last client gets remainder
+            client_ids.extend([client_id] * n_for_client)
+            cumulative += n_for_client
+        
+        # Trim/pad to exact length
+        client_ids = client_ids[:n_total]
+        if len(client_ids) < n_total:
+            client_ids.extend([0] * (n_total - len(client_ids)))
+        
+        # Shuffle to mix train/test
+        client_ids = np.array(client_ids)
+        perm = np.random.permutation(n_total)
+        client_ids = client_ids[perm]
+        
+        # Re-sort to maintain train/test order (train first, then test)
+        train_indices = df[df["_split"] == "train"].index.tolist()
+        test_indices = df[df["_split"] == "test"].index.tolist()
+        
+        final_client_ids = np.zeros(n_total, dtype=int)
+        final_client_ids[train_indices] = client_ids[:len(train_indices)]
+        final_client_ids[test_indices] = client_ids[len(train_indices):]
+        
+        df["HARPNUM_MOD"] = final_client_ids
+        
+        print(f"      ✓ Generated HARPNUM_MOD with realistic distribution:")
+        for cid, name in enumerate(["Americas", "Europe", "Asia-Pacific", 
+                                    "South Asia", "East Asia", "Oceania"]):
+            count = (df["HARPNUM_MOD"][:len(X_tr)] == cid).sum()
+            print(f"          {name}: {count:,} train samples")
 
     df[LABEL_COL] = df[LABEL_COL].astype(int)
-    print(f"\n✅ SUCCESS: Cleaned dataset loaded!\n")
+    print(f"\n✅ SUCCESS: Cleaned dataset loaded!")
     return df
 
 

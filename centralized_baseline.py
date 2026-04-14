@@ -50,7 +50,7 @@ def train_centralized(
     lr = LogisticRegression(
         class_weight="balanced",
         max_iter=1000,
-        random_state=RANDOM_STATE,
+        random_state=42,
         n_jobs=-1          # uses all CPU cores — that's the correct speedup for LR
     )
     lr.fit(X_train, y_train)

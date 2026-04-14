@@ -284,3 +284,4 @@ def run_fedprox(
                   f"ROC-AUC: {metrics['roc_auc']:.3f}")
 
     return global_model, history
+

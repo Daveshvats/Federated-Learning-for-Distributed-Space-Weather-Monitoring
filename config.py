@@ -66,7 +66,10 @@ THRESHOLD   = 0.70
 USE_CLEANED_DATA = True           # Set to False to use original merged data
 CLEANED_DATA_DIR = "data/cleaned" # Path to cleaned dataset folder
 COMBINE_PARTITIONS = True         # Use all 5 partitions (recommended)
-
+# ════════════════════════════════════════════════════════════════════════
+# 🔧 ADD THIS LINE:
+FLATTEN_METHOD = "mean"           # How to convert 3D→2D: 'mean', 'max', 'last', 'flatten', 'concat_stats'
+# ════════════════════════════════════════════════════════════════════════
 # ── GPU ACCELERATION ──
 USE_CUDA = True          # Enable CUDA
 PIN_MEMORY = True      # Faster GPU memory transfer

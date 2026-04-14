@@ -21,10 +21,11 @@ Usage:
 """
 
 import argparse
+import io
 import os
 import time
 import numpy as np
-
+import sys
 import config as cfg
 from data_preparation     import load_or_generate_data, preprocess
 from partition_clients    import partition_data, partition_data_dirichlet
@@ -40,7 +41,9 @@ from visualize_results    import (
     print_results_table,
 )
 
-
+if sys.platform == 'win32':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 def parse_args():
     parser = argparse.ArgumentParser(description="SF-9 Federated Solar Flare Prediction")
     parser.add_argument("--rounds",  type=int, default=cfg.N_ROUNDS,   help="FL communication rounds")
@@ -67,14 +70,27 @@ def main():
     # ── 2. PREPROCESS ─────────────────────────────────────────────────────
     X_train, X_test, y_train, y_test, scaler, feature_names = preprocess(df)
 
-    # ── 3. PARTITION ──────────────────────────────────────────────────────
+    # ── 3. PARTITION ──────────────────────────────────────────────────────   
     print("[Partition] Splitting training data into regional client shards ...\n")
-    if args.dirichlet or "HARPNUM_MOD" not in df.columns:
-        shards = partition_data_dirichlet(X_train, y_train, alpha=0.5)
-    else:
-        # Map train indices back to HARPNUM_MOD
-        train_harp = df["HARPNUM_MOD"].values[:len(X_train)]
-        shards = partition_data(X_train, y_train, train_harp)
+    
+    # ════════════════════════════════════════════════════════════════════
+    # 🔧 FIX: Always use balanced partitioning for cleaned dataset
+    # ════════════════════════════════════════════════════════════════════
+    try:
+        from config import USE_CLEANED_DATA
+        if USE_CLEANED_DATA:
+            # Force balanced partitioning for cleaned data (no reliable HARPNUM)
+            print("[Partition] Cleaned dataset detected → Using BALANCED partition\n")
+            shards = partition_data(X_train, y_train, harpnum_mod=None)
+        elif args.dirichlet or "HARPNUM_MOD" not in df.columns:
+            shards = partition_data_dirichlet(X_train, y_train, alpha=0.5)
+        else:
+            # Map train indices back to HARPNUM_MOD
+            train_harp = df["HARPNUM_MOD"].values[:len(X_train)]
+            shards = partition_data(X_train, y_train, train_harp)
+    except Exception as e:
+        print(f"[Partition] Error: {e}\n[Partition] Using fallback balanced partition...\n")
+        shards = partition_data(X_train, y_train, harpnum_mod=None)
 
     # ── 4. CENTRALISED BASELINES ──────────────────────────────────────────
     print("\n[Centralised] Training pooled baselines ...\n")
