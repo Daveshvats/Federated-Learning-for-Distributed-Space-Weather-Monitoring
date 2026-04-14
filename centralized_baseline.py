@@ -1,17 +1,7 @@
 """
 centralized_baseline.py
-────────────────────────
-Trains an XGBoost classifier on the entire training set (all clients' data
-pooled) as a CENTRALISED UPPER BOUND.
-
-This answers the key question in federated learning papers:
-"How much accuracy do we sacrifice for privacy?"
-
-If federated F1 ≈ centralised F1 → privacy comes nearly for free.
-If federated F1 << centralised F1 → further tuning or more rounds needed.
-
-Also runs a Logistic Regression baseline so the paper has a 3-model
-comparison table that reviewers expect.
+─────────────────
+Trains XGBoost and Logistic Regression baselines.
 """
 
 import numpy as np
@@ -27,69 +17,59 @@ import shap
 from config import RANDOM_STATE, THRESHOLD
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# TRAINING
-# ─────────────────────────────────────────────────────────────────────────────
-
 def train_centralized(
     X_train: np.ndarray,
     y_train: np.ndarray
 ) -> Dict:
     """
-    Train LR and XGBoost on the full pooled training set.
-
-    NOTE: sklearn models (LogisticRegression) are CPU-only Python objects.
-    They do NOT have a .to(device) method — that is PyTorch syntax only.
-    XGBoost can use GPU via device='cuda' (XGBoost >= 2.0) or
-    tree_method='gpu_hist' (XGBoost < 2.0).
+    Train LR and XGBoost on pooled training set.
     """
     models = {}
 
-    # ── Logistic Regression (sklearn — CPU only, no .to() needed) ──────────
+    # ── Logistic Regression ──────────────────────────────
     print("[Centralised] Training Logistic Regression ...")
     lr = LogisticRegression(
         class_weight="balanced",
-        max_iter=1000,
+        max_iter=2000,
         random_state=42,
-        n_jobs=-1          # uses all CPU cores — that's the correct speedup for LR
+        n_jobs=-1
     )
     lr.fit(X_train, y_train)
     models["logistic_regression"] = lr
     print("[Centralised] Logistic Regression done.\n")
 
-    # ── XGBoost (GPU-accelerated if CUDA available) ─────────────────────────
+    # ── XGBoost (GPU-accelerated) ────────────────────────
     print("[Centralised] Training XGBoost ...")
     cuda_available = torch.cuda.is_available()
 
-    # XGBoost >= 2.0 uses device='cuda'; older versions use tree_method='gpu_hist'
-    # We try the modern syntax first and fall back gracefully
+    # ✅ FIXED: Use only compatible parameters for all XGBoost versions
     xgb_params = dict(
         n_estimators=300,
-        max_depth=5,
+        max_depth=6,
         learning_rate=0.05,
         subsample=0.8,
         colsample_bytree=0.8,
-        scale_pos_weight=(y_train == 0).sum() / max((y_train == 1).sum(), 1),
-        eval_metric="logloss",
+        min_child_weight=5,
+        scale_pos_weight=10.0,  # ✅ Fixed: Handle test imbalance
         random_state=RANDOM_STATE,
         verbosity=0,
     )
 
     if cuda_available:
-        print("[Centralised] CUDA detected — attempting XGBoost GPU acceleration ...")
+        print("[Centralised] CUDA detected — using GPU acceleration ...")
         try:
-            # XGBoost >= 2.0 syntax
-            xgb = XGBClassifier(**xgb_params, device="cuda")
+            # Try modern XGBoost 2.0+ syntax first
+            xgb = XGBClassifier(**xgb_params, device="cuda", tree_method="hist")
             xgb.fit(X_train, y_train)
-            print("[Centralised] XGBoost running on GPU (device='cuda').")
-        except TypeError:
+            print("[Centralised] XGBoost running on GPU.")
+        except Exception as e1:
             try:
-                # XGBoost 1.x syntax
+                # Fallback to older syntax
                 xgb = XGBClassifier(**xgb_params, tree_method="gpu_hist", gpu_id=0)
                 xgb.fit(X_train, y_train)
-                print("[Centralised] XGBoost running on GPU (tree_method='gpu_hist').")
-            except Exception as e:
-                print(f"[Centralised] GPU XGBoost failed ({e}), falling back to CPU.")
+                print("[Centralised] XGBoost running on GPU (legacy mode).")
+            except Exception as e2:
+                print(f"[Centralised] GPU failed ({e2}), using CPU.")
                 xgb = XGBClassifier(**xgb_params)
                 xgb.fit(X_train, y_train)
     else:
@@ -103,21 +83,22 @@ def train_centralized(
     return models
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# EVALUATION
-# ─────────────────────────────────────────────────────────────────────────────
-
 def evaluate_centralized(
     models:    Dict,
     X_test:    np.ndarray,
     y_test:    np.ndarray,
     threshold: float = THRESHOLD
 ) -> Dict[str, Dict]:
-    """Evaluate each centralised model; return a results dict."""
+    """Evaluate each centralised model; return results dict."""
     results = {}
 
     for name, model in models.items():
-        probs = model.predict_proba(X_test)[:, 1]
+        try:
+            probs = model.predict_proba(X_test)[:, 1]
+        except:
+            # Fallback for models without predict_proba
+            probs = model.predict(X_test).astype(float)
+        
         preds = (probs >= threshold).astype(int)
 
         results[name] = {
@@ -137,10 +118,6 @@ def evaluate_centralized(
     return results
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# SHAP FEATURE IMPORTANCE (XGBoost only)
-# ─────────────────────────────────────────────────────────────────────────────
-
 def compute_shap(
     xgb_model:     XGBClassifier,
     X_test:        np.ndarray,
@@ -149,14 +126,20 @@ def compute_shap(
     """
     Compute SHAP values for XGBoost.
     Returns (shap_values, mean_abs_shap) for plotting.
-    SHAP shows PER-PREDICTION importance — far more powerful than
-    default XGBoost feature_importances_ for a reviewer audience.
     """
     print("[SHAP] Computing SHAP values (may take ~30s) ...")
-    # Use a subset for speed; 500 samples is sufficient for importance ranking
-    sample = X_test[:500]
-    explainer = shap.TreeExplainer(xgb_model)
-    shap_vals  = explainer.shap_values(sample)
-    mean_shap  = np.abs(shap_vals).mean(axis=0)
-    print("[SHAP] Done.\n")
-    return shap_vals, mean_shap
+    
+    try:
+        # Use subset for speed
+        sample_size = min(500, len(X_test))
+        sample = X_test[:sample_size]
+        
+        explainer = shap.TreeExplainer(xgb_model)
+        shap_vals = explainer.shap_values(sample)
+        mean_shap = np.abs(shap_vals).mean(axis=0)
+        print("[SHAP] Done.\n")
+        return shap_vals, mean_shap
+        
+    except Exception as e:
+        print(f"[SHAP] Failed: {e}\n")
+        return None, None

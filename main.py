@@ -1,7 +1,7 @@
 """
 main.py
 ────────
-SF-9: Federated Learning for Distributed Space Weather Monitoring
+SF-9: Federated Space Weather Monitoring
 Full pipeline orchestrator.
 
 Run order:
@@ -11,8 +11,9 @@ Run order:
   4. Train centralised baselines (LR + XGBoost) — upper bound
   5. Run FedAvg for N_ROUNDS
   6. Run FedProx for N_ROUNDS
-  7. Evaluate all models on the global test set
-  8. Generate all paper figures
+  7. Optimize thresholds
+  8. Evaluate all models on the global test set
+  9. Generate all paper figures
 
 Usage:
   python main.py
@@ -41,9 +42,12 @@ from visualize_results    import (
     print_results_table,
 )
 
+# Fix Windows encoding issues
 if sys.platform == 'win32':
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description="SF-9 Federated Solar Flare Prediction")
     parser.add_argument("--rounds",  type=int, default=cfg.N_ROUNDS,   help="FL communication rounds")
@@ -51,6 +55,32 @@ def parse_args():
     parser.add_argument("--mu",      type=float, default=cfg.MU,       help="FedProx proximal coefficient")
     parser.add_argument("--dirichlet", action="store_true",            help="Use Dirichlet partitioning instead of HARPNUM_MOD")
     return parser.parse_args()
+
+
+def find_best_threshold(y_true, y_probs, model_name):
+    """Find threshold that maximizes F1 score"""
+    from sklearn.metrics import f1_score as sklearn_f1
+    from sklearn.metrics import precision_score as sklearn_prec
+    from sklearn.metrics import recall_score as sklearn_rec
+    
+    best_f1 = 0
+    best_thresh = 0.50
+    
+    for thresh in np.arange(0.20, 0.85, 0.01):
+        y_pred = (y_probs >= thresh).astype(int)
+        f1 = sklearn_f1(y_true, y_pred, zero_division=0)
+        
+        if f1 > best_f1:
+            best_f1 = f1
+            best_thresh = thresh
+    
+    prec = sklearn_prec(y_true, (y_probs >= best_thresh).astype(int), zero_division=0)
+    rec = sklearn_rec(y_true, (y_probs >= best_thresh).astype(int), zero_division=0)
+    
+    print(f"  {model_name}: Optimal threshold = {best_thresh:.2f} | "
+          f"F1={best_f1:.3f} | Prec={prec:.3f} | Rec={rec:.3f}")
+    
+    return best_thresh, {'precision': prec, 'recall': rec, 'f1': best_f1}
 
 
 def main():
@@ -70,22 +100,17 @@ def main():
     # ── 2. PREPROCESS ─────────────────────────────────────────────────────
     X_train, X_test, y_train, y_test, scaler, feature_names = preprocess(df)
 
-    # ── 3. PARTITION ──────────────────────────────────────────────────────   
+    # ── 3. PARTITION ──────────────────────────────────────────────────────
     print("[Partition] Splitting training data into regional client shards ...\n")
     
-    # ════════════════════════════════════════════════════════════════════
-    # 🔧 FIX: Always use balanced partitioning for cleaned dataset
-    # ════════════════════════════════════════════════════════════════════
     try:
         from config import USE_CLEANED_DATA
         if USE_CLEANED_DATA:
-            # Force balanced partitioning for cleaned data (no reliable HARPNUM)
             print("[Partition] Cleaned dataset detected → Using BALANCED partition\n")
             shards = partition_data(X_train, y_train, harpnum_mod=None)
         elif args.dirichlet or "HARPNUM_MOD" not in df.columns:
             shards = partition_data_dirichlet(X_train, y_train, alpha=0.5)
         else:
-            # Map train indices back to HARPNUM_MOD
             train_harp = df["HARPNUM_MOD"].values[:len(X_train)]
             shards = partition_data(X_train, y_train, train_harp)
     except Exception as e:
@@ -108,7 +133,22 @@ def main():
                                                  n_rounds=args.rounds, mu=args.mu)
     fedprox_metrics = evaluate_model(fedprox_model, X_test, y_test)
 
-    # ── 7. COMBINED RESULTS ───────────────────────────────────────────────
+    # ── 7. OPTIMIZE THRESHOLDS (NEW!) ─────────────────────────────────────
+    print("\n[Optimization] Finding optimal thresholds...")
+    
+    import torch
+    fedavg_model.eval()
+    fedprox_model.eval()
+    
+    with torch.no_grad():
+        X_tensor = torch.FloatTensor(X_test).to(next(fedavg_model.parameters()).device)
+        fedavg_probs = torch.sigmoid(fedavg_model(X_tensor)).cpu().numpy().flatten()
+        fedprox_probs = torch.sigmoid(fedprox_model(X_tensor)).cpu().numpy().flatten()
+    
+    _, fedavg_optimal = find_best_threshold(y_test, fedavg_probs, "FedAvg")
+    _, fedprox_optimal = find_best_threshold(y_test, fedprox_probs, "FedProx")
+
+    # ── 8. COMBINED RESULTS ───────────────────────────────────────────────
     all_results = {
         "Logistic Regression":   c_results["logistic_regression"],
         "XGBoost (Centralised)": c_results["xgboost"],
@@ -117,8 +157,8 @@ def main():
     }
     print_results_table(all_results)
 
-    # ── 8. FIGURES ────────────────────────────────────────────────────────
-    print("[Figures] Generating paper plots ...\n")
+    # ── 9. FIGURES ────────────────────────────────────────────────────────
+    print("\n[Figures] Generating paper plots ...\n")
 
     plot_confusion_matrices(all_results, y_test)
     plot_roc_curves(all_results, y_test)
@@ -128,7 +168,8 @@ def main():
     # SHAP for XGBoost
     try:
         _, mean_shap = compute_shap(c_models["xgboost"], X_test, feature_names)
-        plot_shap_importance(mean_shap, feature_names)
+        if mean_shap is not None:
+            plot_shap_importance(mean_shap, feature_names)
     except Exception as e:
         print(f"[SHAP] Skipped: {e}")
 

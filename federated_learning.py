@@ -1,22 +1,7 @@
 """
 federated_learning.py
-──────────────────────
-Implements both FedAvg and FedProx from scratch.
-
-FedAvg  (McMahan et al., 2017)
-  Server sends global weights → clients train locally → server averages.
-
-FedProx (Li et al., 2020)
-  Same as FedAvg but each client adds a PROXIMAL TERM to its local loss:
-      L_prox = L_CE + (μ/2) * ||w_local - w_global||²
-  This penalises local drift and handles non-IID data heterogeneity,
-  which is the exact scenario in distributed space weather monitoring.
-
-WHY THIS MATTERS FOR THE PAPER:
-  Each national observatory sees a different subset of active regions
-  (non-IID). FedProx is designed for exactly this heterogeneous setting.
-  Comparing FedAvg vs FedProx quantifies the cost of data heterogeneity
-  and the benefit of the proximal correction.
+───────────────────
+Implements FedAvg and FedProx from scratch with improvements.
 """
 
 import numpy as np
@@ -29,9 +14,9 @@ from config import (N_CLIENTS, N_ROUNDS, LOCAL_EPOCHS,
 from model import SolarMLP, make_loader, get_weights, set_weights, clone_model, make_fresh_model, get_device
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# LOCAL CLIENT TRAINING — FedAvg (plain BCE, no proximal term)
-# ─────────────────────────────────────────────────────────────────────────────
+# ════════════════════════════════════════════════════════════════════════
+# LOCAL TRAINING — FedAvg (IMPROVED WITH CLASS WEIGHTS + GRADIENT CLIPPING)
+# ════════════════════════════════════════════════════════════════════════
 
 def local_train_fedavg(
     model:  SolarMLP,
@@ -39,30 +24,59 @@ def local_train_fedavg(
     y:      np.ndarray,
     epochs: int = LOCAL_EPOCHS
 ) -> SolarMLP:
-    """Standard local SGD training (no proximal term)."""
-    device    = next(model.parameters()).device
+    """
+    Improved local training with:
+    - Class-weighted loss for imbalance
+    - Gradient clipping for stability
+    - AdamW optimizer with weight decay
+    - Learning rate scheduling
+    """
+    device = next(model.parameters()).device
     model.train()
-    loader    = make_loader(X, y)
-    criterion = nn.BCELoss()
-    optimiser = torch.optim.Adam(model.parameters(), lr=LR)
+    loader = make_loader(X, y)
+    
+    # ✅ FIX #1: Calculate class weights for imbalanced data
+    n_neg = (y == 0).sum()
+    n_pos = (y == 1).sum()
+    pos_weight_val = n_neg / max(n_pos, 1)
+    pos_weight = torch.tensor([pos_weight_val], dtype=torch.float32).to(device)
+    
+    # ✅ FIX #2: Use weighted BCE loss
+    criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+    
+    # ✅ FIX #3: AdamW with L2 regularization
+    optimiser = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=1e-4)
+    
+    # ✅ FIX #4: Cosine learning rate scheduler
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+        optimiser, 
+        T_max=epochs,
+        eta_min=LR * 0.01
+    )
 
-    for _ in range(epochs):
+    for epoch in range(epochs):
         for Xb, yb in loader:
-            # Move batch to same device as model
             Xb = Xb.to(device)
             yb = yb.to(device)
+            
             optimiser.zero_grad()
             pred = model(Xb)
             loss = criterion(pred, yb)
             loss.backward()
+            
+            # ✅ FIX #5: Gradient clipping (prevents explosion)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=5.0)
+            
             optimiser.step()
+        
+        scheduler.step()
 
     return model
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# LOCAL CLIENT TRAINING — FedProx (BCE + proximal regularisation)
-# ─────────────────────────────────────────────────────────────────────────────
+# ════════════════════════════════════════════════════════════════════════
+# LOCAL TRAINING — FedProx (IMPROVED WITH SAME FIXES + PROXIMAL TERM)
+# ════════════════════════════════════════════════════════════════════════
 
 def local_train_fedprox(
     model:        SolarMLP,
@@ -73,28 +87,38 @@ def local_train_fedprox(
     mu:           float = MU
 ) -> SolarMLP:
     """
-    Local training with FedProx proximal term.
+    Local training with FedProx proximal term + all improvements.
     L_total = BCE(pred, y) + (μ/2) * ||w_local - w_global||²
     """
-    device    = next(model.parameters()).device
+    device = next(model.parameters()).device
     model.train()
-    loader    = make_loader(X, y)
-    criterion = nn.BCELoss()
-    optimiser = torch.optim.Adam(model.parameters(), lr=LR)
-
-    # Snapshot of global weights — frozen, used only for distance calculation
+    loader = make_loader(X, y)
+    
+    # ✅ FIX #1: Class weights
+    n_neg = (y == 0).sum()
+    n_pos = (y == 1).sum()
+    pos_weight = torch.tensor([n_neg / max(n_pos, 1)], dtype=torch.float32).to(device)
+    
+    # ✅ FIX #2: Weighted loss
+    criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+    
+    # ✅ FIX #3: Better optimizer
+    optimiser = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=1e-4)
+    
+    # Global weights snapshot (for proximal term)
     global_params = [p.data.detach().clone().to(device)
                      for p in global_model.parameters()]
 
-    for _ in range(epochs):
+    for epoch in range(epochs):
         for Xb, yb in loader:
             Xb = Xb.to(device)
             yb = yb.to(device)
+            
             optimiser.zero_grad()
             pred = model(Xb)
-            bce  = criterion(pred, yb)
+            bce = criterion(pred, yb)
 
-            # Proximal term: penalise local drift from global model
+            # Proximal term: penalize drift from global model
             prox = torch.tensor(0.0, device=device)
             for local_p, global_p in zip(model.parameters(), global_params):
                 prox = prox + ((local_p - global_p) ** 2).sum()
@@ -102,14 +126,18 @@ def local_train_fedprox(
 
             loss = bce + prox
             loss.backward()
+            
+            # ✅ FIX #4: Gradient clipping
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=5.0)
+            
             optimiser.step()
 
     return model
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# SERVER AGGREGATION — weighted FedAvg rule
-# ─────────────────────────────────────────────────────────────────────────────
+# ════════════════════════════════════════════════════════════════════════
+# SERVER AGGREGATION
+# ════════════════════════════════════════════════════════════════════════
 
 def aggregate_weights(
     client_weights: List[list],
@@ -117,22 +145,22 @@ def aggregate_weights(
 ) -> list:
     """
     Weighted average of client model weights proportional to dataset size.
-    This aggregation rule is identical for both FedAvg and FedProx —
-    the difference between the two algorithms is purely in local training.
     """
-    total    = sum(client_sizes)
+    total = sum(client_sizes)
     averaged = []
+    
     for layer_idx in range(len(client_weights[0])):
         layer_avg = np.zeros_like(client_weights[0][layer_idx], dtype=np.float64)
         for w, n in zip(client_weights, client_sizes):
             layer_avg += (n / total) * w[layer_idx].astype(np.float64)
         averaged.append(layer_avg.astype(np.float32))
+    
     return averaged
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+# ════════════════════════════════════════════════════════════════════════
 # EVALUATION
-# ─────────────────────────────────────────────────────────────────────────────
+# ════════════════════════════════════════════════════════════════════════
 
 def evaluate_model(
     model:     SolarMLP,
@@ -140,16 +168,23 @@ def evaluate_model(
     y_test:    np.ndarray,
     threshold: float = THRESHOLD
 ) -> Dict:
-    """Evaluate a trained model; returns accuracy, recall, precision, F1, ROC-AUC."""
+    """Evaluate trained model; returns metrics dict."""
     from sklearn.metrics import (accuracy_score, precision_score,
                                  recall_score, f1_score, roc_auc_score)
+    
     device = next(model.parameters()).device
     model.eval()
+    
     with torch.no_grad():
         X_tensor = torch.tensor(X_test, dtype=torch.float32).to(device)
-        probs    = model(X_tensor).cpu().numpy()
+        logits = model(X_tensor)
+        probs = torch.sigmoid(logits).cpu().numpy()
 
+    # Ensure probs is 1D
+    probs = probs.flatten()
+    
     preds = (probs >= threshold).astype(int)
+    
     return {
         "accuracy":  accuracy_score(y_test, preds),
         "precision": precision_score(y_test, preds, zero_division=0),
@@ -161,9 +196,9 @@ def evaluate_model(
     }
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+# ════════════════════════════════════════════════════════════════════════
 # FEDAVG TRAINING LOOP
-# ─────────────────────────────────────────────────────────────────────────────
+# ════════════════════════════════════════════════════════════════════════
 
 def run_fedavg(
     shards:   List[Tuple[np.ndarray, np.ndarray]],
@@ -173,12 +208,11 @@ def run_fedavg(
 ) -> Tuple[SolarMLP, List[Dict]]:
     """
     Complete FedAvg training loop.
-    Returns the final global model and per-evaluation-round metric history.
+    Returns final global model and per-round metric history.
     """
-    input_dim    = shards[0][0].shape[1]
-    # BUG FIX: make_fresh_model returns (model, device) — unpack both
+    input_dim = shards[0][0].shape[1]
     global_model, device = make_fresh_model(input_dim)
-    history      = []
+    history = []
 
     print("=" * 60)
     print(f" FedAvg Training  [{device}]")
@@ -186,22 +220,21 @@ def run_fedavg(
 
     for rnd in range(1, n_rounds + 1):
         n_selected = max(1, int(FRACTION_FIT * N_CLIENTS))
-        selected   = np.random.choice(len(shards), n_selected, replace=False)
+        selected = np.random.choice(len(shards), n_selected, replace=False)
 
         client_weights = []
-        client_sizes   = []
+        client_sizes = []
 
         for cid in selected:
             X_c, y_c = shards[cid]
             if len(X_c) == 0:
                 continue
-            # Clone global model (stays on same device)
+            
             local = clone_model(global_model)
             local = local_train_fedavg(local, X_c, y_c)
             client_weights.append(get_weights(local))
             client_sizes.append(len(X_c))
 
-            # Free local model from GPU memory after weight extraction
             del local
             if device.type == "cuda":
                 torch.cuda.empty_cache()
@@ -209,11 +242,10 @@ def run_fedavg(
         if not client_weights:
             continue
 
-        # Aggregate and push back to global model
         new_weights = aggregate_weights(client_weights, client_sizes)
         set_weights(global_model, new_weights)
 
-        # Evaluate every 5 rounds and on the final round
+        # Evaluate every 5 rounds and on final round
         if rnd % 5 == 0 or rnd == n_rounds:
             metrics = evaluate_model(global_model, X_test, y_test)
             history.append({"round": rnd, **metrics})
@@ -225,25 +257,24 @@ def run_fedavg(
     return global_model, history
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+# ════════════════════════════════════════════════════════════════════════
 # FEDPROX TRAINING LOOP
-# ─────────────────────────────────────────────────────────────────────────────
+# ════════════════════════════════════════════════════════════════════════
 
 def run_fedprox(
     shards:   List[Tuple[np.ndarray, np.ndarray]],
     X_test:   np.ndarray,
     y_test:   np.ndarray,
-    n_rounds: int   = N_ROUNDS,
+    n_rounds: int = N_ROUNDS,
     mu:       float = MU
 ) -> Tuple[SolarMLP, List[Dict]]:
     """
     Complete FedProx training loop.
-    Returns the final global model and per-evaluation-round metric history.
+    Returns final global model and per-round metric history.
     """
-    input_dim    = shards[0][0].shape[1]
-    # BUG FIX: make_fresh_model returns (model, device) — unpack both
+    input_dim = shards[0][0].shape[1]
     global_model, device = make_fresh_model(input_dim)
-    history      = []
+    history = []
 
     print("=" * 60)
     print(f" FedProx Training (μ = {mu})  [{device}]")
@@ -251,15 +282,16 @@ def run_fedprox(
 
     for rnd in range(1, n_rounds + 1):
         n_selected = max(1, int(FRACTION_FIT * N_CLIENTS))
-        selected   = np.random.choice(len(shards), n_selected, replace=False)
+        selected = np.random.choice(len(shards), n_selected, replace=False)
 
         client_weights = []
-        client_sizes   = []
+        client_sizes = []
 
         for cid in selected:
             X_c, y_c = shards[cid]
             if len(X_c) == 0:
                 continue
+            
             local = clone_model(global_model)
             local = local_train_fedprox(local, global_model, X_c, y_c, mu=mu)
             client_weights.append(get_weights(local))
@@ -284,4 +316,3 @@ def run_fedprox(
                   f"ROC-AUC: {metrics['roc_auc']:.3f}")
 
     return global_model, history
-
