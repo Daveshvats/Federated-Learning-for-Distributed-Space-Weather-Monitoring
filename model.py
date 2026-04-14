@@ -19,6 +19,16 @@ from config import INPUT_DIM, HIDDEN_DIMS, DROPOUT, LR, BATCH_SIZE, RANDOM_STATE
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Global device — set once, used everywhere
+# ─────────────────────────────────────────────────────────────────────────────
+
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+def get_device():
+    return DEVICE
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Dataset wrapper
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -52,6 +62,9 @@ class SolarMLP(nn.Module):
     3-hidden-layer MLP with BatchNorm and Dropout.
     Output: single sigmoid neuron (binary classification probability).
     Architecture: INPUT → 128 → 64 → 32 → 1
+
+    Uses BCELoss — one output neuron, probability in [0, 1].
+    Compatible with FedAvg/FedProx weight averaging.
     """
 
     def __init__(self, input_dim: int = INPUT_DIM):
@@ -66,17 +79,19 @@ class SolarMLP(nn.Module):
                 nn.ReLU(),
                 nn.Dropout(DROPOUT),
             ]
+        # Single output neuron + sigmoid → probability
         layers.append(nn.Linear(dims[-1], 1))
         layers.append(nn.Sigmoid())
 
         self.net = nn.Sequential(*layers)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # BUG FIX: must call self.net(x), not return self.net
         return self.net(x).squeeze(1)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Utility helpers used by federated_learning.py
+# Utility helpers
 # ─────────────────────────────────────────────────────────────────────────────
 
 def get_weights(model: SolarMLP) -> list:
@@ -92,12 +107,34 @@ def set_weights(model: SolarMLP, weights: list) -> None:
 
 
 def clone_model(model: SolarMLP) -> SolarMLP:
-    """Deep copy of the model (used to snapshot the global model)."""
+    """Deep copy of the model, placed on the same device as the original."""
+    device = next(model.parameters()).device
     new_model = SolarMLP(input_dim=model.net[0].in_features)
     new_model.load_state_dict(copy.deepcopy(model.state_dict()))
-    return new_model
+    return new_model.to(device)
 
 
-def make_fresh_model(input_dim: int = INPUT_DIM) -> SolarMLP:
+def make_fresh_model(input_dim: int = INPUT_DIM):
+    """
+    Create a new SolarMLP and move it to GPU if available.
+
+    Returns
+    -------
+    model  : SolarMLP  (already on DEVICE)
+    device : torch.device
+
+    ALWAYS unpack both values:
+        model, device = make_fresh_model()
+    """
     torch.manual_seed(RANDOM_STATE)
-    return SolarMLP(input_dim=input_dim)
+    model  = SolarMLP(input_dim=input_dim).to(DEVICE)
+
+    if DEVICE.type == "cuda":
+        gpu_name = torch.cuda.get_device_name(0)
+        mem_mb   = torch.cuda.memory_allocated() / 1024 ** 2
+        print(f"[Model] GPU: {gpu_name} | allocated: {mem_mb:.1f} MB")
+    else:
+        print("[Model] CUDA not available — using CPU. "
+              "Install CUDA PyTorch build for GPU acceleration.")
+
+    return model, DEVICE

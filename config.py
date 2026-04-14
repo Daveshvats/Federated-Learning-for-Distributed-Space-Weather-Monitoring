@@ -24,7 +24,11 @@ FEATURE_COLS = [
     "EPSX",     "EPSZ",     "HARPNUM_MOD", "TIME_SINCE_LAST_FLARE"
 ]
 LABEL_COL   = "label"
-HARPNUM_COL = "HARPNUM"
+
+# ════════════════════════════════════════════════════════════════════════
+# 🔧 FIX #1: Changed from "HARPNUM" to "HARPNUM_MOD" to match main.py!
+# ══════════════════════════════════════════════════════════════════════
+HARPNUM_COL = "HARPNUM_MOD"    # ← MUST MATCH WHAT main.py EXPECTS!
 
 # ── Federated Learning ────────────────────────────────────────────────────
 N_CLIENTS       = 6        # Regional observatories simulated
@@ -56,4 +60,15 @@ SMOTE_RATIO = 0.25     # Minority class fraction after SMOTE per client
 
 # ── Evaluation ────────────────────────────────────────────────────────────
 # Lower threshold maximises Recall — missing a flare is worse than a false alarm
-THRESHOLD   = 0.35
+THRESHOLD   = 0.70
+
+# ── Cleaned Dataset Settings ────────────────────────────────────────────────
+USE_CLEANED_DATA = True           # Set to False to use original merged data
+CLEANED_DATA_DIR = "data/cleaned" # Path to cleaned dataset folder
+COMBINE_PARTITIONS = True         # Use all 5 partitions (recommended)
+
+# ── GPU ACCELERATION ──
+USE_CUDA = True          # Enable CUDA
+PIN_MEMORY = True      # Faster GPU memory transfer
+BATCH_SIZE      = 256      # INCREASED from 64 (better GPU utilization)
+LOCAL_EPOCHS    = 3        # Reduced from 5 (faster)
