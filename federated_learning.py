@@ -25,50 +25,85 @@ def local_train_fedavg(
     epochs: int = LOCAL_EPOCHS
 ) -> SolarMLP:
     """
-    Improved local training with:
-    - Class-weighted loss for imbalance
-    - Gradient clipping for stability
-    - AdamW optimizer with weight decay
-    - Learning rate scheduling
+    Local FedAvg training with Dynamic Focal Loss (2026 SOTA).
+    
+    Key improvements over vanilla FedAvg:
+    1. Dynamic Focal Loss handles local-global imbalance mismatch
+    2. AdamW optimizer with weight decay prevents overfitting
+    3. Gradient clipping ensures stable training
+    4. Cosine LR scheduling improves convergence
     """
     device = next(model.parameters()).device
     model.train()
-    loader = make_loader(X, y)
     
-    # ✅ FIX #1: Calculate class weights for imbalanced data
-    n_neg = (y == 0).sum()
-    n_pos = (y == 1).sum()
-    pos_weight_val = n_neg / max(n_pos, 1)
-    pos_weight = torch.tensor([pos_weight_val], dtype=torch.float32).to(device)
+    # Create data loader
+    dataset = torch.utils.data.TensorDataset(
+        torch.FloatTensor(X), 
+        torch.FloatTensor(y)
+    )
+    loader = torch.utils.data.DataLoader(
+        dataset, 
+        batch_size=512,  # Larger batch = better gradient estimate
+        shuffle=True,
+        drop_last=False
+    )
     
-    # ✅ FIX #2: Use weighted BCE loss
-    criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+    # ✅ KEY CHANGE: Use Dynamic Focal Loss instead of BCE
+    from losses import DynamicFocalLoss
     
-    # ✅ FIX #3: AdamW with L2 regularization
-    optimiser = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=1e-4)
+    # Calculate this client's positivity rate for dynamic adjustment
+    client_pos_rate = float(y.mean())
     
-    # ✅ FIX #4: Cosine learning rate scheduler
+    criterion = DynamicFocalLoss(
+        gamma=2.0,           # Focusing parameter
+        base_alpha=0.25,     # Class balance weight
+        reduction='mean'
+    ).to(device)
+    
+    # Optimizer with L2 regularization
+    optimizer = torch.optim.AdamW(
+        model.parameters(), 
+        lr=LR, 
+        weight_decay=1e-4  # Prevents overfitting
+    )
+    
+    # Learning rate scheduler: cosine decay
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-        optimiser, 
+        optimizer, 
         T_max=epochs,
-        eta_min=LR * 0.01
+        eta_min=LR * 0.01  # Decay to 1% of initial LR
     )
 
+    # Training loop
     for epoch in range(epochs):
-        for Xb, yb in loader:
-            Xb = Xb.to(device)
-            yb = yb.to(device)
+        epoch_loss = 0.0
+        num_batches = 0
+        
+        for X_batch, y_batch in loader:
+            X_batch = X_batch.to(device)
+            y_batch = y_batch.to(device)
             
-            optimiser.zero_grad()
-            pred = model(Xb)
-            loss = criterion(pred, yb)
+            optimizer.zero_grad()
+            
+            # Forward pass
+            logits = model(X_batch)
+            
+            # ✅ KEY CHANGE: Pass client_pos_rate for dynamic adjustment
+            loss = criterion(logits, y_batch, client_pos_rate=client_pos_rate)
+            
+            # Backward pass
             loss.backward()
             
-            # ✅ FIX #5: Gradient clipping (prevents explosion)
+            # Gradient clipping (prevents explosion)
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=5.0)
             
-            optimiser.step()
+            # Optimizer step
+            optimizer.step()
+            
+            epoch_loss += loss.item()
+            num_batches += 1
         
+        # LR scheduler step
         scheduler.step()
 
     return model
@@ -86,73 +121,123 @@ def local_train_fedprox(
     epochs:       int   = LOCAL_EPOCHS,
     mu:           float = MU
 ) -> SolarMLP:
-    """
-    Local training with FedProx proximal term + all improvements.
-    L_total = BCE(pred, y) + (μ/2) * ||w_local - w_global||²
-    """
+    """Local FedProx training with Dynamic Focal Loss + proximal term."""
+    
     device = next(model.parameters()).device
     model.train()
-    loader = make_loader(X, y)
     
-    # ✅ FIX #1: Class weights
-    n_neg = (y == 0).sum()
-    n_pos = (y == 1).sum()
-    pos_weight = torch.tensor([n_neg / max(n_pos, 1)], dtype=torch.float32).to(device)
+    # Data loader
+    dataset = torch.utils.data.TensorDataset(
+        torch.FloatTensor(X), 
+        torch.FloatTensor(y)
+    )
+    loader = torch.utils.data.DataLoader(dataset, batch_size=512, shuffle=True)
     
-    # ✅ FIX #2: Weighted loss
-    criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+    # ✅ Use Dynamic Focal Loss (same as FedAvg)
+    from losses import DynamicFocalLoss
+    client_pos_rate = float(y.mean())
+    criterion = DynamicFocalLoss(gamma=2.0, base_alpha=0.25).to(device)
     
-    # ✅ FIX #3: Better optimizer
-    optimiser = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=1e-4)
+    # Optimizer
+    optimizer = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=1e-4)
     
     # Global weights snapshot (for proximal term)
-    global_params = [p.data.detach().clone().to(device)
+    global_params = [p.data.detach().clone().to(device) 
                      for p in global_model.parameters()]
 
     for epoch in range(epochs):
-        for Xb, yb in loader:
-            Xb = Xb.to(device)
-            yb = yb.to(device)
+        for X_batch, y_batch in loader:
+            X_batch = X_batch.to(device)
+            y_batch = y_batch.to(device)
             
-            optimiser.zero_grad()
-            pred = model(Xb)
-            bce = criterion(pred, yb)
-
+            optimizer.zero_grad()
+            
+            logits = model(X_batch)
+            
+            # Focal loss component
+            focal_loss = criterion(logits, y_batch, client_pos_rate=client_pos_rate)
+            
             # Proximal term: penalize drift from global model
-            prox = torch.tensor(0.0, device=device)
+            prox_term = torch.tensor(0.0, device=device)
             for local_p, global_p in zip(model.parameters(), global_params):
-                prox = prox + ((local_p - global_p) ** 2).sum()
-            prox = (mu / 2.0) * prox
-
-            loss = bce + prox
+                prox_term = prox_term + ((local_p - global_p) ** 2).sum()
+            prox_term = (mu / 2.0) * prox_term
+            
+            # Total loss
+            loss = focal_loss + prox_term
+            
             loss.backward()
-            
-            # ✅ FIX #4: Gradient clipping
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=5.0)
-            
-            optimiser.step()
+            optimizer.step()
 
     return model
-
 
 # ════════════════════════════════════════════════════════════════════════
 # SERVER AGGREGATION
 # ════════════════════════════════════════════════════════════════════════
 
-def aggregate_weights(
-    client_weights: List[list],
-    client_sizes:   List[int]
+def aggregate_weights_dafl(
+    client_weights: list,
+    client_sizes:   list,
+    client_labels:  list,      # NEW: List of y arrays for each client
+    global_pos_rate: float = 0.4887  # Your training set's flare rate
 ) -> list:
     """
-    Weighted average of client model weights proportional to dataset size.
-    """
-    total = sum(client_sizes)
-    averaged = []
+    Distribution-Aware Federated Learning (DA-FL) aggregation.
     
+    Instead of weighting clients only by dataset SIZE,
+    also weight by how well they represent MINORITY classes.
+    
+    Why this helps:
+    - Some clients may have slightly fewer flares due to random partitioning
+    - Those clients' updates should be UPWEIGHTED so minority patterns aren't lost
+    - Prevents the global model from being biased toward majority-class clients
+    
+    Formula:
+        final_weight_i = (size_i / total_size) × (local_pos_rate_i / global_pos_rate)
+    
+    Args:
+        client_weights: List of model state_dicts (one per client)
+        client_sizes: List of sample counts per client
+        client_labels: List of label arrays (y_c) per client
+        global_pos_rate: Global training set positivity rate
+    
+    Returns:
+        Averaged state_dict with distribution-aware weighting
+    """
+    
+    total_size = sum(client_sizes)
+    da_weights = []
+    
+    print("      [DA-FL] Distribution-aware weights:")
+    
+    for i, (size, y_c) in enumerate(zip(client_sizes, client_labels)):
+        # Base weight: proportional to dataset size
+        size_weight = size / total_size
+        
+        # Distribution weight: amplify underrepresented classes
+        local_pos_rate = float(np.mean(y_c))
+        phi = local_pos_rate / global_pos_rate if global_pos_rate > 0 else 1.0
+        
+        # Combined weight
+        combined = size_weight * phi
+        da_weights.append(combined)
+        
+        print(f"        Client {i}: size_w={size_weight:.3f}, φ={phi:.3f}, "
+              f"final_w={combined:.3f} (pos_rate={local_pos_rate:.3f})")
+    
+    # Normalize weights to sum to 1
+    total_da_weight = sum(da_weights)
+    da_weights = [w / total_da_weight for w in da_weights]
+    
+    # Weighted average of model parameters
+    averaged = []
     for layer_idx in range(len(client_weights[0])):
         layer_avg = np.zeros_like(client_weights[0][layer_idx], dtype=np.float64)
-        for w, n in zip(client_weights, client_sizes):
-            layer_avg += (n / total) * w[layer_idx].astype(np.float64)
+        
+        for w, da_w in zip(client_weights, da_weights):
+            layer_avg += da_w * w[layer_idx].astype(np.float64)
+        
         averaged.append(layer_avg.astype(np.float32))
     
     return averaged
@@ -242,7 +327,15 @@ def run_fedavg(
         if not client_weights:
             continue
 
-        new_weights = aggregate_weights(client_weights, client_sizes)
+        client_label_list = [shards[cid][1] for cid in selected]
+        
+        new_weights = aggregate_weights_dafl(
+            client_weights, 
+            client_sizes, 
+            client_label_list,
+            global_pos_rate=0.4887  # Your training set rate
+        )
+        
         set_weights(global_model, new_weights)
 
         # Evaluate every 5 rounds and on final round
@@ -304,7 +397,15 @@ def run_fedprox(
         if not client_weights:
             continue
 
-        new_weights = aggregate_weights(client_weights, client_sizes)
+        client_label_list = [shards[cid][1] for cid in selected]
+        
+        new_weights = aggregate_weights_dafl(
+            client_weights, 
+            client_sizes, 
+            client_label_list,
+            global_pos_rate=0.4887  # Your training set rate
+        )
+        
         set_weights(global_model, new_weights)
 
         if rnd % 5 == 0 or rnd == n_rounds:

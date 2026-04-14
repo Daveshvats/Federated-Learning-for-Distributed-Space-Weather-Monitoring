@@ -138,3 +138,68 @@ def make_fresh_model(input_dim: int = INPUT_DIM):
               "Install CUDA PyTorch build for GPU acceleration.")
 
     return model, DEVICE
+
+class PersonalizedSolarMLP(nn.Module):
+    """
+    MLP with personalized head per client.
+    
+    Architecture:
+    - Shared backbone (trained via FL, averaged across clients)
+    - Personal head (kept local, never shared)
+    
+    Reference: 
+    - "Ditto: Fair and Robust Federated Learning" (ICML 2021)
+    - "pFedFDA: Personalized Federated Learning for Heterogeneous Data"
+    """
+    
+    def __init__(self, input_dim=24, hidden_dims=[128, 64, 32], dropout=0.3):
+        super().__init__()
+        
+        # Shared backbone (will be averaged in FL)
+        self.backbone = nn.Sequential(
+            nn.Linear(input_dim, hidden_dims[0]),
+            nn.BatchNorm1d(hidden_dims[0]),
+            nn.LeakyReLU(0.1),
+            nn.Dropout(dropout),
+            
+            nn.Linear(hidden_dims[0], hidden_dims[1]),
+            nn.BatchNorm1d(hidden_dims[1]),
+            nn.LeakyReLU(0.1),
+            nn.Dropout(dropout),
+            
+            nn.Linear(hidden_dims[1], hidden_dims[2]),
+            nn.BatchNorm1d(hidden_dims[2]),
+            nn.LeakyReLU(0.1),
+            nn.Dropout(dropout),
+        )
+        
+        # Personal head (client-specific, NOT shared)
+        self.personal_head = nn.Sequential(
+            nn.Linear(hidden_dims[2], 16),
+            nn.LeakyReLU(0.1),
+            nn.Dropout(dropout * 0.5),
+            nn.Linear(16, 1)
+        )
+        
+        # Initialize weights
+        self._init_weights()
+    
+    def _init_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Linear):
+                nn.init.xavier_uniform_(m.weight)
+                if m.bias is not None:
+                    nn.init.zeros_(m.bias)
+    
+    def forward(self, x):
+        features = self.backbone(x)
+        output = self.personal_head(features)
+        return output.squeeze()
+    
+    def get_backbone_params(self):
+        """Return only backbone parameters (for FL averaging)"""
+        return list(self.backbone.parameters())
+    
+    def get_personal_params(self):
+        """Return personal head parameters (local only)"""
+        return list(self.personal_head.parameters())
