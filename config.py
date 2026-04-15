@@ -110,4 +110,5 @@ COMBINE_PARTITIONS = True         # Use all 5 partitions (recommended)
 # ── GPU ACCELERATION ──
 USE_CUDA = True          # Enable CUDA
 PIN_MEMORY = True        # Faster GPU memory transfer
+EVAL_BATCH_SIZE = 2048   # Batch size for evaluation (lower if OOM; 2048 for RTX 3060 12GB)
 LOCAL_EPOCHS    = 3        # Reduced from 5 (faster)

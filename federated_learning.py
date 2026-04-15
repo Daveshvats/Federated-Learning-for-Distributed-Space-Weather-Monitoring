@@ -20,7 +20,7 @@ from typing import List, Tuple, Dict
 from config import (N_CLIENTS, N_ROUNDS, LOCAL_EPOCHS,
                     FRACTION_FIT, MU, LR, CLIENT_NAMES, THRESHOLD,
                     USE_LSTM, USE_FED_FOCAL, FOCAL_GAMMA, FOCAL_ALPHA,
-                    USE_MIXUP, MIXUP_ALPHA, FBETA_BETA)
+                    USE_MIXUP, MIXUP_ALPHA, FBETA_BETA, EVAL_BATCH_SIZE)
 from model import (SolarMLP, SolarLSTM, make_loader, get_weights, set_weights,
                    clone_model, make_fresh_model, get_device, is_lstm_model)
 
@@ -367,8 +367,12 @@ def local_train_scaffold(
                 new_c = c_local[i].to(device) + delta - c_global[i].to(device)
             else:
                 new_c = delta
-            # Clip control variates to prevent explosion
-            new_c = torch.clamp(new_c, -1.0, 1.0)
+            # Adaptive clipping: clip based on parameter's own scale
+            # Using percentile-based clipping (3x the standard deviation)
+            # instead of fixed [-1, 1] which was too aggressive for LSTM
+            param_std = p_new.data.std().item()
+            clip_val = max(3.0 * param_std, 0.01)  # At least 0.01
+            new_c = torch.clamp(new_c, -clip_val, clip_val)
             new_c_local.append(new_c.cpu().detach().clone())
 
     return model, new_c_local
@@ -471,32 +475,61 @@ def evaluate_model(
     model:     nn.Module,
     X_test:    np.ndarray,
     y_test:    np.ndarray,
-    threshold: float = THRESHOLD
+    threshold: float = THRESHOLD,
+    batch_size: int = EVAL_BATCH_SIZE
 ) -> Dict:
-    """Evaluate trained model; returns metrics dict."""
+    """
+    Evaluate trained model with batched inference (GPU memory safe).
+
+    CRITICAL FIX: The full test set (331K samples x 60 x 24 for LSTM)
+    cannot fit in GPU memory at once. This version processes data in
+    mini-batches to avoid CUDA OOM errors.
+
+    Args:
+        model: Trained PyTorch model
+        X_test: Test features (2D for MLP, 3D for LSTM)
+        y_test: Test labels
+        threshold: Classification threshold
+        batch_size: Number of samples per inference batch
+                   2048 works well on RTX 3060 (12GB) for LSTM
+
+    Returns:
+        Dict with accuracy, precision, recall, f1, roc_auc, probs, preds
+    """
     from sklearn.metrics import (accuracy_score, precision_score,
                                  recall_score, f1_score, roc_auc_score)
 
     device = next(model.parameters()).device
     model.eval()
 
+    n_samples = len(X_test)
+    all_probs = np.empty(n_samples, dtype=np.float32)
+
     with torch.no_grad():
-        X_tensor = torch.tensor(X_test, dtype=torch.float32).to(device)
-        logits = model(X_tensor)
-        probs = torch.sigmoid(logits).cpu().numpy()
+        for start in range(0, n_samples, batch_size):
+            end = min(start + batch_size, n_samples)
+            X_batch = torch.tensor(
+                X_test[start:end], dtype=torch.float32
+            ).to(device)
 
-    # Ensure probs is 1D
-    probs = probs.flatten()
+            logits = model(X_batch)
+            probs_batch = torch.sigmoid(logits).cpu().numpy().flatten()
+            all_probs[start:end] = probs_batch
 
-    preds = (probs >= threshold).astype(int)
+            # Free GPU memory after each batch
+            del X_batch, logits
+            if device.type == "cuda":
+                torch.cuda.empty_cache()
+
+    preds = (all_probs >= threshold).astype(int)
 
     return {
         "accuracy":  accuracy_score(y_test, preds),
         "precision": precision_score(y_test, preds, zero_division=0),
         "recall":    recall_score(y_test, preds, zero_division=0),
         "f1":        f1_score(y_test, preds, zero_division=0),
-        "roc_auc":   roc_auc_score(y_test, probs),
-        "probs":     probs,
+        "roc_auc":   roc_auc_score(y_test, all_probs),
+        "probs":     all_probs,
         "preds":     preds,
     }
 

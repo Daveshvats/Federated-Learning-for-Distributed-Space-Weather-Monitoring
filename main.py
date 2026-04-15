@@ -64,6 +64,8 @@ def parse_args():
     parser.add_argument("--no-lstm", action="store_true",              help="Disable LSTM, use MLP")
     parser.add_argument("--no-scaffold", action="store_true",          help="Disable SCAFFOLD algorithm")
     parser.add_argument("--no-mixup", action="store_true",             help="Disable mixup augmentation")
+    parser.add_argument("--eval-batch-size", type=int, default=cfg.EVAL_BATCH_SIZE,
+                        help="Batch size for evaluation (lower if CUDA OOM)")
     return parser.parse_args()
 
 
@@ -106,25 +108,45 @@ def find_optimal_threshold_fbeta(y_true, y_probs, model_name, beta=2.0):
                          f'f{beta:.0f}': best_fb}
 
 
-def get_model_probs(model, X_test, device):
+def get_model_probs(model, X_test, device, batch_size=cfg.EVAL_BATCH_SIZE):
     """
-    Get model probabilities, handling both 2D (MLP) and 3D (LSTM) data.
+    Get model probabilities with batched inference (GPU memory safe).
+
+    CRITICAL FIX: The full test set (331K samples x 60 x 24 for LSTM)
+    cannot fit in GPU memory at once. This version processes data in
+    mini-batches to avoid CUDA OOM errors.
 
     Args:
         model: Trained PyTorch model (SolarMLP or SolarLSTM)
         X_test: Test data (2D for MLP, 3D for LSTM)
         device: torch.device
+        batch_size: Number of samples per inference batch
+                   2048 works well on RTX 3060 (12GB) for LSTM
 
     Returns:
         probs: numpy array of probabilities
     """
     import torch
     model.eval()
+    n_samples = len(X_test)
+    all_probs = np.empty(n_samples, dtype=np.float32)
+
     with torch.no_grad():
-        X_tensor = torch.tensor(X_test, dtype=torch.float32).to(device)
-        logits = model(X_tensor)
-        probs = torch.sigmoid(logits).cpu().numpy().flatten()
-    return probs
+        for start in range(0, n_samples, batch_size):
+            end = min(start + batch_size, n_samples)
+            X_batch = torch.tensor(
+                X_test[start:end], dtype=torch.float32
+            ).to(device)
+            logits = model(X_batch)
+            probs_batch = torch.sigmoid(logits).cpu().numpy().flatten()
+            all_probs[start:end] = probs_batch
+
+            # Free GPU memory after each batch
+            del X_batch, logits
+            if device.type == "cuda":
+                torch.cuda.empty_cache()
+
+    return all_probs
 
 
 def main():
@@ -155,7 +177,8 @@ def main():
         print(f"  Data: 3D (batch, 60, 24) for LSTM | 2D (batch, 144) for baselines")
     else:
         print(f"  Data: 2D (batch, {cfg.FLATTEN_METHOD}) for all models")
-    print(f"  Mixup: {'ON' if cfg.USE_MIXUP else 'OFF'} | F-beta: {cfg.FBETA_BETA}")
+    print(f"  Mixup: {'ON' if cfg.USE_MIXUP else 'OFF'} | F-beta: {cfg.FBETA_BETA} | "
+          f"Eval batch: {args.eval_batch_size}")
     print("=" * 70 + "\n")
 
     # ═══════════════════════════════════════════════════════════════════════
@@ -285,8 +308,9 @@ def main():
     import torch
     device = next(fedavg_model.parameters()).device
 
-    fedavg_probs = get_model_probs(fedavg_model, X_test_fl, device)
-    fedprox_probs = get_model_probs(fedprox_model, X_test_fl, device)
+    eval_bs = args.eval_batch_size
+    fedavg_probs = get_model_probs(fedavg_model, X_test_fl, device, batch_size=eval_bs)
+    fedprox_probs = get_model_probs(fedprox_model, X_test_fl, device, batch_size=eval_bs)
 
     _, fedavg_optimal = find_optimal_threshold_fbeta(y_test_fl, fedavg_probs, "FedAvg",
                                                       beta=cfg.FBETA_BETA)
@@ -296,7 +320,7 @@ def main():
     # SCAFFOLD threshold optimization
     scaffold_optimal = None
     if scaffold_model is not None:
-        scaffold_probs = get_model_probs(scaffold_model, X_test_fl, device)
+        scaffold_probs = get_model_probs(scaffold_model, X_test_fl, device, batch_size=eval_bs)
         _, scaffold_optimal = find_optimal_threshold_fbeta(y_test_fl, scaffold_probs, "SCAFFOLD",
                                                            beta=cfg.FBETA_BETA)
 
