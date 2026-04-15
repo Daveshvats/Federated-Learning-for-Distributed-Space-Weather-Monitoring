@@ -38,19 +38,20 @@ def load_or_generate_data() -> pd.DataFrame:
     # ── Priority 1: cleaned pkl dataset ────────────────────────────────────
     try:
         from config import USE_CLEANED_DATA, CLEANED_DATA_DIR, COMBINE_PARTITIONS
-        if USE_CLEANED_DATA:
-            print("\n╔" + "═"*66 + "╗")
-            print("║" + "      SF-9 DATA LOADING PIPELINE".center(66) + "║")
-            print("╚" + "═"*66 + "╝\n")
-            print("[Priority 1] Attempting to load CLEANED dataset...")
-            # WITH THIS:
+        if not USE_CLEANED_DATA:
+            # Skip cleaned data if disabled — fall through to Priority 2
+            raise FileNotFoundError("USE_CLEANED_DATA is False")
+        print("\n╔" + "═"*66 + "╗")
+        print("║" + "      SF-9 DATA LOADING PIPELINE".center(66) + "║")
+        print("╚" + "═"*66 + "╝\n")
+        print("[Priority 1] Attempting to load CLEANED dataset...")
         from load_cleaned_data import load_cleaned_partition
-        from config import FLATTEN_METHOD  # Add this import at top
+        from config import FLATTEN_METHOD
 
         X_tr, y_tr, X_te, y_te, feat_names = load_cleaned_partition(
             combine_all_partitions=COMBINE_PARTITIONS,
             data_dir=CLEANED_DATA_DIR,
-            flatten_method=FLATTEN_METHOD  # ← ADD THIS PARAMETER!
+            flatten_method=FLATTEN_METHOD
         )
         return _arrays_to_dataframe(X_tr, y_tr, X_te, y_te, feat_names)
     except Exception as e:

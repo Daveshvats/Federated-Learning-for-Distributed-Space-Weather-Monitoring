@@ -43,7 +43,7 @@ HARPNUM_COL = "HARPNUM_MOD"    # ← MUST MATCH WHAT main.py EXPECTS!
 # ── Federated Learning ────────────────────────────────────────────────────
 N_CLIENTS       = 6        # Regional observatories simulated
 N_ROUNDS        = 50       # Total communication rounds
-LOCAL_EPOCHS    = 5        # Local training epochs per round
+LOCAL_EPOCHS    = 3        # Local training epochs per round (3 = faster, good enough)
 FRACTION_FIT    = 1.0      # Fraction of clients per round (1.0 = all)
 MU              = 0.01     # FedProx proximal coefficient
 
@@ -100,7 +100,9 @@ SMOTE_RATIO = 0.25     # Minority class fraction after SMOTE per client
 
 # ── Evaluation ────────────────────────────────────────────────────────────
 # Lower threshold maximises Recall — missing a flare is worse than a false alarm
-THRESHOLD   = 0.70
+# NOTE: threshold=0.35 is used for F1 evaluation; F-beta optimization finds the
+# optimal threshold separately (typically 0.15-0.40 range for safety-critical recall)
+THRESHOLD   = 0.35
 
 # ── Cleaned Dataset Settings ────────────────────────────────────────────────
 USE_CLEANED_DATA = True           # Set to False to use original merged data
@@ -111,4 +113,3 @@ COMBINE_PARTITIONS = True         # Use all 5 partitions (recommended)
 USE_CUDA = True          # Enable CUDA
 PIN_MEMORY = True        # Faster GPU memory transfer
 EVAL_BATCH_SIZE = 2048   # Batch size for evaluation (lower if OOM; 2048 for RTX 3060 12GB)
-LOCAL_EPOCHS    = 3        # Reduced from 5 (faster)

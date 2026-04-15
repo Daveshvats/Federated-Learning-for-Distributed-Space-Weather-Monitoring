@@ -243,11 +243,13 @@ def clone_model(model) -> nn.Module:
         new_model = SolarMLP(input_dim=input_dim)
     elif isinstance(model, SolarLSTM):
         input_dim = model.lstm.input_size
+        # Use the SAME dropout as the original model (was 0.0 = bug, now correct)
+        orig_dropout = model.lstm.dropout if model.num_layers > 1 else 0.0
         new_model = SolarLSTM(
             input_size=input_dim,
             hidden_size=model.hidden_size,
             num_layers=model.num_layers,
-            dropout=0.0,  # Don't add dropout during clone to avoid warnings
+            dropout=orig_dropout,
             bidirectional=model.bidirectional
         )
     else:

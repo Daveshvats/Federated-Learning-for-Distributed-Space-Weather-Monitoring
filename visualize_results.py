@@ -21,7 +21,7 @@ import seaborn as sns
 from sklearn.metrics import confusion_matrix, roc_curve, auc
 from typing import Dict, List
 
-from config import OUTPUT_DIR, CLIENT_NAMES
+from config import OUTPUT_DIR, CLIENT_NAMES, THRESHOLD
 
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -234,7 +234,7 @@ def plot_comparison_table(all_results: Dict) -> None:
     for j in range(len(header)):
         table[(best_row, j)].set_facecolor("#D5F5E3")
 
-    ax.set_title("Model Comparison (threshold = 0.35, best Recall highlighted)",
+    ax.set_title(f"Model Comparison (threshold = {THRESHOLD}, best Recall highlighted)",
                  fontsize=12, fontweight="bold", pad=20)
 
     path = os.path.join(OUTPUT_DIR, "Comparison_Table.png")

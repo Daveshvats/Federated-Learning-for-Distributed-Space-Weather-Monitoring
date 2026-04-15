@@ -55,7 +55,9 @@ class DynamicFocalLoss(nn.Module):
         bce = F.binary_cross_entropy_with_logits(logits, targets, reduction='none')
 
         # Probability of correct prediction (pt)
+        # Clamp to [eps, 1-eps] to prevent NaN from 0^gamma or log(0)
         pt = torch.exp(-bce)
+        pt = torch.clamp(pt, 1e-7, 1.0 - 1e-7)
 
         # Focal factor: (1 - pt)^gamma
         focal_factor = (1 - pt) ** self.gamma
@@ -74,6 +76,9 @@ class DynamicFocalLoss(nn.Module):
 
         # Final loss: alpha_t * focal_factor * bce
         loss = alpha_t * focal_factor * bce
+
+        # NaN safety: replace any NaN/Inf with 0 (skips bad batches)
+        loss = torch.nan_to_num(loss, nan=0.0, posinf=1.0, neginf=-1.0)
 
         if self.reduction == 'mean':
             return loss.mean()
@@ -162,7 +167,10 @@ class FedFocalLoss(nn.Module):
         bce = F.binary_cross_entropy_with_logits(logits, targets, reduction='none')
 
         # Probability of correct prediction
+        # Clamp to [eps, 1-eps] to prevent NaN from 0^gamma or log(0)
+        # This is critical when SCAFFOLD control variates cause logit explosion
         pt = torch.exp(-bce)
+        pt = torch.clamp(pt, 1e-7, 1.0 - 1e-7)
 
         # Focal modulation: down-weight easy examples
         focal_factor = (1 - pt) ** self.gamma
@@ -197,6 +205,10 @@ class FedFocalLoss(nn.Module):
 
         # Final loss: alpha_t * focal_factor * bce
         loss = alpha_t * focal_factor * bce
+
+        # NaN safety: replace any NaN/Inf with 0 (skips bad batches gracefully)
+        # This prevents SCAFFOLD weight explosions from crashing the entire pipeline
+        loss = torch.nan_to_num(loss, nan=0.0, posinf=1.0, neginf=-1.0)
 
         if self.reduction == 'mean':
             return loss.mean()

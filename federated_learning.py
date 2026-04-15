@@ -326,6 +326,7 @@ def local_train_scaffold(
     n_steps = 0
 
     # Training loop with SCAFFOLD correction
+    nan_detected = False
     for epoch in range(epochs):
         for X_batch, y_batch in loader:
             X_batch = X_batch.to(device)
@@ -337,6 +338,11 @@ def local_train_scaffold(
             logits = model(X_batch)
             loss = criterion(logits, y_batch, client_pos_rate=client_pos_rate)
 
+            # Check for NaN loss (early warning of divergence)
+            if torch.isnan(loss) or torch.isinf(loss):
+                nan_detected = True
+                continue  # Skip this batch
+
             # Backward to get gradients
             loss.backward()
 
@@ -347,14 +353,33 @@ def local_train_scaffold(
                 for i, p in enumerate(model.parameters()):
                     if p.grad is not None and i < len(c_global) and i < len(c_local):
                         correction = LR * (c_global[i].to(device) - c_local[i].to(device))
+                        # Clip correction to prevent it from dominating the gradient
+                        corr_norm = correction.norm().item()
+                        if corr_norm > 1.0:
+                            correction = correction * (1.0 / corr_norm)
                         p.grad.data += correction
 
-            # Gradient clipping
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=5.0)
+            # Tighter gradient clipping for SCAFFOLD (1.0 vs 5.0 for FedAvg/FedProx)
+            # SCAFFOLD is more prone to instability because the control variate
+            # correction can amplify gradients. max_norm=1.0 prevents explosion.
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimizer.step()
             n_steps += 1
 
         scheduler.step()
+
+        # Check model weights for NaN after each epoch
+        if nan_detected:
+            has_nan = any(torch.isnan(p).any().item() for p in model.parameters())
+            if has_nan:
+                # Reset model weights to initial state for this client
+                print(f"    [SCAFFOLD] NaN weights detected at epoch {epoch+1}. "
+                      f"Resetting to round-start weights.")
+                with torch.no_grad():
+                    for p, p_init in zip(model.parameters(), initial_params):
+                        p.data.copy_(p_init.to(device))
+                n_steps = 0  # Reset step count
+                break
 
     # Update client control variate
     # c_local_new = c_local_old + (w_new - w_old) / (n_steps * lr) - c_global
@@ -521,6 +546,20 @@ def evaluate_model(
             if device.type == "cuda":
                 torch.cuda.empty_cache()
 
+    # ── NaN/Inf protection ──
+    # SCAFFOLD and other algorithms can produce NaN logits when control
+    # variates diverge or gradients explode. Replace NaN with 0.5 (random
+    # guess) and clamp to valid probability range for metric computation.
+    nan_count = int(np.isnan(all_probs).sum())
+    inf_count = int(np.isinf(all_probs).sum())
+    if nan_count > 0 or inf_count > 0:
+        print(f"  [Warning] {nan_count} NaN + {inf_count} Inf probabilities detected. "
+              f"Replacing with 0.5 for metric computation.")
+        all_probs = np.nan_to_num(all_probs, nan=0.5, posinf=1.0, neginf=0.0)
+
+    # Clamp to [eps, 1-eps] for stable log computation in AUC
+    all_probs = np.clip(all_probs, 1e-7, 1.0 - 1e-7)
+
     preds = (all_probs >= threshold).astype(int)
 
     return {
@@ -543,7 +582,8 @@ def run_fedavg(
     X_test:   np.ndarray,
     y_test:   np.ndarray,
     n_rounds: int = N_ROUNDS,
-    use_lstm: bool = None
+    use_lstm: bool = None,
+    eval_batch_size: int = EVAL_BATCH_SIZE
 ) -> Tuple[nn.Module, List[Dict]]:
     """
     Complete FedAvg training loop.
@@ -612,12 +652,18 @@ def run_fedavg(
 
         # Evaluate every 5 rounds and on final round
         if rnd % 5 == 0 or rnd == n_rounds:
-            metrics = evaluate_model(global_model, X_test, y_test)
+            metrics = evaluate_model(global_model, X_test, y_test, batch_size=eval_batch_size)
             history.append({"round": rnd, **metrics})
+
+            # GPU memory logging
+            gpu_mem = ""
+            if device.type == "cuda":
+                gpu_mem = f" | GPU: {torch.cuda.memory_allocated()/1024**2:.0f}MB"
+
             print(f"  Round {rnd:>3} | "
                   f"F1: {metrics['f1']:.3f} | "
                   f"Recall: {metrics['recall']:.3f} | "
-                  f"ROC-AUC: {metrics['roc_auc']:.3f}")
+                  f"ROC-AUC: {metrics['roc_auc']:.3f}{gpu_mem}")
 
     return global_model, history
 
@@ -632,7 +678,8 @@ def run_fedprox(
     y_test:   np.ndarray,
     n_rounds: int = N_ROUNDS,
     mu:       float = MU,
-    use_lstm: bool = None
+    use_lstm: bool = None,
+    eval_batch_size: int = EVAL_BATCH_SIZE
 ) -> Tuple[nn.Module, List[Dict]]:
     """
     Complete FedProx training loop.
@@ -696,12 +743,18 @@ def run_fedprox(
         set_weights(global_model, new_weights)
 
         if rnd % 5 == 0 or rnd == n_rounds:
-            metrics = evaluate_model(global_model, X_test, y_test)
+            metrics = evaluate_model(global_model, X_test, y_test, batch_size=eval_batch_size)
             history.append({"round": rnd, **metrics})
+
+            # GPU memory logging
+            gpu_mem = ""
+            if device.type == "cuda":
+                gpu_mem = f" | GPU: {torch.cuda.memory_allocated()/1024**2:.0f}MB"
+
             print(f"  Round {rnd:>3} | "
                   f"F1: {metrics['f1']:.3f} | "
                   f"Recall: {metrics['recall']:.3f} | "
-                  f"ROC-AUC: {metrics['roc_auc']:.3f}")
+                  f"ROC-AUC: {metrics['roc_auc']:.3f}{gpu_mem}")
 
     return global_model, history
 
@@ -715,7 +768,8 @@ def run_scaffold(
     X_test:   np.ndarray,
     y_test:   np.ndarray,
     n_rounds: int = N_ROUNDS,
-    use_lstm: bool = None
+    use_lstm: bool = None,
+    eval_batch_size: int = EVAL_BATCH_SIZE
 ) -> Tuple[nn.Module, List[Dict]]:
     """
     Complete SCAFFOLD training loop with control variates.
@@ -817,8 +871,16 @@ def run_scaffold(
         if not client_weights:
             continue
 
-        # SCAFFOLD aggregation: model weights + control variates
-        new_weights, new_c_global = aggregate_scaffold_weights(
+        # SCAFFOLD aggregation: DA-FL weighted model params + control variate averaging
+        # DA-FL weights account for data size AND minority class representation
+        client_label_list = [shards[cid][1] for cid in selected]
+        new_weights = aggregate_weights_dafl(
+            client_weights, client_sizes, client_label_list,
+            global_pos_rate=0.4887
+        )
+
+        # Control variate averaging (standard SCAFFOLD: simple mean)
+        _, new_c_global = aggregate_scaffold_weights(
             client_weights, client_sizes, updated_c_locals,
             n_clients=len(selected)
         )
@@ -826,13 +888,34 @@ def run_scaffold(
         set_weights(global_model, new_weights)
         c_global = new_c_global
 
+        # ── NaN weight detection after aggregation ──
+        # If aggregated weights contain NaN (from a diverged client),
+        # revert to best checkpoint or reinitialize
+        has_nan = any(np.isnan(w).any() for w in new_weights)
+        if has_nan:
+            print(f"  [SCAFFOLD] NaN in aggregated weights at round {rnd}!")
+            if best_weights is not None:
+                print(f"  [SCAFFOLD] Reverting to best checkpoint (F1={best_f1:.3f})")
+                set_weights(global_model, best_weights)
+            else:
+                print(f"  [SCAFFOLD] No checkpoint available — reinitializing model")
+                global_model, device = make_fresh_model(input_dim, use_lstm=use_lstm)
+                c_global = [torch.zeros_like(p) for p in global_model.parameters()]
+            continue
+
         if rnd % 5 == 0 or rnd == n_rounds:
-            metrics = evaluate_model(global_model, X_test, y_test)
+            metrics = evaluate_model(global_model, X_test, y_test, batch_size=eval_batch_size)
             history.append({"round": rnd, **metrics})
+
+            # GPU memory logging
+            gpu_mem = ""
+            if device.type == "cuda":
+                gpu_mem = f" | GPU: {torch.cuda.memory_allocated()/1024**2:.0f}MB"
+
             print(f"  Round {rnd:>3} | "
                   f"F1: {metrics['f1']:.3f} | "
                   f"Recall: {metrics['recall']:.3f} | "
-                  f"ROC-AUC: {metrics['roc_auc']:.3f}")
+                  f"ROC-AUC: {metrics['roc_auc']:.3f}{gpu_mem}")
 
             # Track best model checkpoint
             if metrics['f1'] > best_f1:

@@ -146,6 +146,17 @@ def get_model_probs(model, X_test, device, batch_size=cfg.EVAL_BATCH_SIZE):
             if device.type == "cuda":
                 torch.cuda.empty_cache()
 
+    # ── NaN/Inf protection ──
+    nan_count = int(np.isnan(all_probs).sum())
+    inf_count = int(np.isinf(all_probs).sum())
+    if nan_count > 0 or inf_count > 0:
+        print(f"  [Warning] {nan_count} NaN + {inf_count} Inf probabilities detected. "
+              f"Replacing with 0.5 for metric computation.")
+        all_probs = np.nan_to_num(all_probs, nan=0.5, posinf=1.0, neginf=0.0)
+
+    # Clamp to [eps, 1-eps] for stable log computation
+    all_probs = np.clip(all_probs, 1e-7, 1.0 - 1e-7)
+
     return all_probs
 
 
@@ -267,14 +278,19 @@ def main():
     c_models  = train_centralized(X_train_2d, y_train)
     c_results = evaluate_centralized(c_models, X_test_2d, y_test)
 
+    # Eval batch size — used throughout for GPU memory-safe inference
+    eval_bs = args.eval_batch_size
+
     # ═══════════════════════════════════════════════════════════════════════
     # 4. FEDAVG
     # ═══════════════════════════════════════════════════════════════════════
     print()
     fedavg_model, fedavg_history = run_fedavg(shards, X_test_fl, y_test_fl,
                                               n_rounds=args.rounds,
-                                              use_lstm=use_lstm)
-    fedavg_metrics = evaluate_model(fedavg_model, X_test_fl, y_test_fl)
+                                              use_lstm=use_lstm,
+                                              eval_batch_size=eval_bs)
+    fedavg_metrics = evaluate_model(fedavg_model, X_test_fl, y_test_fl,
+                                     batch_size=eval_bs)
 
     # ═══════════════════════════════════════════════════════════════════════
     # 5. FEDPROX
@@ -282,8 +298,10 @@ def main():
     print()
     fedprox_model, fedprox_history = run_fedprox(shards, X_test_fl, y_test_fl,
                                                   n_rounds=args.rounds, mu=args.mu,
-                                                  use_lstm=use_lstm)
-    fedprox_metrics = evaluate_model(fedprox_model, X_test_fl, y_test_fl)
+                                                  use_lstm=use_lstm,
+                                                  eval_batch_size=eval_bs)
+    fedprox_metrics = evaluate_model(fedprox_model, X_test_fl, y_test_fl,
+                                      batch_size=eval_bs)
 
     # ═══════════════════════════════════════════════════════════════════════
     # 6. SCAFFOLD (NEW!)
@@ -296,9 +314,11 @@ def main():
         print()
         scaffold_model, scaffold_history = run_scaffold(shards, X_test_fl, y_test_fl,
                                                         n_rounds=args.rounds,
-                                                        use_lstm=use_lstm)
+                                                        use_lstm=use_lstm,
+                                                        eval_batch_size=eval_bs)
         if scaffold_model is not None:
-            scaffold_metrics = evaluate_model(scaffold_model, X_test_fl, y_test_fl)
+            scaffold_metrics = evaluate_model(scaffold_model, X_test_fl, y_test_fl,
+                                               batch_size=eval_bs)
 
     # ═══════════════════════════════════════════════════════════════════════
     # 7. F-BETA THRESHOLD OPTIMIZATION (beta=2)
@@ -308,7 +328,6 @@ def main():
     import torch
     device = next(fedavg_model.parameters()).device
 
-    eval_bs = args.eval_batch_size
     fedavg_probs = get_model_probs(fedavg_model, X_test_fl, device, batch_size=eval_bs)
     fedprox_probs = get_model_probs(fedprox_model, X_test_fl, device, batch_size=eval_bs)
 
