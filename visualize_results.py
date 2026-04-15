@@ -32,7 +32,22 @@ COLORS = {
     "XGBoost (Centralised)":    "#F28E2B",
     "FedAvg MLP":               "#59A14F",
     "FedProx MLP":              "#E15759",
+    "SCAFFOLD MLP":             "#B07AA1",
+    "FedAvg LSTM":              "#59A14F",
+    "FedProx LSTM":             "#E15759",
+    "SCAFFOLD LSTM":            "#B07AA1",
 }
+
+
+def _get_color(name):
+    """Get color for a model name, with fallback for unknown names."""
+    if name in COLORS:
+        return COLORS[name]
+    # Try to match by prefix
+    for key, color in COLORS.items():
+        if name.startswith(key.split(" ")[0]):
+            return color
+    return "#888888"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -79,7 +94,7 @@ def plot_roc_curves(all_results: Dict, y_test: np.ndarray) -> None:
     for name, res in all_results.items():
         fpr, tpr, _ = roc_curve(y_test, res["probs"])
         roc_auc      = auc(fpr, tpr)
-        color        = COLORS.get(name, "#888888")
+        color        = _get_color(name)
         ax.plot(fpr, tpr, label=f"{name}  (AUC = {roc_auc:.3f})", color=color, linewidth=2)
 
     ax.set_xlabel("False Positive Rate", fontsize=12)
@@ -101,20 +116,32 @@ def plot_roc_curves(all_results: Dict, y_test: np.ndarray) -> None:
 
 def plot_fl_convergence(
     fedavg_history:  List[Dict],
-    fedprox_history: List[Dict]
+    fedprox_history: List[Dict],
+    scaffold_history: List[Dict] = None
 ) -> None:
-    """Show F1 and Recall per communication round for both FL methods."""
+    """Show F1 and Recall per communication round for all FL methods."""
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
 
+    # Use consistent colors regardless of MLP/LSTM suffix
     for history, label, color in [
-        (fedavg_history,  "FedAvg",  COLORS["FedAvg MLP"]),
-        (fedprox_history, "FedProx", COLORS["FedProx MLP"]),
+        (fedavg_history,  "FedAvg",  _get_color("FedAvg MLP")),
+        (fedprox_history, "FedProx", _get_color("FedProx MLP")),
     ]:
         rounds  = [h["round"]  for h in history]
         f1s     = [h["f1"]     for h in history]
         recalls = [h["recall"] for h in history]
         ax1.plot(rounds, f1s,     marker="o", label=label, color=color, linewidth=2, markersize=5)
         ax2.plot(rounds, recalls, marker="s", label=label, color=color, linewidth=2, markersize=5)
+
+    # SCAFFOLD convergence curve
+    if scaffold_history and len(scaffold_history) > 0:
+        rounds_s  = [h["round"]  for h in scaffold_history]
+        f1s_s     = [h["f1"]     for h in scaffold_history]
+        recalls_s = [h["recall"] for h in scaffold_history]
+        ax1.plot(rounds_s, f1s_s,     marker="^", label="SCAFFOLD",
+                 color=_get_color("SCAFFOLD MLP"), linewidth=2, markersize=5)
+        ax2.plot(rounds_s, recalls_s, marker="D", label="SCAFFOLD",
+                 color=_get_color("SCAFFOLD MLP"), linewidth=2, markersize=5)
 
     for ax, ylabel, title in [
         (ax1, "F1-Score",            "F1-Score vs. Communication Rounds"),

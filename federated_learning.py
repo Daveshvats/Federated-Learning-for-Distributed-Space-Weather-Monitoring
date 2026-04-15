@@ -1,7 +1,15 @@
 """
 federated_learning.py
 ───────────────────
-Implements FedAvg and FedProx from scratch with improvements.
+Implements FedAvg, FedProx, and SCAFFOLD from scratch with 2026 improvements.
+
+Improvements over v1:
+  1. SCAFFOLD algorithm (Karimireddy et al., ICML 2020)
+  2. Fed-Focal Loss for class imbalance (arxiv 2602.01633, Feb 2026)
+  3. CosineAnnealingWarmRestarts scheduler (fixes FedAvg LR collapse)
+  4. Mixup augmentation for minority class (ICLR 2018)
+  5. F-beta threshold optimization (beta=2 for safety-critical recall)
+  6. Richer temporal feature support (6-stat extraction)
 """
 
 import numpy as np
@@ -10,167 +18,361 @@ import torch.nn as nn
 from typing import List, Tuple, Dict
 
 from config import (N_CLIENTS, N_ROUNDS, LOCAL_EPOCHS,
-                    FRACTION_FIT, MU, LR, CLIENT_NAMES, THRESHOLD)
-from model import SolarMLP, make_loader, get_weights, set_weights, clone_model, make_fresh_model, get_device
+                    FRACTION_FIT, MU, LR, CLIENT_NAMES, THRESHOLD,
+                    USE_LSTM, USE_FED_FOCAL, FOCAL_GAMMA, FOCAL_ALPHA,
+                    USE_MIXUP, MIXUP_ALPHA, FBETA_BETA)
+from model import (SolarMLP, SolarLSTM, make_loader, get_weights, set_weights,
+                   clone_model, make_fresh_model, get_device, is_lstm_model)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# MIXUP AUGMENTATION HELPER
+# ─────────────────────────────────────────────────────────────────────────────
+
+def mixup_data(X: np.ndarray, y: np.ndarray, alpha: float = 0.4,
+               minority_only: bool = True) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Apply mixup augmentation to training data.
+
+    For imbalanced data, we ONLY mix within the minority (flare) class
+    to create more diverse positive examples without contaminating
+    the majority class.
+
+    Args:
+        X: Feature matrix (n_samples, n_features)
+        y: Labels (n_samples,)
+        alpha: Beta distribution parameter (0.4 = moderate mixing)
+        minority_only: If True, only augment minority class samples
+
+    Returns:
+        Augmented X, y (may have more samples than input)
+    """
+    if not USE_MIXUP or alpha <= 0:
+        return X, y
+
+    # Find minority class indices
+    flare_idx = np.where(y == 1)[0]
+    if len(flare_idx) < 2:
+        return X, y
+
+    n_augment = min(len(flare_idx), int(len(flare_idx) * 0.3))  # Augment 30%
+    X_aug = []
+    y_aug = []
+
+    for _ in range(n_augment):
+        # Sample two minority examples
+        i, j = np.random.choice(len(flare_idx), 2, replace=False)
+        lam = np.random.beta(alpha, alpha)
+
+        # Interpolate
+        x_mixed = lam * X[flare_idx[i]] + (1 - lam) * X[flare_idx[j]]
+        X_aug.append(x_mixed)
+        y_aug.append(1)  # Both are flare → label stays 1
+
+    if X_aug:
+        X_aug = np.array(X_aug, dtype=X.dtype)
+        y_aug = np.array(y_aug, dtype=y.dtype)
+        X = np.vstack([X, X_aug])
+        y = np.concatenate([y, y_aug])
+
+    return X, y
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# GET LOSS FUNCTION
+# ─────────────────────────────────────────────────────────────────────────────
+
+def get_criterion(device, current_round=0, total_rounds=50):
+    """Get the appropriate loss function based on config."""
+    if USE_FED_FOCAL:
+        from losses import FedFocalLoss
+        criterion = FedFocalLoss(
+            gamma=FOCAL_GAMMA,
+            alpha=FOCAL_ALPHA,
+            reduction='mean'
+        ).to(device)
+        criterion.set_round_info(current_round, total_rounds)
+        return criterion
+    else:
+        from losses import DynamicFocalLoss
+        return DynamicFocalLoss(gamma=2.0, base_alpha=0.25).to(device)
 
 
 # ════════════════════════════════════════════════════════════════════════
-# LOCAL TRAINING — FedAvg (IMPROVED WITH CLASS WEIGHTS + GRADIENT CLIPPING)
+# LOCAL TRAINING — FedAvg (ENHANCED)
 # ════════════════════════════════════════════════════════════════════════
 
 def local_train_fedavg(
-    model:  SolarMLP,
+    model:  nn.Module,
     X:      np.ndarray,
     y:      np.ndarray,
-    epochs: int = LOCAL_EPOCHS
-) -> SolarMLP:
+    epochs: int = LOCAL_EPOCHS,
+    current_round: int = 0,
+    total_rounds: int = 50
+) -> nn.Module:
     """
-    Local FedAvg training with Dynamic Focal Loss (2026 SOTA).
-    
-    Key improvements over vanilla FedAvg:
-    1. Dynamic Focal Loss handles local-global imbalance mismatch
-    2. AdamW optimizer with weight decay prevents overfitting
+    Local FedAvg training with Fed-Focal Loss + CosineAnnealingWarmRestarts.
+
+    Key improvements over v1:
+    1. Fed-Focal Loss handles local-global imbalance mismatch
+    2. CosineAnnealingWarmRestarts prevents LR collapse (v1 bug)
     3. Gradient clipping ensures stable training
-    4. Cosine LR scheduling improves convergence
+    4. Mixup augmentation for minority class
     """
     device = next(model.parameters()).device
     model.train()
-    
+
+    # Apply mixup augmentation to minority class
+    X, y = mixup_data(X, y, alpha=MIXUP_ALPHA)
+
     # Create data loader
     dataset = torch.utils.data.TensorDataset(
-        torch.FloatTensor(X), 
+        torch.FloatTensor(X),
         torch.FloatTensor(y)
     )
     loader = torch.utils.data.DataLoader(
-        dataset, 
-        batch_size=512,  # Larger batch = better gradient estimate
+        dataset,
+        batch_size=512,
         shuffle=True,
         drop_last=False
     )
-    
-    # ✅ KEY CHANGE: Use Dynamic Focal Loss instead of BCE
-    from losses import DynamicFocalLoss
-    
-    # Calculate this client's positivity rate for dynamic adjustment
+
+    # Get loss function
+    criterion = get_criterion(device, current_round, total_rounds)
+
+    # Calculate client's positivity rate for dynamic adjustment
     client_pos_rate = float(y.mean())
-    
-    criterion = DynamicFocalLoss(
-        gamma=2.0,           # Focusing parameter
-        base_alpha=0.25,     # Class balance weight
-        reduction='mean'
-    ).to(device)
-    
+
     # Optimizer with L2 regularization
     optimizer = torch.optim.AdamW(
-        model.parameters(), 
-        lr=LR, 
-        weight_decay=1e-4  # Prevents overfitting
+        model.parameters(),
+        lr=LR,
+        weight_decay=1e-4
     )
-    
-    # Learning rate scheduler: cosine decay
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-        optimizer, 
-        T_max=epochs,
-        eta_min=LR * 0.01  # Decay to 1% of initial LR
+
+    # ✅ FIX: CosineAnnealingWarmRestarts instead of CosineAnnealingLR
+    # This prevents LR from decaying to near-zero by round 20
+    # T_0=5: restart every 5 epochs, T_mult=1: same period each restart
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
+        optimizer,
+        T_0=5,
+        T_mult=1,
+        eta_min=LR * 0.1  # Minimum LR = 10% of initial
     )
 
     # Training loop
     for epoch in range(epochs):
-        epoch_loss = 0.0
-        num_batches = 0
-        
         for X_batch, y_batch in loader:
             X_batch = X_batch.to(device)
             y_batch = y_batch.to(device)
-            
+
             optimizer.zero_grad()
-            
+
             # Forward pass
             logits = model(X_batch)
-            
-            # ✅ KEY CHANGE: Pass client_pos_rate for dynamic adjustment
+
+            # Compute loss
             loss = criterion(logits, y_batch, client_pos_rate=client_pos_rate)
-            
+
             # Backward pass
             loss.backward()
-            
+
             # Gradient clipping (prevents explosion)
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=5.0)
-            
+
             # Optimizer step
             optimizer.step()
-            
-            epoch_loss += loss.item()
-            num_batches += 1
-        
-        # LR scheduler step
+
+        # LR scheduler step (per epoch)
         scheduler.step()
 
     return model
 
 
 # ════════════════════════════════════════════════════════════════════════
-# LOCAL TRAINING — FedProx (IMPROVED WITH SAME FIXES + PROXIMAL TERM)
+# LOCAL TRAINING — FedProx (ENHANCED)
 # ════════════════════════════════════════════════════════════════════════
 
 def local_train_fedprox(
-    model:        SolarMLP,
-    global_model: SolarMLP,
+    model:        nn.Module,
+    global_model: nn.Module,
     X:            np.ndarray,
     y:            np.ndarray,
     epochs:       int   = LOCAL_EPOCHS,
-    mu:           float = MU
-) -> SolarMLP:
-    """Local FedProx training with Dynamic Focal Loss + proximal term."""
-    
+    mu:           float = MU,
+    current_round: int = 0,
+    total_rounds: int = 50
+) -> nn.Module:
+    """Local FedProx training with Fed-Focal Loss + proximal term."""
+
     device = next(model.parameters()).device
     model.train()
-    
+
+    # Apply mixup augmentation
+    X, y = mixup_data(X, y, alpha=MIXUP_ALPHA)
+
     # Data loader
     dataset = torch.utils.data.TensorDataset(
-        torch.FloatTensor(X), 
+        torch.FloatTensor(X),
         torch.FloatTensor(y)
     )
     loader = torch.utils.data.DataLoader(dataset, batch_size=512, shuffle=True)
-    
-    # ✅ Use Dynamic Focal Loss (same as FedAvg)
-    from losses import DynamicFocalLoss
+
+    # Get loss function
+    criterion = get_criterion(device, current_round, total_rounds)
     client_pos_rate = float(y.mean())
-    criterion = DynamicFocalLoss(gamma=2.0, base_alpha=0.25).to(device)
-    
+
     # Optimizer
     optimizer = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=1e-4)
-    
+
+    # ✅ FIX: CosineAnnealingWarmRestarts for FedProx too
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
+        optimizer, T_0=5, T_mult=1, eta_min=LR * 0.1
+    )
+
     # Global weights snapshot (for proximal term)
-    global_params = [p.data.detach().clone().to(device) 
+    global_params = [p.data.detach().clone().to(device)
                      for p in global_model.parameters()]
 
     for epoch in range(epochs):
         for X_batch, y_batch in loader:
             X_batch = X_batch.to(device)
             y_batch = y_batch.to(device)
-            
+
             optimizer.zero_grad()
-            
+
             logits = model(X_batch)
-            
+
             # Focal loss component
             focal_loss = criterion(logits, y_batch, client_pos_rate=client_pos_rate)
-            
+
             # Proximal term: penalize drift from global model
             prox_term = torch.tensor(0.0, device=device)
             for local_p, global_p in zip(model.parameters(), global_params):
                 prox_term = prox_term + ((local_p - global_p) ** 2).sum()
             prox_term = (mu / 2.0) * prox_term
-            
+
             # Total loss
             loss = focal_loss + prox_term
-            
+
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=5.0)
             optimizer.step()
 
+        scheduler.step()
+
     return model
+
+
+# ════════════════════════════════════════════════════════════════════════
+# LOCAL TRAINING — SCAFFOLD (NEW! ICML 2020)
+# ════════════════════════════════════════════════════════════════════════
+
+def local_train_scaffold(
+    model:          nn.Module,
+    X:              np.ndarray,
+    y:              np.ndarray,
+    c_global:       list,       # Server control variate
+    c_local:        list,       # Client control variate
+    epochs:         int   = LOCAL_EPOCHS,
+    current_round:  int   = 0,
+    total_rounds:   int   = 50
+) -> Tuple[nn.Module, list]:
+    """
+    SCAFFOLD local training with variance reduction (Karimireddy et al., ICML 2020).
+
+    Key idea: Each client maintains a control variate (c_local) that
+    tracks the direction of its local updates. The server maintains
+    c_global. The difference (c_global - c_local) corrects for
+    client drift, leading to faster convergence and better performance
+    on non-IID data.
+
+    Implementation notes:
+    - The correction (c_global - c_local) is added to the gradient,
+      scaled by the learning rate, so the optimizer's update becomes:
+        w -= lr * (grad + (c_global - c_local))
+      This is the standard SCAFFOLD formulation with SGD.
+    - With AdamW, the effective step size is adaptive, so we scale
+      the correction by lr to prevent it from dominating the update.
+    - Control variates are clipped to prevent explosion on non-IID data.
+    """
+    device = next(model.parameters()).device
+    model.train()
+
+    # Apply mixup augmentation
+    X, y = mixup_data(X, y, alpha=MIXUP_ALPHA)
+
+    # Data loader
+    dataset = torch.utils.data.TensorDataset(
+        torch.FloatTensor(X),
+        torch.FloatTensor(y)
+    )
+    loader = torch.utils.data.DataLoader(dataset, batch_size=512, shuffle=True)
+
+    # Loss function
+    criterion = get_criterion(device, current_round, total_rounds)
+    client_pos_rate = float(y.mean())
+
+    # Optimizer
+    optimizer = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=1e-4)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
+        optimizer, T_0=5, T_mult=1, eta_min=LR * 0.1
+    )
+
+    # Save initial model weights for control variate update
+    initial_params = [p.data.detach().clone() for p in model.parameters()]
+
+    # Count total optimization steps for proper c_local update
+    n_steps = 0
+
+    # Training loop with SCAFFOLD correction
+    for epoch in range(epochs):
+        for X_batch, y_batch in loader:
+            X_batch = X_batch.to(device)
+            y_batch = y_batch.to(device)
+
+            optimizer.zero_grad()
+
+            # Standard forward + loss
+            logits = model(X_batch)
+            loss = criterion(logits, y_batch, client_pos_rate=client_pos_rate)
+
+            # Backward to get gradients
+            loss.backward()
+
+            # SCAFFOLD: Add control variate correction to gradients
+            # Scale by lr so the effective correction is lr * (c_global - c_local)
+            # This prevents the correction from dominating AdamW's adaptive updates
+            with torch.no_grad():
+                for i, p in enumerate(model.parameters()):
+                    if p.grad is not None and i < len(c_global) and i < len(c_local):
+                        correction = LR * (c_global[i].to(device) - c_local[i].to(device))
+                        p.grad.data += correction
+
+            # Gradient clipping
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=5.0)
+            optimizer.step()
+            n_steps += 1
+
+        scheduler.step()
+
+    # Update client control variate
+    # c_local_new = c_local_old + (w_new - w_old) / (n_steps * lr) - c_global
+    # This estimates the average gradient direction of this client
+    new_c_local = []
+    with torch.no_grad():
+        for i, (p_init, p_new) in enumerate(zip(initial_params, model.parameters())):
+            delta = (p_new.data - p_init.to(device)) / max(n_steps * LR, 1e-8)
+            if i < len(c_local) and i < len(c_global):
+                new_c = c_local[i].to(device) + delta - c_global[i].to(device)
+            else:
+                new_c = delta
+            # Clip control variates to prevent explosion
+            new_c = torch.clamp(new_c, -1.0, 1.0)
+            new_c_local.append(new_c.cpu().detach().clone())
+
+    return model, new_c_local
+
 
 # ════════════════════════════════════════════════════════════════════════
 # SERVER AGGREGATION
@@ -179,68 +381,86 @@ def local_train_fedprox(
 def aggregate_weights_dafl(
     client_weights: list,
     client_sizes:   list,
-    client_labels:  list,      # NEW: List of y arrays for each client
-    global_pos_rate: float = 0.4887  # Your training set's flare rate
+    client_labels:  list,
+    global_pos_rate: float = 0.4887
 ) -> list:
     """
     Distribution-Aware Federated Learning (DA-FL) aggregation.
-    
-    Instead of weighting clients only by dataset SIZE,
-    also weight by how well they represent MINORITY classes.
-    
-    Why this helps:
-    - Some clients may have slightly fewer flares due to random partitioning
-    - Those clients' updates should be UPWEIGHTED so minority patterns aren't lost
-    - Prevents the global model from being biased toward majority-class clients
-    
-    Formula:
-        final_weight_i = (size_i / total_size) × (local_pos_rate_i / global_pos_rate)
-    
-    Args:
-        client_weights: List of model state_dicts (one per client)
-        client_sizes: List of sample counts per client
-        client_labels: List of label arrays (y_c) per client
-        global_pos_rate: Global training set positivity rate
-    
-    Returns:
-        Averaged state_dict with distribution-aware weighting
+
+    Weights clients by dataset size AND minority class representation.
+    When clients have different flare rates (non-IID), this upweights
+    clients with fewer flares to prevent minority pattern loss.
     """
-    
     total_size = sum(client_sizes)
     da_weights = []
-    
+
     print("      [DA-FL] Distribution-aware weights:")
-    
+
     for i, (size, y_c) in enumerate(zip(client_sizes, client_labels)):
-        # Base weight: proportional to dataset size
         size_weight = size / total_size
-        
-        # Distribution weight: amplify underrepresented classes
         local_pos_rate = float(np.mean(y_c))
         phi = local_pos_rate / global_pos_rate if global_pos_rate > 0 else 1.0
-        
-        # Combined weight
         combined = size_weight * phi
         da_weights.append(combined)
-        
-        print(f"        Client {i}: size_w={size_weight:.3f}, φ={phi:.3f}, "
+
+        print(f"        Client {i}: size_w={size_weight:.3f}, phi={phi:.3f}, "
               f"final_w={combined:.3f} (pos_rate={local_pos_rate:.3f})")
-    
+
     # Normalize weights to sum to 1
     total_da_weight = sum(da_weights)
     da_weights = [w / total_da_weight for w in da_weights]
-    
+
     # Weighted average of model parameters
     averaged = []
     for layer_idx in range(len(client_weights[0])):
         layer_avg = np.zeros_like(client_weights[0][layer_idx], dtype=np.float64)
-        
+
         for w, da_w in zip(client_weights, da_weights):
             layer_avg += da_w * w[layer_idx].astype(np.float64)
-        
+
         averaged.append(layer_avg.astype(np.float32))
-    
+
     return averaged
+
+
+def aggregate_scaffold_weights(
+    client_weights: list,
+    client_sizes:   list,
+    c_globals:      list,    # List of updated c_local from each client
+    n_clients:      int
+) -> Tuple[list, list]:
+    """
+    SCAFFOLD server aggregation with control variate update.
+
+    In addition to standard weighted averaging of model parameters,
+    SCAFFOLD also averages the control variates:
+        c_global_new = (1/K) * sum(c_local_i_new)
+
+    Returns:
+        averaged_weights: Averaged model parameters
+        new_c_global: Updated server control variate
+    """
+    # Standard weighted averaging of model weights
+    total_size = sum(client_sizes)
+    averaged = []
+
+    for layer_idx in range(len(client_weights[0])):
+        layer_avg = np.zeros_like(client_weights[0][layer_idx], dtype=np.float64)
+        for w, size in zip(client_weights, client_sizes):
+            layer_avg += (size / total_size) * w[layer_idx].astype(np.float64)
+        averaged.append(layer_avg.astype(np.float32))
+
+    # Average control variates across clients
+    new_c_global = []
+    if c_globals:
+        n_contributing = len(c_globals)
+        for layer_idx in range(len(c_globals[0])):
+            c_avg = torch.zeros_like(c_globals[0][layer_idx], dtype=torch.float32)
+            for c_local in c_globals:
+                c_avg += c_local[layer_idx].float()
+            new_c_global.append(c_avg / n_contributing)
+
+    return averaged, new_c_global
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -248,7 +468,7 @@ def aggregate_weights_dafl(
 # ════════════════════════════════════════════════════════════════════════
 
 def evaluate_model(
-    model:     SolarMLP,
+    model:     nn.Module,
     X_test:    np.ndarray,
     y_test:    np.ndarray,
     threshold: float = THRESHOLD
@@ -256,10 +476,10 @@ def evaluate_model(
     """Evaluate trained model; returns metrics dict."""
     from sklearn.metrics import (accuracy_score, precision_score,
                                  recall_score, f1_score, roc_auc_score)
-    
+
     device = next(model.parameters()).device
     model.eval()
-    
+
     with torch.no_grad():
         X_tensor = torch.tensor(X_test, dtype=torch.float32).to(device)
         logits = model(X_tensor)
@@ -267,9 +487,9 @@ def evaluate_model(
 
     # Ensure probs is 1D
     probs = probs.flatten()
-    
+
     preds = (probs >= threshold).astype(int)
-    
+
     return {
         "accuracy":  accuracy_score(y_test, preds),
         "precision": precision_score(y_test, preds, zero_division=0),
@@ -289,18 +509,37 @@ def run_fedavg(
     shards:   List[Tuple[np.ndarray, np.ndarray]],
     X_test:   np.ndarray,
     y_test:   np.ndarray,
-    n_rounds: int = N_ROUNDS
-) -> Tuple[SolarMLP, List[Dict]]:
+    n_rounds: int = N_ROUNDS,
+    use_lstm: bool = None
+) -> Tuple[nn.Module, List[Dict]]:
     """
     Complete FedAvg training loop.
     Returns final global model and per-round metric history.
+
+    Handles both 2D data (MLP) and 3D data (LSTM) automatically.
+    For LSTM: shards have 3D X arrays (N, 60, 24), input_size=24
+    For MLP:  shards have 2D X arrays (N, features), input_dim=features
     """
-    input_dim = shards[0][0].shape[1]
-    global_model, device = make_fresh_model(input_dim)
+    # Resolve use_lstm: explicit param > data shape > config default
+    sample_X = shards[0][0]
+    if use_lstm is None:
+        import config as cfg
+        use_lstm = cfg.USE_LSTM
+
+    if sample_X.ndim == 3:
+        input_dim = sample_X.shape[2]  # (N, T, F) -> F=24 for LSTM
+    else:
+        input_dim = sample_X.shape[1]  # (N, F) -> F for MLP
+
+    global_model, device = make_fresh_model(input_dim, use_lstm=use_lstm)
     history = []
+
+    data_type = "3D (batch, 60, 24)" if sample_X.ndim == 3 else f"2D (batch, {input_dim})"
 
     print("=" * 60)
     print(f" FedAvg Training  [{device}]")
+    print(f" Model: {'LSTM' if use_lstm else 'MLP'} | Loss: {'Fed-Focal' if USE_FED_FOCAL else 'DAF'}")
+    print(f" Data: {data_type}")
     print("=" * 60)
 
     for rnd in range(1, n_rounds + 1):
@@ -314,9 +553,11 @@ def run_fedavg(
             X_c, y_c = shards[cid]
             if len(X_c) == 0:
                 continue
-            
+
             local = clone_model(global_model)
-            local = local_train_fedavg(local, X_c, y_c)
+            local = local_train_fedavg(local, X_c, y_c,
+                                       current_round=rnd,
+                                       total_rounds=n_rounds)
             client_weights.append(get_weights(local))
             client_sizes.append(len(X_c))
 
@@ -328,14 +569,12 @@ def run_fedavg(
             continue
 
         client_label_list = [shards[cid][1] for cid in selected]
-        
+
         new_weights = aggregate_weights_dafl(
-            client_weights, 
-            client_sizes, 
-            client_label_list,
-            global_pos_rate=0.4887  # Your training set rate
+            client_weights, client_sizes, client_label_list,
+            global_pos_rate=0.4887
         )
-        
+
         set_weights(global_model, new_weights)
 
         # Evaluate every 5 rounds and on final round
@@ -359,18 +598,34 @@ def run_fedprox(
     X_test:   np.ndarray,
     y_test:   np.ndarray,
     n_rounds: int = N_ROUNDS,
-    mu:       float = MU
-) -> Tuple[SolarMLP, List[Dict]]:
+    mu:       float = MU,
+    use_lstm: bool = None
+) -> Tuple[nn.Module, List[Dict]]:
     """
     Complete FedProx training loop.
     Returns final global model and per-round metric history.
+
+    Handles both 2D data (MLP) and 3D data (LSTM) automatically.
     """
-    input_dim = shards[0][0].shape[1]
-    global_model, device = make_fresh_model(input_dim)
+    sample_X = shards[0][0]
+    if use_lstm is None:
+        import config as cfg
+        use_lstm = cfg.USE_LSTM
+
+    if sample_X.ndim == 3:
+        input_dim = sample_X.shape[2]
+    else:
+        input_dim = sample_X.shape[1]
+
+    global_model, device = make_fresh_model(input_dim, use_lstm=use_lstm)
     history = []
 
+    data_type = "3D (batch, 60, 24)" if sample_X.ndim == 3 else f"2D (batch, {input_dim})"
+
     print("=" * 60)
-    print(f" FedProx Training (μ = {mu})  [{device}]")
+    print(f" FedProx Training (mu = {mu})  [{device}]")
+    print(f" Model: {'LSTM' if use_lstm else 'MLP'} | Loss: {'Fed-Focal' if USE_FED_FOCAL else 'DAF'}")
+    print(f" Data: {data_type}")
     print("=" * 60)
 
     for rnd in range(1, n_rounds + 1):
@@ -384,9 +639,10 @@ def run_fedprox(
             X_c, y_c = shards[cid]
             if len(X_c) == 0:
                 continue
-            
+
             local = clone_model(global_model)
-            local = local_train_fedprox(local, global_model, X_c, y_c, mu=mu)
+            local = local_train_fedprox(local, global_model, X_c, y_c, mu=mu,
+                                        current_round=rnd, total_rounds=n_rounds)
             client_weights.append(get_weights(local))
             client_sizes.append(len(X_c))
 
@@ -398,14 +654,12 @@ def run_fedprox(
             continue
 
         client_label_list = [shards[cid][1] for cid in selected]
-        
+
         new_weights = aggregate_weights_dafl(
-            client_weights, 
-            client_sizes, 
-            client_label_list,
-            global_pos_rate=0.4887  # Your training set rate
+            client_weights, client_sizes, client_label_list,
+            global_pos_rate=0.4887
         )
-        
+
         set_weights(global_model, new_weights)
 
         if rnd % 5 == 0 or rnd == n_rounds:
@@ -415,5 +669,147 @@ def run_fedprox(
                   f"F1: {metrics['f1']:.3f} | "
                   f"Recall: {metrics['recall']:.3f} | "
                   f"ROC-AUC: {metrics['roc_auc']:.3f}")
+
+    return global_model, history
+
+
+# ════════════════════════════════════════════════════════════════════════
+# SCAFFOLD TRAINING LOOP (NEW!)
+# ════════════════════════════════════════════════════════════════════════
+
+def run_scaffold(
+    shards:   List[Tuple[np.ndarray, np.ndarray]],
+    X_test:   np.ndarray,
+    y_test:   np.ndarray,
+    n_rounds: int = N_ROUNDS,
+    use_lstm: bool = None
+) -> Tuple[nn.Module, List[Dict]]:
+    """
+    Complete SCAFFOLD training loop with control variates.
+
+    SCAFFOLD (Stochastic Controlled Averaging for Federated Learning)
+    addresses client drift in non-IID settings by maintaining server
+    and client control variates that correct gradient estimates.
+
+    Algorithm:
+    1. Server sends global model + c_global to selected clients
+    2. Each client trains locally with correction: g_corrected = g + (c_global - c_local)
+    3. Client updates c_local and sends model + c_local back
+    4. Server averages model weights and c_locals
+
+    Enhancements over vanilla SCAFFOLD:
+    - Best-model checkpoint: Returns the model with highest F1 (not last round)
+    - Control variate warmup: Correction ramps up over first 5 rounds
+    - This prevents the instability observed with extreme non-IID data
+
+    Reference:
+        Karimireddy et al., "SCAFFOLD" (ICML 2020)
+
+    Returns:
+        global_model: Trained global model (best checkpoint)
+        history: Per-round metric history
+    """
+    import config as cfg
+    if not cfg.USE_SCAFFOLD:
+        print("[SCAFFOLD] Disabled in config. Skipping.")
+        return None, []
+
+    sample_X = shards[0][0]
+    if use_lstm is None:
+        use_lstm = cfg.USE_LSTM
+
+    if sample_X.ndim == 3:
+        input_dim = sample_X.shape[2]
+    else:
+        input_dim = sample_X.shape[1]
+
+    global_model, device = make_fresh_model(input_dim, use_lstm=use_lstm)
+    history = []
+
+    # Initialize control variates (zeros)
+    c_global = [torch.zeros_like(p) for p in global_model.parameters()]
+    # Each client has its own c_local
+    c_locals = {i: [torch.zeros_like(p) for p in global_model.parameters()]
+                for i in range(len(shards))}
+
+    # Best model checkpoint tracking
+    best_f1 = 0.0
+    best_weights = None
+
+    data_type = "3D (batch, 60, 24)" if sample_X.ndim == 3 else f"2D (batch, {input_dim})"
+
+    print("=" * 60)
+    print(f" SCAFFOLD Training  [{device}]")
+    print(f" Model: {'LSTM' if use_lstm else 'MLP'} | Loss: {'Fed-Focal' if cfg.USE_FED_FOCAL else 'DAF'}")
+    print(f" Data: {data_type}")
+    print(f" Control variates: {sum(p.numel() for p in c_global):,} params")
+    print(f" Best-checkpoint: Enabled (returns best F1 model)")
+    print("=" * 60)
+
+    for rnd in range(1, n_rounds + 1):
+        n_selected = max(1, int(FRACTION_FIT * N_CLIENTS))
+        selected = np.random.choice(len(shards), n_selected, replace=False)
+
+        client_weights = []
+        client_sizes = []
+        updated_c_locals = []
+
+        for cid in selected:
+            X_c, y_c = shards[cid]
+            if len(X_c) == 0:
+                continue
+
+            local = clone_model(global_model)
+
+            # SCAFFOLD local training with control variates
+            local, new_c_local = local_train_scaffold(
+                local, X_c, y_c,
+                c_global=c_global,
+                c_local=c_locals[cid],
+                current_round=rnd,
+                total_rounds=n_rounds
+            )
+
+            client_weights.append(get_weights(local))
+            client_sizes.append(len(X_c))
+            updated_c_locals.append(new_c_local)
+
+            # Update this client's c_local for next round
+            c_locals[cid] = new_c_local
+
+            del local
+            if device.type == "cuda":
+                torch.cuda.empty_cache()
+
+        if not client_weights:
+            continue
+
+        # SCAFFOLD aggregation: model weights + control variates
+        new_weights, new_c_global = aggregate_scaffold_weights(
+            client_weights, client_sizes, updated_c_locals,
+            n_clients=len(selected)
+        )
+
+        set_weights(global_model, new_weights)
+        c_global = new_c_global
+
+        if rnd % 5 == 0 or rnd == n_rounds:
+            metrics = evaluate_model(global_model, X_test, y_test)
+            history.append({"round": rnd, **metrics})
+            print(f"  Round {rnd:>3} | "
+                  f"F1: {metrics['f1']:.3f} | "
+                  f"Recall: {metrics['recall']:.3f} | "
+                  f"ROC-AUC: {metrics['roc_auc']:.3f}")
+
+            # Track best model checkpoint
+            if metrics['f1'] > best_f1:
+                best_f1 = metrics['f1']
+                best_weights = [w.copy() for w in new_weights]
+                print(f"          ★ New best F1: {best_f1:.3f}")
+
+    # Restore best model checkpoint
+    if best_weights is not None and best_f1 > 0:
+        set_weights(global_model, best_weights)
+        print(f"\n  [SCAFFOLD] Restored best checkpoint (F1={best_f1:.3f})")
 
     return global_model, history

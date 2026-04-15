@@ -52,7 +52,44 @@ def flatten_3d_to_2d(X_3d, method='flatten'):
         min_feat = np.min(X_3d, axis=1)
         X_2d = np.concatenate([mean_feat, std_feat, max_feat, min_feat], axis=1)
         print(f"      [Transform] Statistical features: {X_2d.shape} ({4*X_3d.shape[2]} features)")
-    
+
+    elif method == 'concat_stats_enhanced':
+        # 6-stat extraction: mean, std, max, min, trend, slope
+        # (N, T, F) → (N, 6*F)
+        # This preserves far more temporal information than simple mean.
+        #
+        # Each statistic captures a different aspect of the time series:
+        #   mean:   Central tendency (already in v1)
+        #   std:    Variability (volatility of magnetic field)
+        #   max:    Peak values (important for flare precursors)
+        #   min:    Minimum values (quiet sun baseline)
+        #   trend:  Last - First (net direction of change)
+        #   slope:  Linear regression slope (rate of change)
+        #
+        # Total: 6 * 24 = 144 features (vs 24 with just mean)
+        #
+        # Reference:
+        #   - Time-series augmentation for deep learning solar flare (ApJ 2025)
+        #   - TF-C self-supervised pretraining (NeurIPS 2022, cited 580)
+        mean_feat = np.mean(X_3d, axis=1)
+        std_feat = np.std(X_3d, axis=1)
+        max_feat = np.max(X_3d, axis=1)
+        min_feat = np.min(X_3d, axis=1)
+
+        # Trend: net change from first to last timestep
+        trend_feat = X_3d[:, -1, :] - X_3d[:, 0, :]
+
+        # Slope: linear regression coefficient (rate of change)
+        # Compute using normalized time indices for numerical stability
+        t = np.arange(X_3d.shape[1]).reshape(1, -1, 1)  # (1, T, 1)
+        t_norm = (t - t.mean()) / max(t.std(), 1e-8)     # Normalize time
+        slope_feat = (X_3d * t_norm).mean(axis=1)         # (N, F)
+
+        X_2d = np.concatenate([mean_feat, std_feat, max_feat, min_feat,
+                               trend_feat, slope_feat], axis=1)
+        print(f"      [Transform] Enhanced 6-stat features: {X_2d.shape} "
+              f"({6*X_3d.shape[2]} features = 6 stats x {X_3d.shape[2]} base features)")
+
     else:
         raise ValueError(f"Unknown method: {method}")
     
@@ -222,6 +259,15 @@ def load_cleaned_partition(partition_num=1,
             for feat in base_features:
                 feature_names.append(f"{stat}_{feat}")
         feature_names = feature_names[:n_features]
+
+    elif flatten_method == 'concat_stats_enhanced':
+        # 6-stat extraction feature names
+        stats = ['mean', 'std', 'max', 'min', 'trend', 'slope']
+        feature_names = []
+        for stat in stats:
+            for feat in base_features:
+                feature_names.append(f"{stat}_{feat}")
+        feature_names = feature_names[:n_features]
         
     else:
         # mean, max, min, last methods preserve original 24 features
@@ -259,12 +305,130 @@ def load_cleaned_partition(partition_num=1,
     return X_train, y_train, X_test, y_test, feature_names
 
 
+def load_cleaned_3d(data_dir='data/cleaned', combine_all_partitions=True):
+    """
+    Load cleaned SWAN-SF dataset in ORIGINAL 3D format for LSTM models.
+
+    Returns 3D arrays (n_samples, n_timesteps, n_features) WITHOUT flattening.
+    This preserves the temporal structure that LSTM models need.
+
+    Returns:
+        X_train: (N_train, 60, 24) float32
+        y_train: (N_train,) int
+        X_test:  (N_test, 60, 24) float32
+        y_test:  (N_test,) int
+    """
+    print("=" * 70)
+    print("  SF-9: Loading Cleaned SWAN-SF Dataset (3D for LSTM)")
+    print("  Mode: Preserve temporal structure (60 timesteps x 24 features)")
+    print("=" * 70)
+
+    train_dir = os.path.join(data_dir, 'train')
+    test_dir = os.path.join(data_dir, 'test')
+
+    if combine_all_partitions:
+        partitions = [1, 2, 3, 4, 5]
+        print(f"\n[Loading 3D] Combining all 5 partitions...")
+    else:
+        partitions = [1]
+        print(f"\n[Loading 3D] Partition 1 only...")
+
+    # ── LOAD TRAIN DATA (keep 3D) ──
+    print("\n[1/2] Loading 3D training data...")
+    X_train_list = []
+    y_train_list = []
+
+    for part_num in partitions:
+        train_file = f"Partition{part_num}_RUS-Tomek-TimeGAN_LSBZM-Norm_WithoutC_FPCKNN-impute.pkl"
+        label_file = f"Partition{part_num}_Labels_RUS-Tomek-TimeGAN_LSBZM-Norm_WithoutC_FPCKNN-impute.pkl"
+
+        train_path = os.path.join(train_dir, train_file)
+        label_path = os.path.join(train_dir, label_file)
+
+        if not os.path.exists(train_path):
+            print(f"      ⚠ Warning: {train_file} not found, skipping")
+            continue
+
+        try:
+            with open(train_path, 'rb') as f:
+                X_part = pickle.load(f)
+            with open(label_path, 'rb') as f:
+                y_part = pickle.load(f)
+
+            # Keep 3D! If somehow already 2D, skip this partition for 3D loading
+            if X_part.ndim == 2:
+                print(f"      ⚠ Partition {part_num} is 2D, cannot use for LSTM. Skipping.")
+                continue
+
+            print(f"      ✓ Partition {part_num}: X={X_part.shape}, y={y_part.shape}")
+            X_train_list.append(X_part.astype(np.float32))
+            y_train_list.append(y_part)
+
+        except Exception as e:
+            print(f"      ✗ Error loading partition {part_num}: {e}")
+
+    if not X_train_list:
+        raise ValueError("No 3D training data could be loaded!")
+
+    X_train = np.vstack(X_train_list)
+    y_train = np.concatenate(y_train_list)
+    print(f"      ✓ Total 3D training: X={X_train.shape}, y={y_train.shape}")
+
+    # ── LOAD TEST DATA (keep 3D) ──
+    print("\n[2/2] Loading 3D test data...")
+    X_test_list = []
+    y_test_list = []
+
+    for part_num in partitions:
+        test_file = f"Partition{part_num}_LSBZM-Norm_FPCKNN-impute.pkl"
+        label_file = f"Partition{part_num}_Labels_LSBZM-Norm_FPCKNN-impute.pkl"
+
+        test_path = os.path.join(test_dir, test_file)
+        label_path = os.path.join(test_dir, label_file)
+
+        if not os.path.exists(test_path):
+            print(f"      ⚠ Warning: {test_file} not found, skipping")
+            continue
+
+        try:
+            with open(test_path, 'rb') as f:
+                X_part = pickle.load(f)
+            with open(label_path, 'rb') as f:
+                y_part = pickle.load(f)
+
+            if X_part.ndim == 2:
+                print(f"      ⚠ Partition {part_num} is 2D, cannot use for LSTM. Skipping.")
+                continue
+
+            print(f"      ✓ Partition {part_num}: X={X_part.shape}, y={y_part.shape}")
+            X_test_list.append(X_part.astype(np.float32))
+            y_test_list.append(y_part)
+
+        except Exception as e:
+            print(f"      ✗ Error loading partition {part_num}: {e}")
+
+    if not X_test_list:
+        raise ValueError("No 3D test data could be loaded!")
+
+    X_test = np.vstack(X_test_list)
+    y_test = np.concatenate(y_test_list)
+    print(f"      ✓ Total 3D test: X={X_test.shape}, y={y_test.shape}")
+    print(f"      ✓ Test flare rate: {y_test.mean():.2%} (real-world distribution)")
+
+    # Clean NaN/Inf
+    X_train = np.nan_to_num(X_train, nan=0.0, posinf=0.0, neginf=0.0)
+    X_test = np.nan_to_num(X_test, nan=0.0, posinf=0.0, neginf=0.0)
+
+    print(f"\n  ✅ 3D data loaded! Shape: (N, {X_train.shape[1]}, {X_train.shape[2]})")
+    return X_train, y_train, X_test, y_test
+
+
 if __name__ == '__main__':
     # Test loading with different methods
     print("\n" + "="*70)
     print("TESTING DIFFERENT 3D→2D TRANSFORMATION METHODS")
     print("="*70)
-    
+
     for method in ['mean', 'max', 'last', 'flatten', 'concat_stats']:
         try:
             print(f"\n{'─'*70}")

@@ -3,6 +3,16 @@ SF-9: Federated Learning for Distributed Space Weather Monitoring
 ─────────────────────────────────────────────────────────────────
 All hyperparameters and paths in one file.
 Change values here; every other script reads from here.
+
+v2.0 — Enhanced with 2026 SOTA techniques:
+  - LSTM temporal model
+  - SCAFFOLD algorithm
+  - Fed-Focal Loss
+  - Richer temporal features (6-stat extraction)
+  - Non-IID Dirichlet partitioning
+  - F-beta threshold optimization
+  - CosineAnnealingWarmRestarts scheduler
+  - Mixup augmentation
 """
 
 # ── Paths ─────────────────────────────────────────────────────────────────
@@ -47,12 +57,42 @@ CLIENT_NAMES = [
     "Oceania (BoM)"
 ]
 
-# ── MLP Model ─────────────────────────────────────────────────────────────
+# ── Model Architecture ──────────────────────────────────────────────────
 INPUT_DIM   = len(FEATURE_COLS)
 HIDDEN_DIMS = [128, 64, 32]
 DROPOUT     = 0.3
 LR          = 0.001
-BATCH_SIZE  = 64
+BATCH_SIZE  = 256
+
+# ── LSTM Model ─────────────────────────────────────────────────────────────
+USE_LSTM         = True          # Use LSTM instead of MLP (preserves temporal dynamics)
+LSTM_HIDDEN_SIZE = 128
+LSTM_NUM_LAYERS  = 2
+LSTM_DROPOUT     = 0.3
+LSTM_BIDIRECTIONAL = False
+
+# ── SCAFFOLD Algorithm ────────────────────────────────────────────────────
+USE_SCAFFOLD     = True          # Add SCAFFOLD as 3rd FL algorithm
+SCAFFOLD_LR      = 0.001
+
+# ── Fed-Focal Loss ────────────────────────────────────────────────────────
+USE_FED_FOCAL    = True          # Use Fed-Focal Loss instead of DynamicFocalLoss
+FOCAL_GAMMA      = 2.0           # Focusing parameter
+FOCAL_ALPHA      = 0.75          # Positive class weight (higher = more recall)
+
+# ── Richer Temporal Features ──────────────────────────────────────────────
+FLATTEN_METHOD   = "concat_stats_enhanced"  # 6-stat extraction: mean/std/max/min/trend/slope
+
+# ── Non-IID Partitioning ─────────────────────────────────────────────────
+DIRICHLET_ALPHA  = 0.3           # Lower = more non-IID (0.5 moderate, 0.1 extreme)
+FORCE_NON_IID    = True          # Force Dirichlet partitioning even with cleaned data
+
+# ── F-beta Threshold Optimization ─────────────────────────────────────────
+FBETA_BETA       = 2.0           # β=2 weights recall 2x more than precision
+
+# ── Mixup Augmentation ───────────────────────────────────────────────────
+USE_MIXUP        = True
+MIXUP_ALPHA      = 0.4           # Beta distribution parameter (0.4 = moderate mixing)
 
 # ── Preprocessing ─────────────────────────────────────────────────────────
 TEST_SPLIT  = 0.20     # Global held-out test set (never seen during federation)
@@ -66,12 +106,8 @@ THRESHOLD   = 0.70
 USE_CLEANED_DATA = True           # Set to False to use original merged data
 CLEANED_DATA_DIR = "data/cleaned" # Path to cleaned dataset folder
 COMBINE_PARTITIONS = True         # Use all 5 partitions (recommended)
-# ════════════════════════════════════════════════════════════════════════
-# 🔧 ADD THIS LINE:
-FLATTEN_METHOD = "mean"           # How to convert 3D→2D: 'mean', 'max', 'last', 'flatten', 'concat_stats'
-# ════════════════════════════════════════════════════════════════════════
+
 # ── GPU ACCELERATION ──
 USE_CUDA = True          # Enable CUDA
-PIN_MEMORY = True      # Faster GPU memory transfer
-BATCH_SIZE      = 256      # INCREASED from 64 (better GPU utilization)
+PIN_MEMORY = True        # Faster GPU memory transfer
 LOCAL_EPOCHS    = 3        # Reduced from 5 (faster)

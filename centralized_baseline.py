@@ -32,7 +32,7 @@ def train_centralized(
         class_weight="balanced",
         max_iter=2000,
         random_state=42,
-        n_jobs=-1
+        # n_jobs removed — deprecated in sklearn 1.8+, has no effect since 1.8
     )
     lr.fit(X_train, y_train)
     models["logistic_regression"] = lr

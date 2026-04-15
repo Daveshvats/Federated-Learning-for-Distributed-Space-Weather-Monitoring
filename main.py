@@ -1,24 +1,31 @@
 """
 main.py
-────────
+--------
 SF-9: Federated Space Weather Monitoring
-Full pipeline orchestrator.
+Full pipeline orchestrator (v2.1 -- Dual Data Path for LSTM + MLP)
+
+ARCHITECTURE:
+  - LSTM models require 3D data (batch, 60 timesteps, 24 features)
+  - MLP and centralized baselines require 2D data (batch, features)
+  - This version loads BOTH data formats and routes them correctly
 
 Run order:
-  1. Load / generate SWAN-SF data
-  2. Preprocess (scale, train/test split)
-  3. Partition into N_CLIENTS regional shards (non-IID)
-  4. Train centralised baselines (LR + XGBoost) — upper bound
-  5. Run FedAvg for N_ROUNDS
+  1. Load 2D data for baselines (via load_or_generate_data -> preprocess)
+  2. Load 3D data for LSTM FL (via load_and_scale_3d_data)
+  3. Partition into N_CLIENTS regional shards (non-IID Dirichlet)
+  4. Train centralised baselines (LR + XGBoost) -- upper bound
+  5. Run FedAvg for N_ROUNDS (with 3D shards if LSTM, 2D if MLP)
   6. Run FedProx for N_ROUNDS
-  7. Optimize thresholds
-  8. Evaluate all models on the global test set
-  9. Generate all paper figures
+  7. Run SCAFFOLD for N_ROUNDS (NEW!)
+  8. Optimize thresholds using F-beta (beta=2) (NEW!)
+  9. Evaluate all models on the global test set
+ 10. Generate all paper figures
 
 Usage:
   python main.py
   python main.py --rounds 30          # faster debug run
   python main.py --clients 4          # fewer clients
+  python main.py --no-lstm            # use MLP instead of LSTM
 """
 
 import argparse
@@ -28,11 +35,11 @@ import time
 import numpy as np
 import sys
 import config as cfg
-from data_preparation     import load_or_generate_data, preprocess
+from data_preparation     import load_or_generate_data, preprocess, load_and_scale_3d_data
 from partition_clients    import partition_data, partition_data_dirichlet
 from centralized_baseline import train_centralized, evaluate_centralized, compute_shap
-from federated_learning   import run_fedavg, run_fedprox, evaluate_model
-from model                import make_fresh_model
+from federated_learning   import run_fedavg, run_fedprox, run_scaffold, evaluate_model
+from model                import make_fresh_model, is_lstm_model
 from visualize_results    import (
     plot_confusion_matrices,
     plot_roc_curves,
@@ -53,136 +60,314 @@ def parse_args():
     parser.add_argument("--rounds",  type=int, default=cfg.N_ROUNDS,   help="FL communication rounds")
     parser.add_argument("--clients", type=int, default=cfg.N_CLIENTS,  help="Number of regional clients")
     parser.add_argument("--mu",      type=float, default=cfg.MU,       help="FedProx proximal coefficient")
-    parser.add_argument("--dirichlet", action="store_true",            help="Use Dirichlet partitioning instead of HARPNUM_MOD")
+    parser.add_argument("--dirichlet", action="store_true",            help="Use Dirichlet partitioning")
+    parser.add_argument("--no-lstm", action="store_true",              help="Disable LSTM, use MLP")
+    parser.add_argument("--no-scaffold", action="store_true",          help="Disable SCAFFOLD algorithm")
+    parser.add_argument("--no-mixup", action="store_true",             help="Disable mixup augmentation")
     return parser.parse_args()
 
 
-def find_best_threshold(y_true, y_probs, model_name):
-    """Find threshold that maximizes F1 score"""
-    from sklearn.metrics import f1_score as sklearn_f1
-    from sklearn.metrics import precision_score as sklearn_prec
-    from sklearn.metrics import recall_score as sklearn_rec
-    
-    best_f1 = 0
+def find_optimal_threshold_fbeta(y_true, y_probs, model_name, beta=2.0):
+    """
+    Find threshold that maximizes F-beta score instead of F1.
+
+    F-beta = (1 + beta^2) * (precision * recall) / (beta^2 * precision + recall)
+
+    For safety-critical space weather prediction:
+      - beta=2: Recall is weighted 2x more than precision
+      - Missing a flare (false negative) is much worse than a false alarm
+      - This aligns with operational space weather forecasting standards
+
+    Reference:
+      - "The Effects of Data Imbalance Under a FL Setting" (arxiv 2024)
+      - Operational space weather forecasting guidelines (NOAA/SWPC)
+    """
+    from sklearn.metrics import fbeta_score, precision_score, recall_score
+
+    best_fb = 0
     best_thresh = 0.50
-    
-    for thresh in np.arange(0.20, 0.85, 0.01):
+
+    for thresh in np.arange(0.10, 0.90, 0.01):
         y_pred = (y_probs >= thresh).astype(int)
-        f1 = sklearn_f1(y_true, y_pred, zero_division=0)
-        
-        if f1 > best_f1:
-            best_f1 = f1
+        fb = fbeta_score(y_true, y_pred, beta=beta, zero_division=0)
+
+        if fb > best_fb:
+            best_fb = fb
             best_thresh = thresh
-    
-    prec = sklearn_prec(y_true, (y_probs >= best_thresh).astype(int), zero_division=0)
-    rec = sklearn_rec(y_true, (y_probs >= best_thresh).astype(int), zero_division=0)
-    
+
+    prec = precision_score(y_true, (y_probs >= best_thresh).astype(int), zero_division=0)
+    rec = recall_score(y_true, (y_probs >= best_thresh).astype(int), zero_division=0)
+    f1 = 2 * prec * rec / max(prec + rec, 1e-8)
+
     print(f"  {model_name}: Optimal threshold = {best_thresh:.2f} | "
-          f"F1={best_f1:.3f} | Prec={prec:.3f} | Rec={rec:.3f}")
-    
-    return best_thresh, {'precision': prec, 'recall': rec, 'f1': best_f1}
+          f"F{beta:.0f}={best_fb:.3f} | F1={f1:.3f} | Prec={prec:.3f} | Rec={rec:.3f}")
+
+    return best_thresh, {'precision': prec, 'recall': rec, 'f1': f1,
+                         f'f{beta:.0f}': best_fb}
+
+
+def get_model_probs(model, X_test, device):
+    """
+    Get model probabilities, handling both 2D (MLP) and 3D (LSTM) data.
+
+    Args:
+        model: Trained PyTorch model (SolarMLP or SolarLSTM)
+        X_test: Test data (2D for MLP, 3D for LSTM)
+        device: torch.device
+
+    Returns:
+        probs: numpy array of probabilities
+    """
+    import torch
+    model.eval()
+    with torch.no_grad():
+        X_tensor = torch.tensor(X_test, dtype=torch.float32).to(device)
+        logits = model(X_tensor)
+        probs = torch.sigmoid(logits).cpu().numpy().flatten()
+    return probs
 
 
 def main():
     args = parse_args()
+
+    # Apply command-line overrides
+    if args.no_lstm:
+        cfg.USE_LSTM = False
+    if args.no_scaffold:
+        cfg.USE_SCAFFOLD = False
+    if args.no_mixup:
+        cfg.USE_MIXUP = False
+
     os.makedirs(cfg.OUTPUT_DIR, exist_ok=True)
     os.makedirs("data", exist_ok=True)
     t0 = time.time()
 
-    print("\n" + "=" * 60)
-    print("  SF-9: Federated Space Weather Monitoring")
-    print(f"  Clients: {args.clients} | Rounds: {args.rounds} | μ: {args.mu}")
-    print("=" * 60 + "\n")
+    use_lstm = cfg.USE_LSTM
+    model_name = 'LSTM' if use_lstm else 'MLP'
 
-    # ── 1. DATA ────────────────────────────────────────────────────────────
+    print("\n" + "=" * 70)
+    print("  SF-9: Federated Space Weather Monitoring -- v2.1 Dual Data Path")
+    print(f"  Clients: {args.clients} | Rounds: {args.rounds} | mu: {args.mu}")
+    print(f"  Model: {model_name} | "
+          f"Loss: {'Fed-Focal' if cfg.USE_FED_FOCAL else 'DAF'} | "
+          f"SCAFFOLD: {'ON' if cfg.USE_SCAFFOLD else 'OFF'}")
+    if use_lstm:
+        print(f"  Data: 3D (batch, 60, 24) for LSTM | 2D (batch, 144) for baselines")
+    else:
+        print(f"  Data: 2D (batch, {cfg.FLATTEN_METHOD}) for all models")
+    print(f"  Mixup: {'ON' if cfg.USE_MIXUP else 'OFF'} | F-beta: {cfg.FBETA_BETA}")
+    print("=" * 70 + "\n")
+
+    # ═══════════════════════════════════════════════════════════════════════
+    # 1. LOAD DATA
+    # ═══════════════════════════════════════════════════════════════════════
+    #
+    # DUAL DATA PATH:
+    #   - 2D data: Always needed for centralized baselines (LR, XGBoost)
+    #   - 3D data: Needed for LSTM models (preserves temporal dimension)
+    #
+    # When USE_LSTM=True:
+    #   - 2D data uses concat_stats_enhanced (144 features) for baselines
+    #   - 3D data uses original (N, 60, 24) shape for LSTM FL
+    #
+    # When USE_LSTM=False:
+    #   - Only 2D data is needed, used for both baselines and FL
+    # ═══════════════════════════════════════════════════════════════════════
+
+    # --- 1a. Load 2D data (always needed for centralized baselines) ---
     df = load_or_generate_data()
+    X_train_2d, X_test_2d, y_train, y_test, scaler, feature_names = preprocess(df)
 
-    # ── 2. PREPROCESS ─────────────────────────────────────────────────────
-    X_train, X_test, y_train, y_test, scaler, feature_names = preprocess(df)
+    # --- 1b. Load 3D data (needed for LSTM FL models) ---
+    if use_lstm:
+        print("\n" + "=" * 70)
+        print("  LOADING 3D DATA FOR LSTM MODELS")
+        print("=" * 70 + "\n")
 
-    # ── 3. PARTITION ──────────────────────────────────────────────────────
+        try:
+            X_train_3d, y_train_3d, X_test_3d, y_test_3d, scaler_3d = load_and_scale_3d_data()
+
+            # Verify consistency: same number of samples and labels
+            assert len(y_train_3d) == len(y_train), \
+                f"Train sample mismatch: 3D={len(y_train_3d)}, 2D={len(y_train)}"
+            assert len(y_test_3d) == len(y_test), \
+                f"Test sample mismatch: 3D={len(y_test_3d)}, 2D={len(y_test)}"
+
+            # Use 3D data for FL training and evaluation
+            X_train_fl = X_train_3d
+            X_test_fl = X_test_3d
+            y_train_fl = y_train_3d
+            y_test_fl = y_test_3d
+
+            print(f"[Data Path] LSTM mode: Using 3D data (N, 60, 24) for FL")
+            print(f"[Data Path] LSTM mode: Using 2D data ({X_train_2d.shape[1]} feats) for baselines\n")
+
+        except Exception as e:
+            print(f"\n[ERROR] Failed to load 3D data for LSTM: {e}")
+            print(f"[FALLBACK] Switching to MLP mode (2D data only)\n")
+            cfg.USE_LSTM = False
+            use_lstm = False
+            model_name = 'MLP'  # Update model_name to reflect fallback
+            X_train_fl = X_train_2d
+            X_test_fl = X_test_2d
+            y_train_fl = y_train
+            y_test_fl = y_test
+    else:
+        # MLP mode: use same 2D data for everything
+        X_train_fl = X_train_2d
+        X_test_fl = X_test_2d
+        y_train_fl = y_train
+        y_test_fl = y_test
+
+    # ═══════════════════════════════════════════════════════════════════════
+    # 2. PARTITION (Non-IID Dirichlet)
+    # ═══════════════════════════════════════════════════════════════════════
     print("[Partition] Splitting training data into regional client shards ...\n")
-    
+
+    use_dirichlet = args.dirichlet or cfg.FORCE_NON_IID
+    alpha = cfg.DIRICHLET_ALPHA
+
     try:
-        from config import USE_CLEANED_DATA
-        if USE_CLEANED_DATA:
-            print("[Partition] Cleaned dataset detected → Using BALANCED partition\n")
-            shards = partition_data(X_train, y_train, harpnum_mod=None)
-        elif args.dirichlet or "HARPNUM_MOD" not in df.columns:
-            shards = partition_data_dirichlet(X_train, y_train, alpha=0.5)
+        if use_dirichlet:
+            print(f"[Partition] Using DIRICHLET non-IID partitioning (alpha={alpha})\n")
+            shards = partition_data_dirichlet(X_train_fl, y_train_fl, alpha=alpha)
         else:
-            train_harp = df["HARPNUM_MOD"].values[:len(X_train)]
-            shards = partition_data(X_train, y_train, train_harp)
+            shards = partition_data(X_train_fl, y_train_fl, harpnum_mod=None)
     except Exception as e:
         print(f"[Partition] Error: {e}\n[Partition] Using fallback balanced partition...\n")
-        shards = partition_data(X_train, y_train, harpnum_mod=None)
+        shards = partition_data(X_train_fl, y_train_fl, harpnum_mod=None)
 
-    # ── 4. CENTRALISED BASELINES ──────────────────────────────────────────
-    print("\n[Centralised] Training pooled baselines ...\n")
-    c_models  = train_centralized(X_train, y_train)
-    c_results = evaluate_centralized(c_models, X_test, y_test)
+    # ═══════════════════════════════════════════════════════════════════════
+    # 3. CENTRALISED BASELINES (always use 2D data)
+    # ═══════════════════════════════════════════════════════════════════════
+    print("\n[Centralised] Training pooled baselines (2D data) ...\n")
+    c_models  = train_centralized(X_train_2d, y_train)
+    c_results = evaluate_centralized(c_models, X_test_2d, y_test)
 
-    # ── 5. FEDAVG ─────────────────────────────────────────────────────────
+    # ═══════════════════════════════════════════════════════════════════════
+    # 4. FEDAVG
+    # ═══════════════════════════════════════════════════════════════════════
     print()
-    fedavg_model, fedavg_history = run_fedavg(shards, X_test, y_test, n_rounds=args.rounds)
-    fedavg_metrics = evaluate_model(fedavg_model, X_test, y_test)
+    fedavg_model, fedavg_history = run_fedavg(shards, X_test_fl, y_test_fl,
+                                              n_rounds=args.rounds,
+                                              use_lstm=use_lstm)
+    fedavg_metrics = evaluate_model(fedavg_model, X_test_fl, y_test_fl)
 
-    # ── 6. FEDPROX ────────────────────────────────────────────────────────
+    # ═══════════════════════════════════════════════════════════════════════
+    # 5. FEDPROX
+    # ═══════════════════════════════════════════════════════════════════════
     print()
-    fedprox_model, fedprox_history = run_fedprox(shards, X_test, y_test,
-                                                 n_rounds=args.rounds, mu=args.mu)
-    fedprox_metrics = evaluate_model(fedprox_model, X_test, y_test)
+    fedprox_model, fedprox_history = run_fedprox(shards, X_test_fl, y_test_fl,
+                                                  n_rounds=args.rounds, mu=args.mu,
+                                                  use_lstm=use_lstm)
+    fedprox_metrics = evaluate_model(fedprox_model, X_test_fl, y_test_fl)
 
-    # ── 7. OPTIMIZE THRESHOLDS (NEW!) ─────────────────────────────────────
-    print("\n[Optimization] Finding optimal thresholds...")
-    
+    # ═══════════════════════════════════════════════════════════════════════
+    # 6. SCAFFOLD (NEW!)
+    # ═══════════════════════════════════════════════════════════════════════
+    scaffold_model = None
+    scaffold_history = []
+    scaffold_metrics = None
+
+    if cfg.USE_SCAFFOLD:
+        print()
+        scaffold_model, scaffold_history = run_scaffold(shards, X_test_fl, y_test_fl,
+                                                        n_rounds=args.rounds,
+                                                        use_lstm=use_lstm)
+        if scaffold_model is not None:
+            scaffold_metrics = evaluate_model(scaffold_model, X_test_fl, y_test_fl)
+
+    # ═══════════════════════════════════════════════════════════════════════
+    # 7. F-BETA THRESHOLD OPTIMIZATION (beta=2)
+    # ═══════════════════════════════════════════════════════════════════════
+    print("\n[Optimization] Finding optimal thresholds (F-beta, beta={})...".format(cfg.FBETA_BETA))
+
     import torch
-    fedavg_model.eval()
-    fedprox_model.eval()
-    
-    with torch.no_grad():
-        X_tensor = torch.FloatTensor(X_test).to(next(fedavg_model.parameters()).device)
-        fedavg_probs = torch.sigmoid(fedavg_model(X_tensor)).cpu().numpy().flatten()
-        fedprox_probs = torch.sigmoid(fedprox_model(X_tensor)).cpu().numpy().flatten()
-    
-    _, fedavg_optimal = find_best_threshold(y_test, fedavg_probs, "FedAvg")
-    _, fedprox_optimal = find_best_threshold(y_test, fedprox_probs, "FedProx")
+    device = next(fedavg_model.parameters()).device
 
-    # ── 8. COMBINED RESULTS ───────────────────────────────────────────────
+    fedavg_probs = get_model_probs(fedavg_model, X_test_fl, device)
+    fedprox_probs = get_model_probs(fedprox_model, X_test_fl, device)
+
+    _, fedavg_optimal = find_optimal_threshold_fbeta(y_test_fl, fedavg_probs, "FedAvg",
+                                                      beta=cfg.FBETA_BETA)
+    _, fedprox_optimal = find_optimal_threshold_fbeta(y_test_fl, fedprox_probs, "FedProx",
+                                                       beta=cfg.FBETA_BETA)
+
+    # SCAFFOLD threshold optimization
+    scaffold_optimal = None
+    if scaffold_model is not None:
+        scaffold_probs = get_model_probs(scaffold_model, X_test_fl, device)
+        _, scaffold_optimal = find_optimal_threshold_fbeta(y_test_fl, scaffold_probs, "SCAFFOLD",
+                                                           beta=cfg.FBETA_BETA)
+
+    # ═══════════════════════════════════════════════════════════════════════
+    # 8. COMBINED RESULTS
+    # ═══════════════════════════════════════════════════════════════════════
     all_results = {
         "Logistic Regression":   c_results["logistic_regression"],
         "XGBoost (Centralised)": c_results["xgboost"],
-        "FedAvg MLP":            fedavg_metrics,
-        "FedProx MLP":           fedprox_metrics,
+        f"FedAvg {model_name}":  fedavg_metrics,
+        f"FedProx {model_name}": fedprox_metrics,
     }
+    if scaffold_metrics is not None:
+        all_results[f"SCAFFOLD {model_name}"] = scaffold_metrics
+
     print_results_table(all_results)
 
-    # ── 9. FIGURES ────────────────────────────────────────────────────────
+    # ═══════════════════════════════════════════════════════════════════════
+    # 9. FIGURES
+    # ═══════════════════════════════════════════════════════════════════════
     print("\n[Figures] Generating paper plots ...\n")
 
-    plot_confusion_matrices(all_results, y_test)
-    plot_roc_curves(all_results, y_test)
-    plot_fl_convergence(fedavg_history, fedprox_history)
+    plot_confusion_matrices(all_results, y_test_fl)
+    plot_roc_curves(all_results, y_test_fl)
+    plot_fl_convergence(fedavg_history, fedprox_history, scaffold_history)
     plot_comparison_table(all_results)
 
-    # SHAP for XGBoost
+    # SHAP for XGBoost (uses 2D data)
     try:
-        _, mean_shap = compute_shap(c_models["xgboost"], X_test, feature_names)
+        _, mean_shap = compute_shap(c_models["xgboost"], X_test_2d, feature_names)
         if mean_shap is not None:
             plot_shap_importance(mean_shap, feature_names)
     except Exception as e:
         print(f"[SHAP] Skipped: {e}")
 
+    # ═══════════════════════════════════════════════════════════════════════
+    # 10. SUMMARY
+    # ═══════════════════════════════════════════════════════════════════════
     elapsed = time.time() - t0
     print(f"\n[Done] Total runtime: {elapsed:.1f}s")
     print(f"[Done] All outputs saved to '{cfg.OUTPUT_DIR}/'")
-    print("\nKey takeaway for your paper:")
-    print(f"  FedProx F1  = {fedprox_metrics['f1']:.3f}  vs  "
+
+    # Print key takeaways
+    print("\n" + "=" * 70)
+    print("  KEY TAKEAWAYS FOR YOUR PAPER")
+    print("=" * 70)
+
+    print(f"\n  FedProx {model_name} F1  = {fedprox_metrics['f1']:.3f}  vs  "
           f"XGBoost F1 = {c_results['xgboost']['f1']:.3f}  "
           f"(privacy cost = {c_results['xgboost']['f1'] - fedprox_metrics['f1']:.3f})")
-    print(f"  FedProx Recall = {fedprox_metrics['recall']:.3f}  vs  "
+
+    if scaffold_metrics is not None:
+        print(f"  SCAFFOLD {model_name} F1 = {scaffold_metrics['f1']:.3f}  vs  "
+              f"FedAvg {model_name} F1 = {fedavg_metrics['f1']:.3f}  "
+              f"(improvement = {scaffold_metrics['f1'] - fedavg_metrics['f1']:.3f})")
+
+    print(f"\n  FedProx Recall = {fedprox_metrics['recall']:.3f}  vs  "
           f"FedAvg Recall = {fedavg_metrics['recall']:.3f}  "
-          f"(FedProx advantage = {fedprox_metrics['recall'] - fedavg_metrics['recall']:.3f})\n")
+          f"(FedProx advantage = {fedprox_metrics['recall'] - fedavg_metrics['recall']:.3f})")
+
+    if scaffold_metrics is not None:
+        print(f"  SCAFFOLD Recall = {scaffold_metrics['recall']:.3f}  vs  "
+              f"FedAvg Recall = {fedavg_metrics['recall']:.3f}  "
+              f"(SCAFFOLD advantage = {scaffold_metrics['recall'] - fedavg_metrics['recall']:.3f})")
+
+    data_desc = "3D (60x24) + 2D baselines" if use_lstm else f"2D ({cfg.FLATTEN_METHOD})"
+    print(f"\n  Model: {model_name} | "
+          f"Loss: {'Fed-Focal' if cfg.USE_FED_FOCAL else 'DAF'} | "
+          f"Data: {data_desc} | "
+          f"Partition: Dirichlet(alpha={cfg.DIRICHLET_ALPHA})")
+    print("=" * 70 + "\n")
 
 
 if __name__ == "__main__":

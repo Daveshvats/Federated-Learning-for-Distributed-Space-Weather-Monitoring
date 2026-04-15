@@ -87,9 +87,30 @@ def _arrays_to_dataframe(X_tr, y_tr, X_te, y_te, feat_names):
     Convert pre-split arrays (from cleaned pkl loader) back to a single
     DataFrame with a '_split' column so preprocess() can respect the
     original train/test boundary.
+
+    KEY FIX: When using statistical features (concat_stats_enhanced),
+    the feature names are prefixed (e.g., 'mean_TOTUSJH') and won't
+    match FEATURE_COLS in preprocess(). To avoid this mismatch, we use
+    generic 'feature_N' names whenever the feature count differs from
+    the 24 base FEATURE_COLS. This ensures preprocess() can find all
+    features via the 'feature_' prefix fallback.
     """
     n_feat = X_tr.shape[1]
-    if len(feat_names) != n_feat:
+
+    # ════════════════════════════════════════════════════════════════════
+    # 🔧 CRITICAL FIX: Use generic feature names when count ≠ 24
+    #
+    # When concat_stats_enhanced is used, feat_names are like
+    # 'mean_TOTUSJH', 'std_TOTPOT', etc. These do NOT match
+    # FEATURE_COLS entries ('TOTUSJH', 'TOTPOT'), causing preprocess()
+    # to only find 'HARPNUM_MOD' → only 1 feature selected instead of 144!
+    #
+    # Generic names like 'feature_0'..'feature_143' are always found
+    # by the c.startswith('feature_') check in preprocess().
+    # ════════════════════════════════════════════════════════════════════
+    if n_feat != len(FEATURE_COLS):
+        feat_names = [f'feature_{i}' for i in range(n_feat)]
+    elif len(feat_names) != n_feat:
         feat_names = [f'feature_{i}' for i in range(n_feat)]
 
     cols = feat_names + [LABEL_COL]
@@ -107,51 +128,89 @@ def _arrays_to_dataframe(X_tr, y_tr, X_te, y_te, feat_names):
     df = pd.concat([df_tr, df_te], ignore_index=True)
 
     # ════════════════════════════════════════════════════════════════════
-    # 🔧 IMPROVED: Add HARPNUM_MOD with VARIATION (not just sequential)
-    # This helps partitioning create more realistic distributions
+    # 🔧 FIX: Do NOT add HARPNUM_MOD as a DataFrame column when using
+    # statistical features. It would be found by FEATURE_COLS matching
+    # in preprocess() but would be the ONLY column found, causing the
+    # bug where only 1 feature is selected instead of 144.
+    #
+    # HARPNUM_MOD is NOT needed as a feature — it's only used for
+    # HARPNUM-based partitioning, and we use Dirichlet partitioning
+    # instead (which doesn't need it).
     # ════════════════════════════════════════════════════════════════════
-    if "HARPNUM_MOD" not in df.columns:
+    # Store HARPNUM_MOD in a separate attribute for partitioning if needed
+    if n_feat != len(FEATURE_COLS):
+        # Using statistical features — HARPNUM_MOD is already embedded
+        # in the feature columns (as one of the 24 base features)
+        # Generate it only for partitioning reference, NOT as a feature
         np.random.seed(42)
         n_total = len(df)
-        
-        # Create varied client assignments (not perfectly uniform)
-        # Simulates different observatories having different amounts of data
-        base_distribution = [0.22, 0.20, 0.18, 0.16, 0.14, 0.10]  # Americas has most
-        
+
+        base_distribution = [0.22, 0.20, 0.18, 0.16, 0.14, 0.10]
         client_ids = []
         cumulative = 0
         for client_id, proportion in enumerate(base_distribution):
             n_for_client = int(n_total * proportion)
             if client_id == len(base_distribution) - 1:
-                n_for_client = n_total - cumulative  # Last client gets remainder
+                n_for_client = n_total - cumulative
             client_ids.extend([client_id] * n_for_client)
             cumulative += n_for_client
-        
-        # Trim/pad to exact length
+
         client_ids = client_ids[:n_total]
         if len(client_ids) < n_total:
             client_ids.extend([0] * (n_total - len(client_ids)))
-        
-        # Shuffle to mix train/test
+
         client_ids = np.array(client_ids)
         perm = np.random.permutation(n_total)
         client_ids = client_ids[perm]
-        
-        # Re-sort to maintain train/test order (train first, then test)
+
         train_indices = df[df["_split"] == "train"].index.tolist()
         test_indices = df[df["_split"] == "test"].index.tolist()
-        
+
         final_client_ids = np.zeros(n_total, dtype=int)
         final_client_ids[train_indices] = client_ids[:len(train_indices)]
         final_client_ids[test_indices] = client_ids[len(train_indices):]
-        
-        df["HARPNUM_MOD"] = final_client_ids
-        
-        print(f"      ✓ Generated HARPNUM_MOD with realistic distribution:")
-        for cid, name in enumerate(["Americas", "Europe", "Asia-Pacific", 
+
+        # Store as _HARPNUM_MOD (underscore prefix = internal, not a feature)
+        # This prevents preprocess() from selecting it as a feature
+        df["_HARPNUM_MOD"] = final_client_ids
+
+        print(f"      ✓ Generated _HARPNUM_MOD with realistic distribution:")
+        for cid, name in enumerate(["Americas", "Europe", "Asia-Pacific",
                                     "South Asia", "East Asia", "Oceania"]):
-            count = (df["HARPNUM_MOD"][:len(X_tr)] == cid).sum()
+            count = (df["_HARPNUM_MOD"][:len(X_tr)] == cid).sum()
             print(f"          {name}: {count:,} train samples")
+    else:
+        # Original 24-feature case — add HARPNUM_MOD normally
+        if "HARPNUM_MOD" not in df.columns:
+            np.random.seed(42)
+            n_total = len(df)
+            base_distribution = [0.22, 0.20, 0.18, 0.16, 0.14, 0.10]
+            client_ids = []
+            cumulative = 0
+            for client_id, proportion in enumerate(base_distribution):
+                n_for_client = int(n_total * proportion)
+                if client_id == len(base_distribution) - 1:
+                    n_for_client = n_total - cumulative
+                client_ids.extend([client_id] * n_for_client)
+                cumulative += n_for_client
+            client_ids = client_ids[:n_total]
+            if len(client_ids) < n_total:
+                client_ids.extend([0] * (n_total - len(client_ids)))
+            client_ids = np.array(client_ids)
+            perm = np.random.permutation(n_total)
+            client_ids = client_ids[perm]
+            train_indices = df[df["_split"] == "train"].index.tolist()
+            test_indices = df[df["_split"] == "test"].index.tolist()
+            final_client_ids = np.zeros(n_total, dtype=int)
+            final_client_ids[train_indices] = client_ids[:len(train_indices)]
+            final_client_ids[test_indices] = client_ids[len(train_indices):]
+            df["HARPNUM_MOD"] = final_client_ids
+
+            print(f"      ✓ Generated HARPNUM_MOD with realistic distribution:")
+            for cid, name in enumerate(["Americas", "Europe", "Asia-Pacific",
+                                        "South Asia", "East Asia", "Oceania"]):
+                count = (df["HARPNUM_MOD"][:len(X_tr)] == cid).sum()
+                print(f"          {name}: {count:,} train samples")
 
     df[LABEL_COL] = df[LABEL_COL].astype(int)
     print(f"\n✅ SUCCESS: Cleaned dataset loaded!")
@@ -262,11 +321,46 @@ def preprocess(df: pd.DataFrame):
     print("║" + "        PREPROCESSING PIPELINE".center(66) + "║")
     print("╚" + "═"*66 + "╝\n")
 
-    available = [c for c in FEATURE_COLS if c in df.columns]
-    # Also accept generic feature_N columns from cleaned loader
+    # ════════════════════════════════════════════════════════════════════
+    # 🔧 CRITICAL FIX: Robust feature column selection
+    #
+    # Previous bug: When using concat_stats_enhanced (144 features),
+    # the stat-prefixed names (e.g., 'mean_TOTUSJH') didn't match
+    # FEATURE_COLS entries ('TOTUSJH'). Only 'HARPNUM_MOD' was found,
+    # resulting in 1 feature instead of 144.
+    #
+    # Fix: Collect features from BOTH named columns AND generic
+    # 'feature_N' columns, then combine them.
+    # ════════════════════════════════════════════════════════════════════
+    available = []
+
+    # Strategy 1: Match named features from FEATURE_COLS
+    named = [c for c in FEATURE_COLS if c in df.columns]
+    available.extend(named)
+
+    # Strategy 2: Match generic feature_N columns (from cleaned loader)
+    generic = sorted(
+        [c for c in df.columns if c.startswith("feature_")],
+        key=lambda c: int(c.split("_")[1])  # Sort by index: feature_0, feature_1, ...
+    )
+    available.extend(generic)
+
+    # Remove duplicates while preserving order
+    seen = set()
+    unique_available = []
+    for c in available:
+        if c not in seen:
+            seen.add(c)
+            unique_available.append(c)
+    available = unique_available
+
+    # Fallback: use all numeric columns except label/split/internal
     if not available:
         available = [c for c in df.columns
-                     if c.startswith("feature_") or c in FEATURE_COLS]
+                     if c not in [LABEL_COL, "_split", "HARPNUM_MOD", "_HARPNUM_MOD"]]
+
+    print(f"[Preprocess] Selected {len(available)} feature columns "
+          f"({len(named)} named + {len(generic)} generic)")
 
     X_all = df[available].values.astype(np.float32)
     y_all = df[LABEL_COL].values.astype(int)
@@ -301,6 +395,56 @@ def preprocess(df: pd.DataFrame):
 # ─────────────────────────────────────────────────────────────────────────────
 # 4.  SMOTE  (applied per-client, not globally)
 # ─────────────────────────────────────────────────────────────────────────────
+
+def load_and_scale_3d_data():
+    """
+    Load and scale 3D data for LSTM models.
+
+    This is a SEPARATE pipeline from load_or_generate_data() -> preprocess(),
+    which produces 2D DataFrames for MLP and centralized baselines.
+
+    LSTM models need the original 3D temporal structure (N, 60, 24).
+    This function loads it directly from pkl files and scales per-feature
+    across all samples and timesteps.
+
+    Returns:
+        X_train_3d: (N_train, 60, 24) float32, scaled
+        y_train:    (N_train,) int
+        X_test_3d:  (N_test, 60, 24) float32, scaled
+        y_test:     (N_test,) int
+        scaler:     fitted StandardScaler
+    """
+    from config import CLEANED_DATA_DIR, COMBINE_PARTITIONS
+    from load_cleaned_data import load_cleaned_3d
+
+    X_train, y_train, X_test, y_test = load_cleaned_3d(
+        data_dir=CLEANED_DATA_DIR,
+        combine_all_partitions=COMBINE_PARTITIONS
+    )
+
+    # Scale 3D data: reshape to 2D, scale, reshape back
+    # This scales each of the 24 features independently across all
+    # samples and timesteps, ensuring consistent normalization.
+    N_train, T, F = X_train.shape
+    N_test = X_test.shape[0]
+
+    print(f"\n[3D Scaling] Reshaping for StandardScaler...")
+    X_train_2d = X_train.reshape(N_train * T, F)
+    X_test_2d = X_test.reshape(N_test * T, F)
+
+    scaler = StandardScaler()
+    X_train_2d = scaler.fit_transform(X_train_2d).astype(np.float32)
+    X_test_2d = scaler.transform(X_test_2d).astype(np.float32)
+
+    X_train_3d = X_train_2d.reshape(N_train, T, F)
+    X_test_3d = X_test_2d.reshape(N_test, T, F)
+
+    print(f"[3D Scaling] Train: {X_train_3d.shape} | flare rate: {y_train.mean()*100:.2f}%")
+    print(f"[3D Scaling] Test:  {X_test_3d.shape} | flare rate: {y_test.mean()*100:.2f}%")
+    print(f"[3D Scaling] 3D data ready for LSTM!\n")
+
+    return X_train_3d, y_train, X_test_3d, y_test, scaler
+
 
 def apply_smote(X: np.ndarray, y: np.ndarray):
     """
