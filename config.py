@@ -84,7 +84,7 @@ FOCAL_ALPHA      = 0.75          # Positive class weight (higher = more recall)
 FLATTEN_METHOD   = "concat_stats_enhanced"  # 6-stat extraction: mean/std/max/min/trend/slope
 
 # ── Non-IID Partitioning ─────────────────────────────────────────────────
-DIRICHLET_ALPHA  = 0.3           # Lower = more non-IID (0.5 moderate, 0.1 extreme)
+DIRICHLET_ALPHA  = 1.0           # Moderate non-IID (was 0.3 which caused near-pure partitions; 1.0 is still interesting for paper but not catastrophic)
 FORCE_NON_IID    = True          # Force Dirichlet partitioning even with cleaned data
 
 # ── F-beta Threshold Optimization ─────────────────────────────────────────

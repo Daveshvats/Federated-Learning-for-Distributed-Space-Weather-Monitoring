@@ -419,25 +419,46 @@ def aggregate_weights_dafl(
     Weights clients by dataset size AND minority class representation.
     When clients have different flare rates (non-IID), this upweights
     clients with fewer flares to prevent minority pattern loss.
+
+    v2 FIX: Uses sqrt-smoothed phi and caps max per-client weight at 2/K
+    to prevent a single client from dominating aggregation. With raw phi,
+    Client 4 (Americas, 92% flares) got 78.7% aggregation weight → model
+    predicted everything as a flare. Sqrt-smoothing dampens extreme ratios
+    (1.88→1.37, 0.013→0.114) and the weight cap ensures no client exceeds
+    2x equal share, with excess redistributed proportionally.
     """
+    n_clients = len(client_sizes)
     total_size = sum(client_sizes)
     da_weights = []
 
-    print("      [DA-FL] Distribution-aware weights:")
+    # Max weight cap: no client should exceed 2/K (2x equal share)
+    max_weight = 2.0 / n_clients
+
+    print(f"      [DA-FL] Distribution-aware weights (max_weight_cap={max_weight:.3f}):")
 
     for i, (size, y_c) in enumerate(zip(client_sizes, client_labels)):
         size_weight = size / total_size
         local_pos_rate = float(np.mean(y_c))
-        phi = local_pos_rate / global_pos_rate if global_pos_rate > 0 else 1.0
+        # FIX: sqrt-smoothed phi dampens extreme ratios
+        # Raw phi: 1.883 for Americas (92% flares) → too dominant
+        # Sqrt phi: sqrt(1.883) = 1.373 → much more balanced
+        raw_phi = local_pos_rate / global_pos_rate if global_pos_rate > 0 else 1.0
+        phi = np.sqrt(raw_phi)
         combined = size_weight * phi
-        da_weights.append(combined)
 
-        print(f"        Client {i}: size_w={size_weight:.3f}, phi={phi:.3f}, "
-              f"final_w={combined:.3f} (pos_rate={local_pos_rate:.3f})")
+        # Apply weight cap: no client exceeds 2/K
+        capped = min(combined, max_weight)
+        da_weights.append(capped)
 
-    # Normalize weights to sum to 1
+        cap_flag = " [CAPPED]" if combined > max_weight else ""
+        print(f"        Client {i}: size_w={size_weight:.3f}, raw_phi={raw_phi:.3f}, "
+              f"sqrt_phi={phi:.3f}, final_w={capped:.3f}{cap_flag} "
+              f"(pos_rate={local_pos_rate:.3f})")
+
+    # Redistribute excess weight from capped clients proportionally
     total_da_weight = sum(da_weights)
-    da_weights = [w / total_da_weight for w in da_weights]
+    if total_da_weight > 0:
+        da_weights = [w / total_da_weight for w in da_weights]
 
     # Weighted average of model parameters
     averaged = []
@@ -769,7 +790,8 @@ def run_scaffold(
     y_test:   np.ndarray,
     n_rounds: int = N_ROUNDS,
     use_lstm: bool = None,
-    eval_batch_size: int = EVAL_BATCH_SIZE
+    eval_batch_size: int = EVAL_BATCH_SIZE,
+    warm_start_model: nn.Module = None
 ) -> Tuple[nn.Module, List[Dict]]:
     """
     Complete SCAFFOLD training loop with control variates.
@@ -787,10 +809,17 @@ def run_scaffold(
     Enhancements over vanilla SCAFFOLD:
     - Best-model checkpoint: Returns the model with highest F1 (not last round)
     - Control variate warmup: Correction ramps up over first 5 rounds
-    - This prevents the instability observed with extreme non-IID data
+    - Warm-start from FedAvg: Initializes from FedAvg weights instead of random,
+      preventing the NaN death spiral that occurs with random initialization
 
     Reference:
         Karimireddy et al., "SCAFFOLD" (ICML 2020)
+
+    Args:
+        warm_start_model: If provided, initialize SCAFFOLD from this model's
+                         weights instead of random initialization. Typically
+                         the FedAvg global model, which provides a much more
+                         stable starting point for SCAFFOLD's control variates.
 
     Returns:
         global_model: Trained global model (best checkpoint)
@@ -810,7 +839,15 @@ def run_scaffold(
     else:
         input_dim = sample_X.shape[1]
 
-    global_model, device = make_fresh_model(input_dim, use_lstm=use_lstm)
+    # FIX: Initialize from warm-start model (FedAvg) instead of random weights.
+    # Random init → SCAFFOLD often diverges → NaN → reinit from random → NaN loop.
+    # FedAvg warm-start provides a converged baseline for control variates to refine.
+    if warm_start_model is not None:
+        global_model = clone_model(warm_start_model)
+        device = next(global_model.parameters()).device
+        print(f"  [SCAFFOLD] Warm-starting from FedAvg model (not random init)")
+    else:
+        global_model, device = make_fresh_model(input_dim, use_lstm=use_lstm)
     history = []
 
     # Initialize control variates (zeros)
@@ -890,17 +927,25 @@ def run_scaffold(
 
         # ── NaN weight detection after aggregation ──
         # If aggregated weights contain NaN (from a diverged client),
-        # revert to best checkpoint or reinitialize
+        # revert using a 3-tier hierarchy:
+        #   1. Best checkpoint (if available)
+        #   2. FedAvg warm-start weights (if available)
+        #   3. Random reinitialization (last resort)
         has_nan = any(np.isnan(w).any() for w in new_weights)
         if has_nan:
             print(f"  [SCAFFOLD] NaN in aggregated weights at round {rnd}!")
             if best_weights is not None:
                 print(f"  [SCAFFOLD] Reverting to best checkpoint (F1={best_f1:.3f})")
                 set_weights(global_model, best_weights)
+            elif warm_start_model is not None:
+                print(f"  [SCAFFOLD] Reverting to FedAvg warm-start weights")
+                warm_weights = get_weights(warm_start_model)
+                set_weights(global_model, warm_weights)
             else:
-                print(f"  [SCAFFOLD] No checkpoint available — reinitializing model")
+                print(f"  [SCAFFOLD] No checkpoint or warm-start available — reinitializing model")
                 global_model, device = make_fresh_model(input_dim, use_lstm=use_lstm)
-                c_global = [torch.zeros_like(p) for p in global_model.parameters()]
+            # Always reset control variates on NaN recovery
+            c_global = [torch.zeros_like(p) for p in global_model.parameters()]
             continue
 
         if rnd % 5 == 0 or rnd == n_rounds:

@@ -315,7 +315,8 @@ def main():
         scaffold_model, scaffold_history = run_scaffold(shards, X_test_fl, y_test_fl,
                                                         n_rounds=args.rounds,
                                                         use_lstm=use_lstm,
-                                                        eval_batch_size=eval_bs)
+                                                        eval_batch_size=eval_bs,
+                                                        warm_start_model=fedavg_model)
         if scaffold_model is not None:
             scaffold_metrics = evaluate_model(scaffold_model, X_test_fl, y_test_fl,
                                                batch_size=eval_bs)
