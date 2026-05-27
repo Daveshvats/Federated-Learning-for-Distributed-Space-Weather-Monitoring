@@ -22,6 +22,7 @@ References:
 - "Addressing Class Imbalance in FL" (AAAI 2021, cited 445)
 """
 
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -69,7 +70,7 @@ class DynamicFocalLoss(nn.Module):
             global_pos_rate = 0.4887  # Balanced training set rate
             adjustment = 1.0 + (global_pos_rate - client_pos_rate) * 0.8
             alpha = self.base_alpha * adjustment
-            alpha = torch.clamp(torch.tensor(alpha), 0.1, 0.9).item()
+            alpha = torch.clamp(torch.tensor(alpha), 0.1, 0.4).item()
 
         # Alpha weighting: alpha_t for positive class, (1-alpha) for negative
         alpha_t = alpha * targets + (1 - alpha) * (1 - targets)
@@ -176,29 +177,42 @@ class FedFocalLoss(nn.Module):
         focal_factor = (1 - pt) ** self.gamma
 
         # ── Adaptive Alpha Calculation ──
+        # FIX v2.4: Drastically reduced dynamic scaling. The old code used
+        # min(imbalance_ratio, 3.0) which multiplied alpha by up to 3x,
+        # then a progressive_factor of 0.7-1.3. Combined with clamp=0.95,
+        # this inflated alpha to 0.95 for low-flare clients, undoing the
+        # focal_alpha=0.25 setting and causing Recall=0.999, Precision=0.027.
+        #
+        # New approach: Gentle sqrt-scaled correction (like DA-FL's phi),
+        # capped at 1.5x (not 3x), and a mild progressive factor (0.9-1.1).
+        # Max possible alpha = 0.25 * 1.5 * 1.1 = 0.4125, clamped to 0.4.
         alpha = self.alpha
 
-        # Factor 1: Client-local imbalance adjustment
+        # Factor 1: Client-local imbalance adjustment (sqrt-scaled, gentle)
         if client_pos_rate is not None:
-            # If this client has fewer flares than expected, increase alpha
-            # to compensate (upweight rare examples more aggressively)
             global_train_rate = 0.4887
-            imbalance_ratio = global_train_rate / max(client_pos_rate, 0.01)
+            raw_ratio = global_train_rate / max(client_pos_rate, 0.01)
+            # FIX: sqrt dampening (same principle as DA-FL phi) — a ratio of
+            # 81x (0.4887/0.006) becomes 9x instead of 81x, and we cap at 1.5x.
+            # This prevents low-flare clients from dominating the loss.
+            imbalance_factor = min(np.sqrt(raw_ratio), 1.5)
+            alpha = alpha * imbalance_factor
 
-            # Smooth correction: higher when client is more imbalanced
-            alpha = alpha * min(imbalance_ratio, 3.0)  # Cap at 3x to prevent explosion
-
-        # Factor 2: Progressive alpha scheduling
-        # In early rounds, be conservative (let model learn general patterns)
-        # In later rounds, be aggressive (focus on remaining hard examples)
+        # Factor 2: Progressive alpha scheduling (mild)
         if self._total_rounds > 0:
             progress = self._current_round / self._total_rounds  # 0 → 1
-            # Alpha ramps from 0.7*alpha to 1.3*alpha as training progresses
-            progressive_factor = 0.7 + 0.6 * progress
+            # FIX: Reduced range from 0.7-1.3 to 0.9-1.1 — the old range
+            # was causing alpha to ramp by 30% over training, pushing
+            # already-high alphas even higher in later rounds.
+            progressive_factor = 0.9 + 0.2 * progress
             alpha = alpha * progressive_factor
 
         # Clamp to reasonable range
-        alpha = float(torch.clamp(torch.tensor(alpha), 0.1, 0.95))
+        # FIX v2.3: Was 0.95 → 0.5. FIX v2.4: Now 0.4 — even 0.5 was
+        # too high because the imbalance scaling still pushed many clients
+        # to the clamp. At alpha=0.4, positive class gets 40% weight,
+        # negative gets 60% — still favoring recall but not catastrophically.
+        alpha = float(torch.clamp(torch.tensor(alpha), 0.1, 0.4))
 
         # Alpha weighting for positive/negative classes
         alpha_t = alpha * targets + (1 - alpha) * (1 - targets)

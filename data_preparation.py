@@ -65,13 +65,9 @@ def load_or_generate_data() -> pd.DataFrame:
         if core.issubset(df.columns) and LABEL_COL in df.columns:
             print(f"[Data] {len(df):,} samples | "
                   f"flare rate: {df[LABEL_COL].mean()*100:.2f}%")
-            if "HARPNUM_MOD" not in df.columns:
-                df["HARPNUM_MOD"] = (
-                    df["HARPNUM"] % N_CLIENTS if "HARPNUM" in df.columns
-                    else np.random.randint(0, N_CLIENTS, len(df))
-                )
-            if "TIME_SINCE_LAST_FLARE" not in df.columns:
-                df["TIME_SINCE_LAST_FLARE"] = _compute_time_since_flare(df)
+            # v2.5: No longer adding HARPNUM_MOD or TIME_SINCE_LAST_FLARE
+            # as features — they don't exist in the Cleaned SWAN-SF dataset.
+            # For partitioning, we use Dirichlet (doesn't need HARPNUM).
             return df
 
     # ── Priority 3: synthetic fallback ─────────────────────────────────────
@@ -219,36 +215,45 @@ def _arrays_to_dataframe(X_tr, y_tr, X_te, y_te, feat_names):
 
 
 def _generate_synthetic() -> pd.DataFrame:
-    """Physics-based synthetic dataset with intentional class overlap."""
+    """
+    Physics-based synthetic dataset with intentional class overlap.
+    
+    v2.5: Updated to use the CORRECT 24 features from the Cleaned SWAN-SF
+    dataset (same order and names as the actual data files). Previous version
+    used AREA_ACR, HARPNUM_MOD, TIME_SINCE_LAST_FLARE which don't exist
+    in the cleaned dataset.
+    """
     np.random.seed(RANDOM_STATE)
     n_flare = int(N_SAMPLES * FLARE_RATIO)
     n_quiet = N_SAMPLES - n_flare
     records = []
 
     for label, n, mag in [(0, n_quiet, 1.0), (1, n_flare, 7.0)]:
+        # Generate features in the CORRECT order matching Cleaned SWAN-SF
+        R_VALUE  = np.random.lognormal(np.log(1.8*mag), 0.6, n)
         TOTUSJH  = np.random.lognormal(np.log(4e21 * mag),   0.9, n)
+        TOTBSQ   = np.random.lognormal(np.log(9e22*mag), 0.8, n)
         TOTPOT   = np.random.lognormal(np.log(8e31 * mag),   1.0, n)
         TOTUSJZ  = np.random.lognormal(np.log(9e11 * mag),   0.8, n)
         ABSNJZH  = np.abs(np.random.normal(9e11 * mag, 4e11 * mag, n))
         SAVNCPP  = np.random.lognormal(np.log(80 * mag),     0.5, n)
         USFLUX   = np.random.lognormal(np.log(8e21 * mag),   0.9, n)
-        AREA_ACR = np.random.lognormal(np.log(400 * mag),    0.7, n)
+        TOTFZ    = np.random.normal(0, 9e21*mag, n)    # Lorentz Force Z
         MEANPOT  = np.clip(np.random.normal(250*mag, 90, n), 0, None)
-        SHRGT45  = np.random.beta(2*mag, 5, n) * 100
+        EPSX     = np.random.normal(0, 9e21*mag, n)
+        EPSY     = np.random.normal(0, 9e21*mag, n)
+        EPSZ     = np.random.normal(0, 9e21*mag, n)
         MEANSHR  = np.random.normal(18*mag, 14, n)
+        SHRGT45  = np.random.beta(2*mag, 5, n) * 100
         MEANGAM  = np.random.normal(4*mag, 3, n)
         MEANGBT  = np.random.lognormal(np.log(45*mag), 0.6, n)
         MEANGBZ  = np.random.normal(0, 28*mag, n)
         MEANGBH  = np.random.lognormal(np.log(38*mag), 0.7, n)
         MEANJZH  = np.random.normal(0, 4e7*mag, n)
-        TOTBSQ   = np.random.lognormal(np.log(9e22*mag), 0.8, n)
+        TOTFY    = np.random.normal(0, 9e21*mag, n)    # Lorentz Force Y
         MEANJZD  = np.random.normal(0, 9e6*mag, n)
         MEANALP  = np.random.normal(0, 0.4*mag, n)
-        R_VALUE  = np.random.lognormal(np.log(1.8*mag), 0.6, n)
-        EPSY     = np.random.normal(0, 9e21*mag, n)
-        EPSX     = np.random.normal(0, 9e21*mag, n)
-        EPSZ     = np.random.normal(0, 9e21*mag, n)
-        TSF      = np.random.exponential(max(1, 48 / mag), n)
+        TOTFX    = np.random.normal(0, 9e21*mag, n)    # Lorentz Force X
 
         # 15% overlap to avoid 100% accuracy on synthetic data
         if label == 1:
@@ -264,19 +269,18 @@ def _generate_synthetic() -> pd.DataFrame:
 
         for i in range(n):
             records.append({
-                "TOTUSJH": TOTUSJH[i], "TOTPOT": TOTPOT[i],
+                "R_VALUE": R_VALUE[i], "TOTUSJH": TOTUSJH[i],
+                "TOTBSQ": TOTBSQ[i], "TOTPOT": TOTPOT[i],
                 "TOTUSJZ": TOTUSJZ[i], "ABSNJZH": ABSNJZH[i],
                 "SAVNCPP": SAVNCPP[i], "USFLUX": USFLUX[i],
-                "AREA_ACR": AREA_ACR[i], "MEANPOT": MEANPOT[i],
-                "SHRGT45": SHRGT45[i], "MEANSHR": MEANSHR[i],
-                "MEANGAM": MEANGAM[i], "MEANGBT": MEANGBT[i],
-                "MEANGBZ": MEANGBZ[i], "MEANGBH": MEANGBH[i],
-                "MEANJZH": MEANJZH[i], "TOTBSQ": TOTBSQ[i],
-                "MEANJZD": MEANJZD[i], "MEANALP": MEANALP[i],
-                "R_VALUE": R_VALUE[i], "EPSY": EPSY[i],
-                "EPSX": EPSX[i], "EPSZ": EPSZ[i],
-                "HARPNUM_MOD": client_ids[i],
-                "TIME_SINCE_LAST_FLARE": TSF[i],
+                "TOTFZ": TOTFZ[i], "MEANPOT": MEANPOT[i],
+                "EPSX": EPSX[i], "EPSY": EPSY[i],
+                "EPSZ": EPSZ[i], "MEANSHR": MEANSHR[i],
+                "SHRGT45": SHRGT45[i], "MEANGAM": MEANGAM[i],
+                "MEANGBT": MEANGBT[i], "MEANGBZ": MEANGBZ[i],
+                "MEANGBH": MEANGBH[i], "MEANJZH": MEANJZH[i],
+                "TOTFY": TOTFY[i], "MEANJZD": MEANJZD[i],
+                "MEANALP": MEANALP[i], "TOTFX": TOTFX[i],
                 LABEL_COL: label,
             })
 
@@ -381,9 +385,26 @@ def preprocess(df: pd.DataFrame):
             random_state=RANDOM_STATE, stratify=y_all
         )
 
+    # v2.5 FIX: The Cleaned SWAN-SF dataset is already LSBZM-normalized
+    # (L2-Scaled, Box-Cox, Z-score, Min-max). Applying StandardScaler
+    # on top of that is redundant normalization that can distort the
+    # already-optimized feature distributions.
+    #
+    # However, we keep the scaler for API compatibility (centralized
+    # baselines expect a fitted scaler). We just don't apply it to
+    # already-normalized cleaned data.
+    #
+    # For the CSV/synthetic fallback path, StandardScaler is still needed.
     scaler  = StandardScaler()
-    X_train = scaler.fit_transform(X_train).astype(np.float32)
-    X_test  = scaler.transform(X_test).astype(np.float32)
+    if '_split' in df.columns and df['_split'].notna().any():
+        # Cleaned dataset — already LSBZM-normalized, skip rescaling
+        print("[Preprocess] Cleaned dataset is already LSBZM-normalized — skipping StandardScaler.")
+        # Fit scaler on training data anyway (for API compatibility)
+        scaler.fit(X_train)
+    else:
+        # Raw CSV or synthetic data — needs scaling
+        X_train = scaler.fit_transform(X_train).astype(np.float32)
+        X_test  = scaler.transform(X_test).astype(np.float32)
 
     print(f"[Preprocess] Train: {len(X_train):,} | "
           f"flare rate: {y_train.mean()*100:.2f}%")
@@ -423,22 +444,24 @@ def load_and_scale_3d_data():
         combine_all_partitions=COMBINE_PARTITIONS
     )
 
-    # Scale 3D data: reshape to 2D, scale, reshape back
-    # This scales each of the 24 features independently across all
-    # samples and timesteps, ensuring consistent normalization.
+    # v2.5 FIX: The Cleaned SWAN-SF dataset is already LSBZM-normalized
+    # (L2-Scaled, Box-Cox, Z-score, Min-max). Applying StandardScaler
+    # on top was redundant double-normalization. We now skip it for
+    # the cleaned 3D data, but still fit a scaler for API compatibility.
     N_train, T, F = X_train.shape
     N_test = X_test.shape[0]
 
-    print(f"\n[3D Scaling] Reshaping for StandardScaler...")
+    # Fit scaler on training data (for API compatibility)
+    # but DON'T transform — data is already normalized
     X_train_2d = X_train.reshape(N_train * T, F)
-    X_test_2d = X_test.reshape(N_test * T, F)
-
     scaler = StandardScaler()
-    X_train_2d = scaler.fit_transform(X_train_2d).astype(np.float32)
-    X_test_2d = scaler.transform(X_test_2d).astype(np.float32)
+    scaler.fit(X_train_2d)  # Fit only, don't transform
 
-    X_train_3d = X_train_2d.reshape(N_train, T, F)
-    X_test_3d = X_test_2d.reshape(N_test, T, F)
+    print(f"\n[3D Scaling] Cleaned dataset is already LSBZM-normalized — skipping StandardScaler.")
+    print(f"[3D Scaling] Scaler fitted for API compatibility only.")
+
+    X_train_3d = X_train  # Already float32 from load_cleaned_3d
+    X_test_3d = X_test
 
     print(f"[3D Scaling] Train: {X_train_3d.shape} | flare rate: {y_train.mean()*100:.2f}%")
     print(f"[3D Scaling] Test:  {X_test_3d.shape} | flare rate: {y_test.mean()*100:.2f}%")

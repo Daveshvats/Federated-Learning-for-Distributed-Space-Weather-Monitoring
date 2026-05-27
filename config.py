@@ -4,15 +4,14 @@ SF-9: Federated Learning for Distributed Space Weather Monitoring
 All hyperparameters and paths in one file.
 Change values here; every other script reads from here.
 
-v2.0 — Enhanced with 2026 SOTA techniques:
-  - LSTM temporal model
-  - SCAFFOLD algorithm
-  - Fed-Focal Loss
-  - Richer temporal features (6-stat extraction)
-  - Non-IID Dirichlet partitioning
-  - F-beta threshold optimization
-  - CosineAnnealingWarmRestarts scheduler
-  - Mixup augmentation
+v2.5 — Dataset audit fixes (Cleaned SWAN-SF alignment):
+  - FEATURE_COLS: Replaced 3 non-existent features (AREA_ACR, HARPNUM_MOD,
+    TIME_SINCE_LAST_FLARE) with actual features from the Cleaned SWAN-SF
+    dataset (TOTFZ, TOTFY, TOTFX — Total Lorentz Force components)
+  - FEATURE_COLS: Fixed attribute order to match the actual dataset
+    (from https://github.com/samresume/Cleaned-SWANSF-Dataset)
+  - Removed double StandardScaler on already LSBZM-normalized data
+  - Plus all v2.3/v2.4 fixes: SCAFFOLD NaN, focal alpha, Dirichlet, etc.
 """
 
 # ── Paths ─────────────────────────────────────────────────────────────────
@@ -24,14 +23,45 @@ N_SAMPLES        = 10000           # Synthetic fallback: total rows
 FLARE_RATIO      = 0.06            # ~6% flare rate (matches real SWAN-SF)
 RANDOM_STATE     = 42
 
-# SWAN-SF magnetic-field feature names (Harvard Dataverse column headers)
+# SWAN-SF magnetic-field feature names — EXACT order from Cleaned SWAN-SF Dataset
+# Source: https://github.com/samresume/Cleaned-SWANSF-Dataset
+# Attributes Order (as stored in the 3D pkl files, index 0..23):
+#   Index 0:  R_VALUE   — Sum of positive/negative polarity flux correlation
+#   Index 1:  TOTUSJH   — Total unsigned current helicity
+#   Index 2:  TOTBSQ    — Total magnitude of Lorentz force
+#   Index 3:  TOTPOT    — Total photospheric magnetic free energy
+#   Index 4:  TOTUSJZ   — Total unsigned vertical current
+#   Index 5:  ABSNJZH   — Absolute value of net current helicity
+#   Index 6:  SAVNCPP   — Sum of absolute value of net current per polarity
+#   Index 7:  USFLUX    — Total unsigned flux
+#   Index 8:  TOTFZ     — Total Lorentz force Z-component (was wrongly labeled AREA_ACR)
+#   Index 9:  MEANPOT   — Mean photospheric magnetic free energy
+#   Index 10: EPSX      — Sum of epsilon X-component (was wrongly ordered)
+#   Index 11: EPSY      — Sum of epsilon Y-component
+#   Index 12: EPSZ      — Sum of epsilon Z-component
+#   Index 13: MEANSHR   — Mean shear angle
+#   Index 14: SHRGT45   — Fraction of area with shear > 45 deg
+#   Index 15: MEANGAM   — Mean angle of field from radial
+#   Index 16: MEANGBT   — Mean gradient of total field
+#   Index 17: MEANGBZ   — Mean gradient of Bz (vertical)
+#   Index 18: MEANGBH   — Mean gradient of Bh (horizontal)
+#   Index 19: MEANJZH   — Mean current helicity (Bz contribution)
+#   Index 20: TOTFY     — Total Lorentz force Y-component (was wrongly labeled HARPNUM_MOD)
+#   Index 21: MEANJZD   — Mean vertical current density
+#   Index 22: MEANALP   — Mean alpha parameter
+#   Index 23: TOTFX     — Total Lorentz force X-component (was wrongly labeled TIME_SINCE_LAST_FLARE)
+#
+# v2.5 FIX: Previous version had 3 features that don't exist in the Cleaned dataset:
+#   AREA_ACR, HARPNUM_MOD, TIME_SINCE_LAST_FLARE
+# These were replaced with the actual features present in the data:
+#   TOTFZ, TOTFY, TOTFX (Lorentz Force components — physically important for flares!)
 FEATURE_COLS = [
-    "TOTUSJH",  "TOTPOT",   "TOTUSJZ",  "ABSNJZH",
-    "SAVNCPP",  "USFLUX",   "AREA_ACR", "MEANPOT",
-    "SHRGT45",  "MEANSHR",  "MEANGAM",  "MEANGBT",
-    "MEANGBZ",  "MEANGBH",  "MEANJZH",  "TOTBSQ",
-    "MEANJZD",  "MEANALP",  "R_VALUE",  "EPSY",
-    "EPSX",     "EPSZ",     "HARPNUM_MOD", "TIME_SINCE_LAST_FLARE"
+    "R_VALUE",  "TOTUSJH",  "TOTBSQ",   "TOTPOT",
+    "TOTUSJZ",  "ABSNJZH",  "SAVNCPP",  "USFLUX",
+    "TOTFZ",    "MEANPOT",  "EPSX",     "EPSY",
+    "EPSZ",     "MEANSHR",  "SHRGT45",  "MEANGAM",
+    "MEANGBT",  "MEANGBZ",  "MEANGBH",  "MEANJZH",
+    "TOTFY",    "MEANJZD",  "MEANALP",  "TOTFX"
 ]
 LABEL_COL   = "label"
 
@@ -78,13 +108,16 @@ SCAFFOLD_LR      = 0.001
 # ── Fed-Focal Loss ────────────────────────────────────────────────────────
 USE_FED_FOCAL    = True          # Use Fed-Focal Loss instead of DynamicFocalLoss
 FOCAL_GAMMA      = 2.0           # Focusing parameter
-FOCAL_ALPHA      = 0.75          # Positive class weight (higher = more recall)
+FOCAL_ALPHA      = 0.25          # FIX: was 0.75 → over-predicted flares (F1~0.07)
+                        # 0.25 is standard. federated_learning.py also
+                        # hardcodes 0.25 directly for safety.
 
 # ── Richer Temporal Features ──────────────────────────────────────────────
 FLATTEN_METHOD   = "concat_stats_enhanced"  # 6-stat extraction: mean/std/max/min/trend/slope
 
 # ── Non-IID Partitioning ─────────────────────────────────────────────────
-DIRICHLET_ALPHA  = 1.0           # Moderate non-IID (was 0.3 which caused near-pure partitions; 1.0 is still interesting for paper but not catastrophic)
+DIRICHLET_ALPHA  = 0.5           # FIX: was 0.3 → created 0.6%-100% flare-rate clients
+                        # 0.5 = moderate non-IID without pathological extremes
 FORCE_NON_IID    = True          # Force Dirichlet partitioning even with cleaned data
 
 # ── F-beta Threshold Optimization ─────────────────────────────────────────

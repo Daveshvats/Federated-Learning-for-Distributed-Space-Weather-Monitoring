@@ -225,14 +225,27 @@ def load_cleaned_partition(partition_num=1,
     # ── GET FEATURE NAMES ──
     print("\n[3/4] Extracting feature information...")
     
-    # Standard SWAN-SF base feature names (24 magnetic parameters)
+    # Standard SWAN-SF base feature names — EXACT ORDER from Cleaned SWAN-SF Dataset
+    # Source: https://github.com/samresume/Cleaned-SWANSF-Dataset
+    # v2.5 FIX: Corrected to match actual attribute order in the 3D pkl files.
+    # Previous version had 3 features that don't exist in the dataset
+    # (AREA_ACR, HARPNUM_MOD, TIME_SINCE_LAST_FLARE) and wrong order.
+    # The correct 24 attributes are (index 0-23):
+    #   R_VALUE, TOTUSJH, TOTBSQ, TOTPOT, TOTUSJZ, ABSNJZH,
+    #   SAVNCPP, USFLUX, TOTFZ, MEANPOT, EPSX, EPSY, EPSZ,
+    #   MEANSHR, SHRGT45, MEANGAM, MEANGBT, MEANGBZ, MEANGBH,
+    #   MEANJZH, TOTFY, MEANJZD, MEANALP, TOTFX
+    # Key corrections:
+    #   AREA_ACR → TOTFZ (Total Lorentz Force Z-component)
+    #   HARPNUM_MOD → TOTFY (Total Lorentz Force Y-component)
+    #   TIME_SINCE_LAST_FLARE → TOTFX (Total Lorentz Force X-component)
     base_features = [
-        'TOTUSJH', 'TOTPOT', 'TOTUSJZ', 'ABSNJZH',
-        'SAVNCPP', 'USFLUX', 'AREA_ACR', 'MEANPOT',
-        'SHRGT45', 'MEANSHR', 'MEANGAM', 'MEANGBT',
-        'MEANGBZ', 'MEANGBH', 'MEANJZH', 'TOTBSQ',
-        'MEANJZD', 'MEANALP', 'R_VALUE', 'EPSY',
-        'EPSX', 'EPSZ', 'HARPNUM_MOD', 'TIME_SINCE_LAST_FLARE'
+        'R_VALUE', 'TOTUSJH', 'TOTBSQ', 'TOTPOT',
+        'TOTUSJZ', 'ABSNJZH', 'SAVNCPP', 'USFLUX',
+        'TOTFZ',   'MEANPOT', 'EPSX',    'EPSY',
+        'EPSZ',    'MEANSHR', 'SHRGT45', 'MEANGAM',
+        'MEANGBT', 'MEANGBZ', 'MEANGBH', 'MEANJZH',
+        'TOTFY',   'MEANJZD', 'MEANALP', 'TOTFX'
     ]
     
     # Generate appropriate feature names based on flattening method
