@@ -201,9 +201,10 @@ def plot_shap_importance(
 def plot_comparison_table(all_results: Dict) -> None:
     """Render a formatted metrics table as a PNG for direct paper inclusion."""
     rows   = []
-    header = ["Model", "Accuracy", "Precision", "Recall", "F1-Score", "ROC-AUC"]
+    header = ["Model", "Accuracy", "Precision", "Recall", "F1-Score", "ROC-AUC", "Threshold"]
 
     for name, res in all_results.items():
+        thresh_str = f"{res.get('threshold', THRESHOLD):.2f}"
         rows.append([
             name,
             f"{res['accuracy']:.3f}",
@@ -211,9 +212,10 @@ def plot_comparison_table(all_results: Dict) -> None:
             f"{res['recall']:.3f}",
             f"{res['f1']:.3f}",
             f"{res['roc_auc']:.3f}",
+            thresh_str,
         ])
 
-    fig, ax = plt.subplots(figsize=(12, 1 + 0.6 * len(rows)))
+    fig, ax = plt.subplots(figsize=(14, 1 + 0.6 * len(rows)))
     ax.axis("off")
     table = ax.table(
         cellText=rows, colLabels=header,
@@ -228,13 +230,13 @@ def plot_comparison_table(all_results: Dict) -> None:
         table[(0, j)].set_facecolor("#2C3E50")
         table[(0, j)].set_text_props(color="white", fontweight="bold")
 
-    # Highlight best Recall row
-    recalls = [float(r[3]) for r in rows]
-    best_row = np.argmax(recalls) + 1
+    # Highlight best F1 row (more meaningful after threshold optimization)
+    f1s = [float(r[4]) for r in rows]
+    best_row = np.argmax(f1s) + 1
     for j in range(len(header)):
         table[(best_row, j)].set_facecolor("#D5F5E3")
 
-    ax.set_title(f"Model Comparison (threshold = {THRESHOLD}, best Recall highlighted)",
+    ax.set_title("Model Comparison (F-beta optimised thresholds, best F1 highlighted)",
                  fontsize=12, fontweight="bold", pad=20)
 
     path = os.path.join(OUTPUT_DIR, "Comparison_Table.png")
@@ -248,12 +250,13 @@ def plot_comparison_table(all_results: Dict) -> None:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def print_results_table(all_results: Dict) -> None:
-    sep = "=" * 72
-    fmt = "{:<30} | {:<6} | {:<6} | {:<7} | {:<6} | {:<7}"
+    sep = "=" * 82
+    fmt = "{:<30} | {:<6} | {:<6} | {:<7} | {:<6} | {:<7} | {:<5}"
     print(f"\n{sep}")
-    print(fmt.format("Model", "Acc", "Prec", "Recall", "F1", "ROC-AUC"))
+    print(fmt.format("Model", "Acc", "Prec", "Recall", "F1", "ROC-AUC", "Thresh"))
     print(sep)
     for name, res in all_results.items():
+        thresh_str = f"{res.get('threshold', THRESHOLD):.2f}"
         print(fmt.format(
             name,
             f"{res['accuracy']:.3f}",
@@ -261,5 +264,6 @@ def print_results_table(all_results: Dict) -> None:
             f"{res['recall']:.3f}",
             f"{res['f1']:.3f}",
             f"{res['roc_auc']:.3f}",
+            thresh_str,
         ))
     print(sep + "\n")

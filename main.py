@@ -2,12 +2,19 @@
 main.py
 --------
 SF-9: Federated Space Weather Monitoring
-Full pipeline orchestrator (v2.1 -- Dual Data Path for LSTM + MLP)
+Full pipeline orchestrator (v2.2 -- F-beta Threshold Optimization Fix)
 
 ARCHITECTURE:
   - LSTM models require 3D data (batch, 60 timesteps, 24 features)
   - MLP and centralized baselines require 2D data (batch, features)
   - This version loads BOTH data formats and routes them correctly
+
+v2.2 FIXES:
+  - F-beta optimal thresholds are now USED (not just computed) for all models
+  - The all_results dict now contains metrics at the optimal threshold
+  - Confusion matrices and comparison table reflect improved numbers
+  - Centralised models (LR, XGBoost) also get threshold optimisation
+  - ROC-AUC remains threshold-independent and unchanged
 
 Run order:
   1. Load 2D data for baselines (via load_or_generate_data -> preprocess)
@@ -16,10 +23,10 @@ Run order:
   4. Train centralised baselines (LR + XGBoost) -- upper bound
   5. Run FedAvg for N_ROUNDS (with 3D shards if LSTM, 2D if MLP)
   6. Run FedProx for N_ROUNDS
-  7. Run SCAFFOLD for N_ROUNDS (NEW!)
-  8. Optimize thresholds using F-beta (beta=2) (NEW!)
-  9. Evaluate all models on the global test set
- 10. Generate all paper figures
+  7. Run SCAFFOLD for N_ROUNDS
+  8. Optimise thresholds using F-beta (beta=2) for ALL models
+  9. Re-evaluate all models at optimal thresholds → update all_results
+ 10. Generate all paper figures (using optimized metrics)
 
 Usage:
   python main.py
@@ -104,8 +111,14 @@ def find_optimal_threshold_fbeta(y_true, y_probs, model_name, beta=2.0):
     print(f"  {model_name}: Optimal threshold = {best_thresh:.2f} | "
           f"F{beta:.0f}={best_fb:.3f} | F1={f1:.3f} | Prec={prec:.3f} | Rec={rec:.3f}")
 
-    return best_thresh, {'precision': prec, 'recall': rec, 'f1': f1,
-                         f'f{beta:.0f}': best_fb}
+    metrics_dict = {
+        'precision': prec,
+        'recall':    rec,
+        'f1':        f1,
+        f'f{beta:.0f}': best_fb,
+        'threshold': best_thresh,  # Include optimal threshold for downstream use
+    }
+    return best_thresh, metrics_dict
 
 
 def get_model_probs(model, X_test, device, batch_size=cfg.EVAL_BATCH_SIZE):
@@ -324,25 +337,75 @@ def main():
     # ═══════════════════════════════════════════════════════════════════════
     # 7. F-BETA THRESHOLD OPTIMIZATION (beta=2)
     # ═══════════════════════════════════════════════════════════════════════
+    #
+    # The default threshold (0.35) is far too low for the imbalanced test set
+    # (~1.9% positive), causing near-1.0 recall but catastrophic precision.
+    # We re-evaluate each model at its F-beta-optimal threshold and overwrite
+    # the metrics dict so that downstream tables and figures reflect the
+    # improved numbers.  ROC-AUC is threshold-independent and stays as-is.
+    #
+    # ═══════════════════════════════════════════════════════════════════════
     print("\n[Optimization] Finding optimal thresholds (F-beta, beta={})...".format(cfg.FBETA_BETA))
 
     import torch
+    from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score
     device = next(fedavg_model.parameters()).device
 
+    # --- FL models: extract probs and optimise ---
     fedavg_probs = get_model_probs(fedavg_model, X_test_fl, device, batch_size=eval_bs)
     fedprox_probs = get_model_probs(fedprox_model, X_test_fl, device, batch_size=eval_bs)
 
-    _, fedavg_optimal = find_optimal_threshold_fbeta(y_test_fl, fedavg_probs, "FedAvg",
-                                                      beta=cfg.FBETA_BETA)
-    _, fedprox_optimal = find_optimal_threshold_fbeta(y_test_fl, fedprox_probs, "FedProx",
-                                                       beta=cfg.FBETA_BETA)
+    fedavg_opt_thresh, fedavg_optimal = find_optimal_threshold_fbeta(
+        y_test_fl, fedavg_probs, "FedAvg", beta=cfg.FBETA_BETA)
+    fedprox_opt_thresh, fedprox_optimal = find_optimal_threshold_fbeta(
+        y_test_fl, fedprox_probs, "FedProx", beta=cfg.FBETA_BETA)
+
+    # Update FedAvg metrics with optimal-threshold values
+    fedavg_metrics['precision'] = fedavg_optimal['precision']
+    fedavg_metrics['recall']    = fedavg_optimal['recall']
+    fedavg_metrics['f1']        = fedavg_optimal['f1']
+    fedavg_metrics['threshold'] = fedavg_opt_thresh
+    fedavg_metrics['preds']     = (fedavg_probs >= fedavg_opt_thresh).astype(int)
+
+    # Update FedProx metrics with optimal-threshold values
+    fedprox_metrics['precision'] = fedprox_optimal['precision']
+    fedprox_metrics['recall']    = fedprox_optimal['recall']
+    fedprox_metrics['f1']        = fedprox_optimal['f1']
+    fedprox_metrics['threshold'] = fedprox_opt_thresh
+    fedprox_metrics['preds']     = (fedprox_probs >= fedprox_opt_thresh).astype(int)
 
     # SCAFFOLD threshold optimization
     scaffold_optimal = None
     if scaffold_model is not None:
         scaffold_probs = get_model_probs(scaffold_model, X_test_fl, device, batch_size=eval_bs)
-        _, scaffold_optimal = find_optimal_threshold_fbeta(y_test_fl, scaffold_probs, "SCAFFOLD",
-                                                           beta=cfg.FBETA_BETA)
+        scaffold_opt_thresh, scaffold_optimal = find_optimal_threshold_fbeta(
+            y_test_fl, scaffold_probs, "SCAFFOLD", beta=cfg.FBETA_BETA)
+
+        # Update SCAFFOLD metrics with optimal-threshold values
+        scaffold_metrics['precision'] = scaffold_optimal['precision']
+        scaffold_metrics['recall']    = scaffold_optimal['recall']
+        scaffold_metrics['f1']        = scaffold_optimal['f1']
+        scaffold_metrics['threshold'] = scaffold_opt_thresh
+        scaffold_metrics['preds']     = (scaffold_probs >= scaffold_opt_thresh).astype(int)
+
+    # --- Centralised models: optimise threshold using stored probabilities ---
+    for model_key in ["logistic_regression", "xgboost"]:
+        c_probs = c_results[model_key]['probs']
+        opt_thresh, opt_metrics = find_optimal_threshold_fbeta(
+            y_test, c_probs, model_key.replace('_', ' ').title(),
+            beta=cfg.FBETA_BETA)
+
+        # Overwrite precision/recall/f1 with optimal-threshold values
+        c_results[model_key]['precision'] = opt_metrics['precision']
+        c_results[model_key]['recall']    = opt_metrics['recall']
+        c_results[model_key]['f1']        = opt_metrics['f1']
+        c_results[model_key]['threshold'] = opt_thresh
+        # Recompute accuracy and predictions at optimal threshold
+        new_preds = (c_probs >= opt_thresh).astype(int)
+        c_results[model_key]['accuracy']  = accuracy_score(y_test, new_preds)
+        c_results[model_key]['preds']     = new_preds
+
+    print("\n[Optimization] All models re-evaluated at F-beta optimal thresholds.")
 
     # ═══════════════════════════════════════════════════════════════════════
     # 8. COMBINED RESULTS

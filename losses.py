@@ -183,9 +183,9 @@ class FedFocalLoss(nn.Module):
         # this inflated alpha to 0.95 for low-flare clients, undoing the
         # focal_alpha=0.25 setting and causing Recall=0.999, Precision=0.027.
         #
-        # New approach: Gentle sqrt-scaled correction (like DA-FL's phi),
-        # capped at 1.5x (not 3x), and a mild progressive factor (0.9-1.1).
-        # Max possible alpha = 0.25 * 1.5 * 1.1 = 0.4125, clamped to 0.4.
+        # FIX v2.6: Clamp further tightened to (0.05, 0.25). Max possible
+        # alpha = 0.25 * 1.5 * 1.1 = 0.4125, now clamped to 0.25.
+        # This prevents any client from over-predicting flares.
         alpha = self.alpha
 
         # Factor 1: Client-local imbalance adjustment (sqrt-scaled, gentle)
@@ -208,11 +208,11 @@ class FedFocalLoss(nn.Module):
             alpha = alpha * progressive_factor
 
         # Clamp to reasonable range
-        # FIX v2.3: Was 0.95 → 0.5. FIX v2.4: Now 0.4 — even 0.5 was
-        # too high because the imbalance scaling still pushed many clients
-        # to the clamp. At alpha=0.4, positive class gets 40% weight,
-        # negative gets 60% — still favoring recall but not catastrophically.
-        alpha = float(torch.clamp(torch.tensor(alpha), 0.1, 0.4))
+            # FIX v2.6: Was (0.1, 0.4). Now (0.05, 0.25) — further reduces
+            # positive-class weight to prevent over-confident flare predictions.
+            # At alpha=0.25, positive class gets 25% weight, negative 75% —
+            # still detects flares but avoids the Recall~1.0, Precision~0.03 trap.
+        alpha = float(torch.clamp(torch.tensor(alpha), 0.05, 0.25))
 
         # Alpha weighting for positive/negative classes
         alpha_t = alpha * targets + (1 - alpha) * (1 - targets)

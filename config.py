@@ -4,14 +4,18 @@ SF-9: Federated Learning for Distributed Space Weather Monitoring
 All hyperparameters and paths in one file.
 Change values here; every other script reads from here.
 
-v2.5 — Dataset audit fixes (Cleaned SWAN-SF alignment):
-  - FEATURE_COLS: Replaced 3 non-existent features (AREA_ACR, HARPNUM_MOD,
-    TIME_SINCE_LAST_FLARE) with actual features from the Cleaned SWAN-SF
-    dataset (TOTFZ, TOTFY, TOTFX — Total Lorentz Force components)
-  - FEATURE_COLS: Fixed attribute order to match the actual dataset
-    (from https://github.com/samresume/Cleaned-SWANSF-Dataset)
-  - Removed double StandardScaler on already LSBZM-normalized data
-  - Plus all v2.3/v2.4 fixes: SCAFFOLD NaN, focal alpha, Dirichlet, etc.
+v2.6 — FL stability fixes (based on DeepSeek agent analysis):
+  - DIRICHLET_ALPHA: 0.5 -> 1.0 (was creating 3%-99% flare-rate clients;
+    alpha=1.0 gives 20%-60% range, making FL aggregation stable)
+  - USE_SCAFFOLD: True -> False (temporarily disabled; get FedProx working
+    first, then re-enable SCAFFOLD later if desired)
+  - USE_MIXUP: True -> False (mixup on 3D time-series creates unrealistic
+    sequences that confuse the LSTM, especially with non-IID clients)
+  - LOCAL_EPOCHS: 3 -> 10 (LSTM needs more gradient steps to learn
+    temporal dynamics; 3 epochs per round is insufficient)
+  - LR: 0.001 -> 0.0005 (lower LR prevents overshooting with more
+    local epochs and milder partitions)
+  - Plus all v2.5 fixes: dataset audit, SCAFFOLD NaN, focal alpha, etc.
 """
 
 # ── Paths ─────────────────────────────────────────────────────────────────
@@ -73,7 +77,7 @@ HARPNUM_COL = "HARPNUM_MOD"    # ← MUST MATCH WHAT main.py EXPECTS!
 # ── Federated Learning ────────────────────────────────────────────────────
 N_CLIENTS       = 6        # Regional observatories simulated
 N_ROUNDS        = 50       # Total communication rounds
-LOCAL_EPOCHS    = 3        # Local training epochs per round (3 = faster, good enough)
+LOCAL_EPOCHS    = 10        # Local training epochs per round
 FRACTION_FIT    = 1.0      # Fraction of clients per round (1.0 = all)
 MU              = 0.01     # FedProx proximal coefficient
 
@@ -91,7 +95,7 @@ CLIENT_NAMES = [
 INPUT_DIM   = len(FEATURE_COLS)
 HIDDEN_DIMS = [128, 64, 32]
 DROPOUT     = 0.3
-LR          = 0.001
+LR          = 0.0005
 BATCH_SIZE  = 256
 
 # ── LSTM Model ─────────────────────────────────────────────────────────────
@@ -102,7 +106,7 @@ LSTM_DROPOUT     = 0.3
 LSTM_BIDIRECTIONAL = False
 
 # ── SCAFFOLD Algorithm ────────────────────────────────────────────────────
-USE_SCAFFOLD     = True          # Add SCAFFOLD as 3rd FL algorithm
+USE_SCAFFOLD     = False         # Add SCAFFOLD as 3rd FL algorithm
 SCAFFOLD_LR      = 0.001
 
 # ── Fed-Focal Loss ────────────────────────────────────────────────────────
@@ -116,15 +120,15 @@ FOCAL_ALPHA      = 0.25          # FIX: was 0.75 → over-predicted flares (F1~0
 FLATTEN_METHOD   = "concat_stats_enhanced"  # 6-stat extraction: mean/std/max/min/trend/slope
 
 # ── Non-IID Partitioning ─────────────────────────────────────────────────
-DIRICHLET_ALPHA  = 0.5           # FIX: was 0.3 → created 0.6%-100% flare-rate clients
-                        # 0.5 = moderate non-IID without pathological extremes
+DIRICHLET_ALPHA  = 1.0           # FIX v2.6: was 0.5 → created 3%-99% flare-rate clients
+                        # 1.0 = realistic non-IID (20%-60% flare rates), FL-stable
 FORCE_NON_IID    = True          # Force Dirichlet partitioning even with cleaned data
 
 # ── F-beta Threshold Optimization ─────────────────────────────────────────
 FBETA_BETA       = 2.0           # β=2 weights recall 2x more than precision
 
 # ── Mixup Augmentation ───────────────────────────────────────────────────
-USE_MIXUP        = True
+USE_MIXUP        = False
 MIXUP_ALPHA      = 0.4           # Beta distribution parameter (0.4 = moderate mixing)
 
 # ── Preprocessing ─────────────────────────────────────────────────────────
