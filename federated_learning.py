@@ -75,10 +75,23 @@ def mixup_data(X: np.ndarray, y: np.ndarray, alpha: float = 0.4,
 
 def get_criterion(device, current_round=0, total_rounds=50,
                   focal_alpha: float = 0.25, global_pos_rate=None):
-    """Fed-Focal or DynamicFocalLoss. focal_alpha=0.25 is the effective max
+    """Loss selection. focal_alpha=0.25 is the effective max for Fed-Focal
     (FedFocalLoss clamps to (0.05, 0.25) — audit B17).
     global_pos_rate: the ACTUAL training prevalence (B13 — replaces the
-    hardcoded 0.4887 that silently broke whenever the split changed)."""
+    hardcoded 0.4887 that silently broke whenever the split changed).
+
+    cfg.LOSS_VARIANT ablation arms (v3.0.1):
+      fed_focal    — FedFocalLoss(gamma, alpha) as configured
+      weighted_bce — BCEWithWeightLoss(alpha=0.25): static positive-class
+                     down-weighting, NO adaptive machinery
+      bce          — BCEWithWeightLoss(alpha=0.5): plain unweighted BCE
+    (The legacy gamma=0-within-FedFocalLoss trick did not isolate the
+    focal component — the imbalance/progressive factors remained.)"""
+    variant = getattr(cfg, "LOSS_VARIANT", "fed_focal")
+    if variant in ("weighted_bce", "bce"):
+        from losses import BCEWithWeightLoss
+        alpha = 0.25 if variant == "weighted_bce" else 0.5
+        return BCEWithWeightLoss(alpha=alpha).to(device)
     if USE_FED_FOCAL:
         from losses import FedFocalLoss
         criterion = FedFocalLoss(
@@ -424,6 +437,8 @@ def _run_fl_loop(shards, X_monitor, y_monitor, n_rounds, algorithm, mu=0.0,
                     st.get("agg") == cfg.AGGREGATION_STRATEGY and
                     st.get("smote") == cfg.USE_SMOTE and
                     st.get("focal") == cfg.USE_FED_FOCAL and
+                    st.get("loss_variant", "fed_focal") ==
+                    getattr(cfg, "LOSS_VARIANT", "fed_focal") and
                     st.get("use_lstm", False) == bool(use_lstm))
             if same and not st.get("done"):
                 set_weights(global_model, st["global_weights"])
@@ -459,6 +474,7 @@ def _run_fl_loop(shards, X_monitor, y_monitor, n_rounds, algorithm, mu=0.0,
             "algorithm": algorithm, "mu": mu, "seed": seed,
             "n_rounds": n_rounds, "agg": cfg.AGGREGATION_STRATEGY,
             "smote": cfg.USE_SMOTE, "focal": cfg.USE_FED_FOCAL,
+            "loss_variant": getattr(cfg, "LOSS_VARIANT", "fed_focal"),
             "use_lstm": bool(use_lstm), "next_round": next_round,
             "done": done,
             "global_weights": get_weights(global_model),

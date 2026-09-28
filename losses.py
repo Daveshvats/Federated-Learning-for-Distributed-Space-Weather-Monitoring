@@ -301,3 +301,28 @@ class MixupBCELoss(nn.Module):
 
 # Convenience aliases
 DAFLoss = DynamicFocalLoss
+
+
+class BCEWithWeightLoss(nn.Module):
+    """Plain (optionally class-weighted) BCE — the honest 'no focal'
+    ablation arm.
+
+    FedFocalLoss(gamma=0) is NOT plain BCE: it still applies the
+    client-imbalance factor and progressive alpha scheduling. To isolate
+    the focal/adaptive machinery itself, this loss is a fixed weighted
+    BCE that accepts (and ignores) client_pos_rate so it is drop-in
+    compatible with the federated training loop.
+
+    alpha = 0.5 -> unweighted BCE; alpha = 0.25 -> positive-class
+    down-weighted BCE (same static weighting as the focal arm).
+    """
+
+    def __init__(self, alpha: float = 0.5):
+        super().__init__()
+        self.alpha = float(alpha)
+
+    def forward(self, logits, targets, client_pos_rate=None):
+        alpha_t = self.alpha * targets + (1.0 - self.alpha) * (1.0 - targets)
+        loss = F.binary_cross_entropy_with_logits(
+            logits, targets, reduction='none') * alpha_t
+        return loss.mean()

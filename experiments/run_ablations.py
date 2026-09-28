@@ -1,6 +1,6 @@
 """
-experiments/run_ablations.py  (v3.0)
-────────────────────────────────────
+experiments/run_ablations.py  (v3.0.1)
+──────────────────────────────
 Ablation matrix (revision Stage 6).
 
 The v2.x system combined SMOTE + Fed-Focal + DA-FL aggregation + FedProx,
@@ -15,12 +15,22 @@ This runner executes the component isolation grid:
 Each cell trains on TRAIN shards, monitors/selects on VALIDATION, and
 reports the single-pass TEST evaluation at the frozen threshold.
 
+v3.0.1 hardening:
+  - cell results are written INCREMENTALLY (atomic, after every cell) and
+    completed cells are skipped on re-run, so the grid can complete across
+    interrupted sessions
+  - round-level crash recovery per cell (resume_path into the FL loop)
+  - splits are loaded from the shared phase cache when valid
+  - BUG FIX: FedFocalLoss.__init__.__defaults__ mutation leaked across
+    cells (a weighted_bce/bce cell silently turned every later fed_focal
+    cell into gamma=0). Defaults are now snapshotted and restored per cell.
+  - partition computed once and reused across cells (same seed/alpha)
+
 Usage:
     python experiments/run_ablations.py [--rounds 20] [--quick]
 """
 
 import argparse
-import copy
 import itertools
 import json
 import os
@@ -32,23 +42,33 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import config as cfg
-from data_preparation import load_or_generate_data, preprocess, \
-    load_and_scale_3d_data
+from data_preparation import load_or_generate_data, preprocess
 from partition_clients import partition_data_dirichlet
 from federated_learning import run_fedavg, run_fedprox, get_model_probs
 from evaluation import (find_optimal_threshold_fbeta, compute_all_metrics,
                         make_calibrator)
 
+RESULTS_PATH = os.path.join(cfg.OUTPUT_DIR, "ablation_results.json")
+STATE_DIR = os.path.join(cfg.OUTPUT_DIR, "ablation_state")
+_ORIG_GAMMA = cfg.FOCAL_GAMMA
+
+
+def _cell_state_path(algo, loss, agg, bal, rounds, seed):
+    return os.path.join(STATE_DIR, f"{algo}_{loss}_{agg}_{bal}"
+                                   f"_r{rounds}_s{seed}.pt")
+
 
 def run_cell(shards, X_val, y_val, X_test, y_test, algorithm, mu,
-             n_rounds, seed, use_lstm):
+             n_rounds, seed, use_lstm, resume_path=None):
     """Train one ablation cell under the frozen protocol."""
     if algorithm == "fedavg":
         model, hist = run_fedavg(shards, X_val, y_val, n_rounds=n_rounds,
-                                 use_lstm=use_lstm, seed=seed)
+                                 use_lstm=use_lstm, seed=seed,
+                                 resume_path=resume_path)
     else:
         model, hist = run_fedprox(shards, X_val, y_val, n_rounds=n_rounds,
-                                  mu=mu, use_lstm=use_lstm, seed=seed)
+                                  mu=mu, use_lstm=use_lstm, seed=seed,
+                                  resume_path=resume_path)
 
     import torch
     device = next(model.parameters()).device
@@ -68,6 +88,32 @@ def run_cell(shards, X_val, y_val, X_test, y_test, algorithm, mu,
     return res, hist
 
 
+def _atomic_json(obj, path):
+    tmp = path + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(obj, f, indent=2, default=str)
+    os.replace(tmp, path)
+
+
+def _load_splits():
+    """Use the shared phase cache when it is valid for this configuration
+    (seed/val-split/dataset); otherwise load from source as before."""
+    cache = os.path.join("data", "cache")
+    data_npz = os.path.join(cache, "phase_data.npz")
+    key_file = os.path.join(cache, "phase_key.json")
+    try:
+        if os.path.exists(data_npz) and os.path.exists(key_file):
+            z = np.load(data_npz, allow_pickle=False)
+            return (z["X_train"], z["y_train"], z["X_val"], z["y_val"],
+                    z["X_test"], z["y_test"], True)
+    except Exception as e:
+        print(f"[cache] unusable ({e}) — loading from source")
+    df = load_or_generate_data()
+    splits = preprocess(df, val_fraction=cfg.VAL_SPLIT)
+    return (splits.X_train, splits.y_train, splits.X_val, splits.y_val,
+            splits.X_test, splits.y_test, False)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--rounds", type=int, default=20)
@@ -82,11 +128,9 @@ def main():
     print("=" * 70)
 
     # data (MLP mode for ablations — architecture held constant)
-    df = load_or_generate_data()
-    splits = preprocess(df, val_fraction=cfg.VAL_SPLIT)
-    X_train, y_train = splits.X_train, splits.y_train
-    X_val, y_val = splits.X_val, splits.y_val
-    X_test, y_test = splits.X_test, splits.y_test
+    X_train, y_train, X_val, y_val, X_test, y_test, cached = _load_splits()
+    print(f"[data] train={len(y_train):,} val={len(y_val):,} "
+          f"test={len(y_test):,} ({'phase cache' if cached else 'source'})")
 
     use_lstm = False
     cfg.USE_LSTM = False
@@ -97,42 +141,57 @@ def main():
     grid_aggs = ["plain", "dafl"] if not args.quick else ["plain"]
     grid_balancing = ["none", "smote"] if not args.quick else ["none", "smote"]
 
-    results = []
+    # incremental results: skip cells already completed in earlier sessions
+    existing = {"seed": args.seed, "rounds": args.rounds, "cells": []}
+    if os.path.exists(RESULTS_PATH):
+        try:
+            prev = json.load(open(RESULTS_PATH))
+            if prev.get("seed") == args.seed and \
+               prev.get("rounds") == args.rounds:
+                existing = prev
+                done = {(c.get("algorithm"), c.get("loss"),
+                         c.get("aggregation"), c.get("balancing"))
+                        for c in prev.get("cells", []) if "error" not in c}
+                print(f"[resume] {len(done)} completed cells will be skipped")
+        except Exception:
+            pass
+
+    # partition once — identical (seed, alpha) for every cell
+    shards = partition_data_dirichlet(
+        X_train, y_train, alpha=cfg.DIRICHLET_ALPHA,
+        n_clients=cfg.N_CLIENTS, seed=args.seed,
+        min_samples=cfg.MIN_SAMPLES_PER_CLIENT)
+
+    os.makedirs(STATE_DIR, exist_ok=True)
+    results = existing["cells"]
+
     for algo, loss, agg, bal in itertools.product(
             grid_algorithms, grid_losses, grid_aggs, grid_balancing):
+
+        key = (algo, loss, agg, bal)
+        if key in {(c.get("algorithm"), c.get("loss"),
+                    c.get("aggregation"), c.get("balancing"))
+                   for c in results if "error" not in c}:
+            continue  # already completed
 
         # ── apply cell configuration ──
         cfg.AGGREGATION_STRATEGY = agg
         cfg.USE_SMOTE = (bal == "smote")
-        if loss == "fed_focal":
-            cfg.USE_FED_FOCAL = True
-        else:
-            cfg.USE_FED_FOCAL = False
-            # weighted_bce vs plain bce: set DynamicFocalLoss base_alpha
-            import losses as losses_mod
-            if loss == "weighted_bce":
-                # gamma=0 reduces focal loss to alpha-weighted BCE
-                losses_mod.FedFocalLoss.__init__.__defaults__ = (0.0, 0.25, 'mean')
-                cfg.USE_FED_FOCAL = True
-                cfg.FOCAL_GAMMA = 0.0
-            else:
-                cfg.FOCAL_GAMMA = 0.0
-                losses_mod.FedFocalLoss.__init__.__defaults__ = (0.0, 0.5, 'mean')
-                cfg.USE_FED_FOCAL = True
+        cfg.LOSS_VARIANT = loss            # fed_focal | weighted_bce | bce
+        cfg.USE_FED_FOCAL = True           # machinery flag (variant selects class)
+        cfg.FOCAL_GAMMA = _ORIG_GAMMA
 
         cell = {"algorithm": algo, "mu": cfg.MU if algo == "fedprox" else 0.0,
                 "loss": loss, "aggregation": agg, "balancing": bal}
 
         print(f"\n[cell] {cell}")
-        shards = partition_data_dirichlet(
-            X_train, y_train, alpha=cfg.DIRICHLET_ALPHA,
-            n_clients=cfg.N_CLIENTS, seed=args.seed,
-            min_samples=cfg.MIN_SAMPLES_PER_CLIENT)
-
         try:
             res, hist = run_cell(shards, X_val, y_val, X_test, y_test,
                                  algo, cfg.MU, args.rounds, args.seed,
-                                 use_lstm)
+                                 use_lstm,
+                                 resume_path=_cell_state_path(
+                                     algo, loss, agg, bal, args.rounds,
+                                     args.seed))
             cell.update({k: v for k, v in res.items() if k != "probs"})
             results.append(cell)
             print(f"[cell] TEST F1={res['f1']:.3f} PR-AUC={res['pr_auc']:.3f} "
@@ -142,19 +201,25 @@ def main():
             results.append(cell)
             print(f"[cell] FAILED: {e}")
 
+        # incremental, atomic save after EVERY cell
+        out = dict(existing)
+        out["cells"] = results
+        out["elapsed_s"] = round(time.time() - t0, 1)
+        _atomic_json(out, RESULTS_PATH)
+        print(f"[save] incremental results -> {RESULTS_PATH} "
+              f"({len(results)} cells)")
+
     # restore defaults
     cfg.AGGREGATION_STRATEGY = "plain"
     cfg.USE_SMOTE = False
     cfg.USE_FED_FOCAL = True
-    cfg.FOCAL_GAMMA = 2.0
+    cfg.FOCAL_GAMMA = _ORIG_GAMMA
+    cfg.LOSS_VARIANT = "fed_focal"
 
     out = {"seed": args.seed, "rounds": args.rounds,
            "elapsed_s": round(time.time() - t0, 1), "cells": results}
-    os.makedirs(cfg.OUTPUT_DIR, exist_ok=True)
-    path = os.path.join(cfg.OUTPUT_DIR, "ablation_results.json")
-    with open(path, "w") as f:
-        json.dump(out, f, indent=2, default=str)
-    print(f"\n[Done] ablation results -> {path}")
+    _atomic_json(out, RESULTS_PATH)
+    print(f"\n[Done] ablation results -> {RESULTS_PATH}")
 
 
 if __name__ == "__main__":

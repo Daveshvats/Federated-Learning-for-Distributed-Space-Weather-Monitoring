@@ -82,6 +82,10 @@ AGGREGATION_STRATEGY = "plain"   # 'plain' (vanilla FedAvg) | 'dafl' (ablation)
 USE_FED_FOCAL    = True
 FOCAL_GAMMA      = 2.0
 FOCAL_ALPHA      = 0.25          # NOTE: FedFocalLoss internally clamps to
+LOSS_VARIANT     = "fed_focal"   # "fed_focal" | "weighted_bce" | "bce"
+#   ablation-only switch: weighted_bce/bce swap in BCEWithWeightLoss
+#   (fixed alpha 0.25 / 0.5, no adaptive machinery) so the loss ablation
+#   actually isolates the focal component
                                  # (0.05, 0.25); 0.25 is the effective max (B17)
 USE_SMOTE        = False         # per-client SMOTE (ablation arm; B7)
 SMOTE_RATIO      = 0.25
