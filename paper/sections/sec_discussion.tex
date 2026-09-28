@@ -8,26 +8,29 @@
 The asymmetry between FedAvg and FedProx in
 Table~\ref{tab:main} deserves a mechanistic reading. Under the
 realised partition (Fig.~\ref{fig:partition}), clients receive
-genuinely different problems: one holds 38\% of the data at a 34\%
-flare rate, another holds 1.5\% of the data at a 94\% flare rate.
+genuinely different problems: one holds 36\% of the data at a 29\%
+flare rate, another holds 2\% of the data at a 43\% flare rate.
 Ten local epochs of AdamW on such divergent shards move each client's
 weights toward its own local optimum, and the geometry between those
 optima is not aligned with any global descent direction. Averaging
 such updates---FedAvg---produces a model that satisfies no client's
 problem, and the damage compounds round over round until the ranking
-signal degrades to near chance (AUC 0.664). FedProx's proximal term
-(Eq.~\eqref{eq:fedprox}) changes the local problem: each client
-optimises within a trust region around the broadcast model, so updates
-from heterogeneous clients remain geometrically comparable and their
-average retains a meaningful descent direction. The result is that the
-same architecture, the same loss, the same aggregation weighting, and
-the same data partition produce AUC 0.930 rather than 0.664. We
-emphasise that this is a single-seed comparison on one benchmark
-realisation, and the FL literature's standard caveats about seed
-variance apply; but the direction and magnitude of the gap are
-consistent with the mechanism that motivated FedProx's design
-\cite{li2020}, and with the broader non-IID FL evidence base
-\cite{zhao2018,kairouz2021}.
+signal degrades below chance (test AUC 0.575 for the best-validation
+checkpoint; the diverged checkpoints reach validation AUC 0.05).
+FedProx's proximal term (Eq.~\eqref{eq:fedprox}) changes the local
+problem: each client optimises within a trust region around the
+broadcast model, so updates from heterogeneous clients remain
+geometrically comparable and their average retains a meaningful
+descent direction. The result is that the same architecture, the same
+loss, and the same data partition produce test AUC 0.954 rather than
+0.575. This is no longer a single-seed anecdote: the multi-seed study
+of Section~\ref{sec:res-multiseed} shows FedProx above FedAvg on all
+five seeds (one-sided Wilcoxon $p=0.031$) with a $2.7\times$ narrower
+ROC-AUC confidence interval, and the 24-cell ablation grid shows every
+FedProx cell stable (0.954--0.959) while the FedAvg cells range down
+to 0.880. The direction and magnitude of the gap are consistent with
+the mechanism that motivated FedProx's design \cite{li2020}, and with
+the broader non-IID FL evidence base \cite{zhao2018,kairouz2021}.
 
 \subsection{Operational integration with grid management}
 
@@ -37,18 +40,22 @@ simulate does not replace NOAA/SWPC or other national warning centres;
 it adds a dedicated, sovereignty-respecting channel for asset-level
 early warning. In the CME transit window (roughly one to three days
 between an Earth-directed eruption and storm onset), a federated
-sentinel that fires on 42\% of eventual M/X events with a 2\% false
-alarm rate buys utilities time for the effective, if unglamorous,
-mitigations: restoring reactive reserves, suspending non-critical
-transformer switching, pre-positioning replacement phase-shift
-equipment, and briefing control-room staff. The framework's
-convergence within 50 rounds at a consumer-GPU compute footprint also
-matters operationally: the global model can be refreshed nightly, and
-the entire training programme fits inside the compute budget of a
-single agency, let alone six. The SCADA integration point is
-deliberately drawn at the decision threshold rather than inside the
-learning loop, so that existing grid-management infrastructure
-consumes a calibrated probability, not a research artefact.
+sentinel operating at a 2\% false-positive budget recovers 51\% of
+eventual M/X events (Table~\ref{tab:recallfpr})---buying utilities
+time for the effective, if unglamorous, mitigations: restoring
+reactive reserves, suspending non-critical transformer switching,
+pre-positioning replacement phase-shift equipment, and briefing
+control-room staff. Note that this operating point comes from the
+prevalence-robust recall-at-FPR curve rather than the transferred
+$F_2$ threshold, for the reasons documented in
+Section~\ref{sec:res-calib}. The framework's convergence within 50
+rounds at a CPU-only compute footprint also matters operationally:
+the global model can be refreshed nightly, and the entire training
+programme fits inside the compute budget of a single agency, let
+alone six. The SCADA integration point is deliberately drawn at the
+decision threshold rather than inside the learning loop, so that
+existing grid-management infrastructure consumes a calibrated
+probability, not a research artefact.
 
 \subsection{Engineering lessons for first FL deployments in the
 physical sciences}

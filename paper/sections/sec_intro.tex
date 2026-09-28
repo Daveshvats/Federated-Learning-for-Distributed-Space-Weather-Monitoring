@@ -90,27 +90,26 @@ any data movement. The specific contributions are:
   distribution-aware aggregation weighting, on top of both FedAvg
   \cite{mcmahan2017} and FedProx \cite{li2020} training loops
   (Section~\ref{sec:method}).
-  \item \textbf{A safety-critical evaluation protocol} based on
-  $F_\beta$ threshold optimisation with $\beta = 2$, which recognises
-  that in grid protection a missed flare is operationally far costlier
-  than a false alarm, and an end-to-end comparison against
-  centralised logistic-regression and XGBoost baselines under the
-  natural test-set prevalence of approximately 1.9\% flares
-  (Section~\ref{sec:experiments}).
+  \item \textbf{A frozen, leakage-audited evaluation protocol}: an
+  immutable train/validation/test contract, threshold and calibration
+  selection on validation only, single-pass test evaluation, a
+  centralised-MLP architecture control, five-seed statistics with
+  confidence intervals and paired significance tests, and a 24-cell
+  component-ablation grid (Section~\ref{sec:experiments}).
   \item \textbf{An empirical privacy-cost quantification.} On the
-  held-out test partitions, FedProx achieves an ROC-AUC of 0.930
-  against the centralised XGBoost upper bound of 0.978 (95.0\% of
-  pooled discrimination), with recall 0.416 and F1 0.326 at the
-  recall-weighted threshold, while FedAvg collapses under the same
-  partition---evidence that proximal regularisation, not merely
-  federation, is what makes the non-IID setting tractable
+  held-out test partitions (331{,}185 windows, 1.88\% prevalence),
+  FedProx achieves a ROC-AUC of 0.954---97.7\% of the centralised
+  XGBoost reference (0.977) and \emph{above} the pooled centralised
+  MLP of identical architecture (0.888)---while plain FedAvg diverges
+  during training (validation AUC $0.99\to0.05$); FedProx beats
+  FedAvg on all five seeds (Wilcoxon $p=0.031$)
   (Section~\ref{sec:results}).
-  \item \textbf{An interpretability audit.} SHAP analysis of the
-  centralised surrogate, with a decoding of the statistical feature
-  space back to physical magnetic parameters, identifies extrema of the
-  Schrijver flux-emergence proxy \cite{schrijver2007}, current
-  helicity, and Lorentz-force components as the dominant predictors,
-  consistent with established flare physics
+  \item \textbf{A cross-model interpretability audit.} SHAP analysis
+  of both the centralised XGBoost reference and the federated global
+  model, with physical-parameter-group aggregation, shows both
+  concentrate decisions on current helicity, the Schrijver
+  flux-emergence proxy \cite{schrijver2007}, and Lorentz-force
+  components---consistent with established flare physics
   (Section~\ref{sec:results}).
 \end{enumerate}
 

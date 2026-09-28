@@ -17,22 +17,26 @@ safety-critical detectors through recall-weighted $F_\beta$ threshold
 optimisation.
 
 The empirical outcome is two-sided and honest. On the side of promise:
-FedProx retains 95.0\% of the centralised XGBoost ROC-AUC (0.930
-against 0.978) and 77.6\% of its F1 (0.326 against 0.420) at a 2\%
-false-alarm rate, converging within 50 communication rounds on
-single-GPU compute---evidence that a jointly trained, globally
-informed, sovereignty-preserving flare sentinel is technically within
-reach, and that its interpretability layer recovers exactly the
-magnetic parameters (flux-emergence proxies, current helicity,
-Lorentz-force variability) that flare physics predicts. On the side of
-caution: FedAvg collapses outright under the same conditions, the
-training-time calibration of rebalanced federated data is broken
-enough that threshold re-optimisation is mandatory rather than
-optional, and the strongest claims (cryptographic privacy, LSTM and
-SCAFFOLD evaluation, multi-seed statistics) remain future work. The
-released framework---code, configuration history, and artefact
-pipeline---is intended to make that follow-up work a matter of
-execution rather than re-engineering.
+FedProx retains 97.7\% of the centralised XGBoost reference's ROC-AUC
+(0.954 against 0.977), \emph{exceeds} the pooled centralised MLP of
+identical architecture (0.888), beats FedAvg on all five seeds
+(Wilcoxon $p=0.031$) with $2.7\times$ narrower metric variance, and
+converges in 50 communication rounds on commodity CPU compute---with
+an attribution structure that concentrates on exactly the magnetic
+parameter groups (current helicity, flux-emergence proxies,
+Lorentz-force terms) that flare physics predicts. On the side of
+caution: plain FedAvg diverges under the same conditions, the
+$F_2$-optimal thresholds selected at the balanced validation
+prevalence do not transfer to the 1.9\% deployment prevalence (all
+neural models fire almost unconditionally; prevalence-robust
+recall-at-FPR operating points are the honest deployment instrument),
+SMOTE is inert on the pre-balanced benchmark, and the strongest claims
+(cryptographic privacy via secure aggregation, region-disjoint splits,
+LSTM and SCAFFOLD evaluation, a physical/instrument-informed
+federation rather than Dirichlet simulation) remain future work. The
+released framework---code, configuration history, and machine-readable
+artefact pipeline---is intended to make that follow-up work a matter
+of execution rather than re-engineering.
 
 For the smart-grid community the message is that resilience against
 geomagnetic threats does not require choosing between data

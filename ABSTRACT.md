@@ -32,6 +32,28 @@ aggregation, relative to a centralized multi-layer perceptron of
 identical architecture that quantifies the accuracy cost of
 federation itself.
 
+Results (improvements branch v3.0.1, frozen protocol, single-pass test
+evaluation, 331,185 windows at 1.88% prevalence): FedProx reaches
+ROC-AUC 0.954 (97.7% of the centralised XGBoost reference, 0.977) and
+PR-AUC 0.307, **exceeding** the pooled centralised MLP of identical
+architecture (0.888 / 0.153) — federation costs no ranking skill within
+the same hypothesis class. Plain FedAvg diverges during training
+(validation AUC 0.99 → 0.05 after round ~20); FedProx's proximal term
+is the load-bearing design choice, beating FedAvg on all five seeds
+(one-sided Wilcoxon p = 0.031) with 2.7× narrower ROC-AUC variance.
+The 24-cell ablation grid isolates each component: FedProx cells are
+uniformly stable (0.954–0.959 AUC), DA-FL aggregation partially
+rescues FedAvg (0.880 → 0.950), and the SMOTE arm is inert on the
+pre-balanced benchmark (a reported null). Cross-model SHAP analysis
+shows both the centralised and federated models concentrate decisions
+on current helicity, the R-value flux-emergence proxy, and Lorentz
+force — the parameters flare physics predicts. We also document an
+honest threshold-transfer failure under the 26× validation-to-test
+prevalence shift, and report prevalence-robust recall-at-FPR operating
+points instead (FedProx: 0.51 recall at 2% FPR). Full-weight
+communication costs 0.24 MB per client per round (70.5 MB over the
+complete 50-round run).
+
 Results are reported as PR-AUC, Brier score, expected calibration
 error, and recall at fixed false-alarm budgets (0.5–5% FPR), reflecting
 operational alarm economics rather than threshold-flattering accuracy.

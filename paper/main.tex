@@ -125,24 +125,35 @@ geographically distributed regional-observatory clients using Dirichlet
 sampling, inducing realistic non-IID label skew. Each client trains a
 local neural model on 144 statistical features derived from 24
 photospheric magnetic-field parameters, and transmits only weight
-updates---never raw satellite measurements---to an aggregation server
-that combines FedAvg and FedProx (proximal coefficient
-$\mu = 0.01$) with distribution-aware weighting. On a held-out test set
-that preserves the natural $\sim$1.9\% flare prevalence, FedProx attains
-an ROC-AUC of 0.930 (95.0\% of the centralised XGBoost upper bound of
-0.978), a recall of 0.416, and an F1-score of 0.326 at an
-$F_\beta$-optimal decision threshold ($\beta=2$), whereas FedAvg
-degenerates under the same partition. SHAP analysis of the centralised
-surrogate identifies extrema of the flux-emergence proxy
-(R-value), current helicity, and Lorentz-force variability as the
-dominant predictors, consistent with established solar physics. The
-framework converges within 50 communication rounds, making it
-operationally compatible with existing SCADA-based grid-management
-infrastructure. These results demonstrate that distributed space-weather
+updates---never raw satellite measurements---to an aggregation server.
+All results are produced under a frozen evaluation protocol: an
+immutable train/validation/test contract, thresholds and calibration
+selected on validation only, a runtime leakage audit, and single-pass
+test evaluation. On the held-out test set (331{,}185 windows at the
+natural 1.88\% flare prevalence), FedProx attains a ROC-AUC of 0.954
+(97.7\% of the centralised XGBoost reference's 0.977) and a PR-AUC of
+0.307, exceeding the pooled centralised MLP of identical architecture
+(0.888 / 0.153)---so federation costs no ranking skill relative to the
+same hypothesis class. Plain FedAvg diverges under the same partition
+(validation AUC $0.99\to0.05$ after round 20); the proximal term is
+the load-bearing design choice, beating FedAvg on all five seeds
+(Wilcoxon $p=0.031$) with $2.7\times$ narrower metric variance. A
+24-cell ablation grid isolates the contribution of each component
+(focal loss, DA-FL aggregation, SMOTE, proximal term); SMOTE is
+inert on the pre-balanced benchmark and we report that null
+explicitly. Cross-model SHAP analysis shows the federated model's
+decisions concentrate on the same physical drivers as the centralised
+surrogate---current helicity, the R-value flux-emergence proxy, and
+Lorentz-force terms. We further document a threshold-transfer failure
+under the $26\times$ validation-to-test prevalence shift and report
+prevalence-robust recall-at-FPR operating points (FedProx: 0.51 recall
+at 2\% FPR). These results demonstrate that distributed space-weather
 agencies can jointly train a usable flare-prediction model without
-compromising data sovereignty, establishing federated machine learning
-as a practical mechanism for global smart-grid resilience against
-geomagnetic threats.
+pooling raw observations, establishing federated machine learning as a
+practical mechanism for smart-grid resilience against geomagnetic
+threats---with data-locality, not cryptographic privacy, as the
+verified property, and with the full flare-to-GIC chain remaining
+future work.
 
 \vspace{0.55em}
 \noindent\textbf{Keywords:} federated learning; solar flare prediction;

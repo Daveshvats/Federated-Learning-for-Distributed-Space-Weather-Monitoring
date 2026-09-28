@@ -1,104 +1,135 @@
 % ════════════════════════════════════════════════════════════════════
-% SECTION 5 — EXPERIMENTAL SETUP
+% SECTION 5 — EXPERIMENTAL SETUP  (v3.1: frozen-protocol description)
 % ════════════════════════════════════════════════════════════════════
 \section{Experimental Setup}\label{sec:experiments}
 
-\subsection{Protocol and baselines}
+\subsection{Frozen evaluation protocol}
+\label{sec:protocol}
 
-The evaluation protocol is fixed in the released pipeline and consists
-of four stages executed in sequence: (1)~data loading with the
-train/test boundary inherited from the benchmark's partition structure
-(the test partitions are never seen during federation, aggregation, or
-threshold tuning except for the final metric computation described
-below); (2)~Dirichlet partitioning of the pooled training data into six
-regional shards; (3)~centralised training of the pooled baselines
-followed by the two federated runs (FedAvg and FedProx, 50 rounds
-each); and (4)~per-model $F_\beta$ threshold optimisation and final
-evaluation on the held-out test set.
+All experiments in this revision run under an immutable evaluation
+contract, enforced in code before any training is permitted:
 
-Two centralised baselines trained on the pooled 144-dimensional
-features provide the non-private upper bounds. \textbf{Logistic
-regression} uses balanced class weights and a maximum of 2{,}000
-iterations. \textbf{XGBoost} \cite{chen2016} is configured with 300
-estimators, maximum depth 6, learning rate 0.05, subsample and column
-subsample ratios of 0.8, minimum child weight 5, and
-\texttt{scale\_pos\_weight} of 10 to reflect the test-set imbalance.
-Both baselines receive the same threshold optimisation as the
-federated models, so the comparison is uniform with respect to the
-decision layer. Because tree ensembles cannot be weight-averaged, no
-federated XGBoost is attempted; the comparison is deliberately between
-the best pooled model and the best federated neural model.
+\begin{itemize}[leftmargin=1.4em,itemsep=1pt]
+\item \textbf{Splits.} The benchmark's five training partitions
+(97{,}764 windows, balanced, $48.87\%$ positive) form the training pool;
+the five test partitions (331{,}185 windows, natural prevalence,
+$1.88\%$ positive) are the held-out test set and are loaded exactly
+once at the very end of the pipeline. A stratified validation set
+(16\%, $n{=}15{,}643$) is carved from the \emph{training} pool with the
+root seed (42) and is the only set used for any model selection.
+\item \textbf{Selection isolation.} Hyperparameter monitoring, the
+best-checkpoint rule, calibration fitting, and the $F_\beta$ threshold
+search all operate on validation. The test set participates in no
+selection of any kind (the v2.x pipeline selected thresholds directly
+on test; this revision removes that violation).
+\item \textbf{Leakage audit.} A runtime audit verifies
+sample-disjointness of train/validation/test, disjointness and coverage
+of the client shards, and flags the known limitation that
+active-region identities are not available in the cleaned export, so
+region-level separation across the train/validation boundary cannot be
+guaranteed (Section~\ref{sec:limitations}). The pipeline refuses to
+train if the audit fails.
+\item \textbf{Single-pass evaluation.} Each model's frozen pipeline
+(calibratore $+$ threshold) is applied to the test set once; all
+reported test metrics are recomputed from those predictions (the v2.x
+code reported a stale accuracy for federated models).
+\end{itemize}
 
-\subsection{Hyperparameters}
+\subsection{Baselines}
 
-Table~\ref{tab:hyper} summarises the hyperparameters of the released
-configuration (v2.6) as defined in the framework's central
-configuration module. Every federated run uses all six clients every
-round (client fraction 1.0), 10 local epochs, AdamW at learning rate
-$5\times10^{-4}$ with weight decay $10^{-4}$ and cosine-annealing warm
-restarts (period 5), mini-batches of 512 samples, and gradient clipping
-at norm 5.0. Evaluation uses batched inference (2{,}048 samples per
-batch) so that the full test set fits in accelerator memory.
+Four centralised references span the difficulty range of the task.
+\textbf{Climatology} predicts the training prevalence for every window
+---the skill floor. \textbf{Logistic regression} uses balanced class
+weights and 2{,}000 maximum iterations. \textbf{Centralised MLP} is the
+architecture-controlled reference: the identical SolarMLP
+(29{,}377 parameters), trained on the pooled features with identical
+optimisation, whose comparison against the federated MLP isolates the
+effect of federation from the effect of architecture (the v2.x
+manuscript lacked this baseline and compared federated MLPs only
+against XGBoost). \textbf{XGBoost} \cite{chen2016} (300 estimators,
+depth 6, learning rate 0.05, subsample 0.8) is the strongest reference
+baseline; its \texttt{scale\_pos\_weight} (1.05) is now derived from
+the \emph{training} prevalence rather than hand-set with knowledge of
+the test imbalance. Every baseline receives the same
+validation-selected calibration and threshold treatment as the
+federated models, so the decision layer is uniform across all
+comparisons.
+
+\subsection{Federated configuration}
+
+Table~\ref{tab:hyper} summarises the frozen configuration. The headline
+runs use plain size-weighted FedAvg aggregation (the DA-FL weighting of
+Eq.~\ref{eq:dafl} is studied as an ablation arm in
+Section~\ref{sec:res-ablation}); per-client SMOTE is disabled by
+default because the balanced benchmark renders it inert. The proximal
+coefficient is $\mu=0.01$; the $\mu/\alpha$ sensitivity sweep
+($\mu \in \{0.001, 0.01, 0.1\}$, Dirichlet $\alpha \in \{0.5, 1.0,
+5.0\}$, 15 rounds) selects on validation and evaluates the winning
+configuration once on test (winner: $\alpha=5.0$, $\mu=0.01$,
+validation PR-AUC 0.993; test PR-AUC 0.297, consistent with the
+headline FedProx result).
 
 \begin{table}[t]
 \centering
-\caption{Released configuration (v2.6) of the federated framework.}
+\caption{Frozen configuration of the improved framework
+(\texttt{improvements} branch, v3.0.1).}
 \label{tab:hyper}
 \small
 \begin{tabularx}{\textwidth}{@{}l >{\raggedright\arraybackslash}X l@{}}
 \toprule
-\textbf{Component} & \textbf{Setting} & \textbf{Source} \\
+\textbf{Component} & \textbf{Setting} & \textbf{Notes} \\
 \midrule
 Federation & $K=6$ clients (all selected each round), $T=50$ rounds &
-config \\
+headline \\
 Local optimisation & 10 local epochs, AdamW, lr $5\times10^{-4}$, wd
-$10^{-4}$, cosine warm restarts, batch 512, grad-clip 5.0 &
-federated learning module \\
-FedProx & proximal coefficient $\mu = 0.01$ & config \\
-Aggregation & DA-FL weights $\rho_k \propto n_k\sqrt{\phi_k}$, cap
-$2/K$ (Eq.~\ref{eq:dafl}) & aggregation module \\
-Loss & Fed-Focal, $\gamma = 2.0$, base $\alpha = 0.25$, clamped to
-$(0.05,0.25)$ & losses module \\
-Local rebalancing & per-client SMOTE, minority fraction 0.25 &
-preprocessing \\
-Partitioning & Dirichlet, $\alpha = 1.0$, RNG seed 42 &
-partition module \\
+$10^{-4}$, cosine warm restarts, batch 512, grad-clip 5.0 & unchanged \\
+FedProx & $\mu = 0.01$ & sweep-validated \\
+Aggregation & plain size-weighted mean (DA-FL: ablation) & v3.0 change \\
+Loss & Fed-Focal, $\gamma=2.0$, $\alpha$ clamped $(0.05,0.25)$; global
+prevalence computed, not hardcoded & B13 fix \\
+Local rebalancing & SMOTE off (inert: pre-balanced data) & ablation \\
+Partitioning & Dirichlet $\alpha=1.0$, disjoint by construction,
+seed 42 & B2 fix \\
 MLP & $144\!\to\!128\!\to\!64\!\to\!32\!\to\!1$, BatchNorm, ReLU,
-dropout 0.3 & model module \\
-LSTM (implemented) & hidden 128, 2 layers, dropout 0.3 &
-model module \\
-Decision layer & $F_\beta$ ($\beta=2$) threshold sweep
-$\tau\in[0.10,0.90]$ & evaluation \\
-Centralised LR & balanced class weights, max iter 2{,}000 &
-baseline module \\
-Centralised XGBoost & 300 trees, depth 6, lr 0.05,
-\texttt{scale\_pos\_weight} 10 & baseline module \\
+dropout 0.3, 29{,}377 params & \\
+Checkpointing & restore best validation F1 round & B3 fix \\
+Calibration & prior-shift (validation-fit; Platt/isotonic/temperature
+available) & \\
+Decision layer & $F_2$ threshold grid $\tau\in[0.05,0.95]$ on
+\emph{validation} & B1 fix \\
+Multi-seed & seeds 42--46, mean/std/CI95, Wilcoxon paired & new \\
+Ablations & $2\times3\times2\times2$ grid, 20 rounds & new \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
 \subsection{Metrics}
 
-We report accuracy, precision, recall, F1, ROC-AUC, and the selected
-threshold $\tau^\ast$. Given the severe test-set imbalance
-($\approx$1.9\% positives), accuracy is dominated by the negative
-class and we treat recall, F1, and ROC-AUC as the primary skill
-measures, with $\Fbeta$ driving threshold selection. ROC-AUC in
-particular measures the ranking quality of the model's probabilities
-independently of any threshold, and therefore isolates what federation
-costs in discrimination from what miscalibration costs in decision
-quality. All metrics are computed on the pooled held-out test set
-under each model's optimal threshold; the confusion matrices are
-row-normalised so that per-class error structure is visible despite
-the 50:1 class ratio.
+We report precision, recall, F1, $F_2$, ROC-AUC, PR-AUC, Brier score,
+expected calibration error (ECE), and recall at fixed false-positive
+budgets (0.5\%, 1\%, 2\%, 5\%). Given the $26\times$
+validation-to-test prevalence shift and the threshold-transfer failure
+documented in Section~\ref{sec:res-calib}, the threshold-independent
+measures (ROC-AUC, PR-AUC, recall-at-FPR) carry the discrimination
+claims, while the threshold-conditional measures document the decision
+layer honestly. Confusion matrices are row-normalised. For the
+multi-seed study we report mean $\pm$ standard deviation with
+Student-$t$ 95\% confidence intervals and one-sided Wilcoxon
+signed-rank paired tests.
 
-\subsection{Compute}
+\subsection{Compute and reproducibility}
 
-The framework runs on a single consumer-grade GPU (the pipeline's
-evaluation batching and memory management target a 12\,GB RTX
-3060-class device) with a CPU fallback. A full run---baselines, FedAvg,
-and FedProx at 50 rounds---completes in tens of minutes on GPU. This
-footprint is itself part of the contribution: the entire experimental
-programme is reproducible on hardware available to any agency or
-research group, and the released code is deterministic with respect to
-the fixed RNG seed for partitioning.
+The complete experimental programme of this revision (headline run,
+24-cell ablation grid, 9-configuration sweep, 5-seed study,
+interpretability, and communication measurements) was executed on a
+2-core CPU-only container with under 4\,GB of RAM, in aggregate
+approximately 2.5~hours of wall-clock time. Every experiment writes a
+machine-readable results artefact (\texttt{results.json},
+\texttt{ablation\_results.json}, \texttt{sweep\_results.json},
+\texttt{multiseed\_results.json}, \texttt{interpretability.json},
+\texttt{smote\_validity.json}) plus a run manifest embedding the code
+version, seeds, configuration, and dataset manifest hash; all figures
+and tables are generated from these artefacts. The pipeline supports
+round-level crash recovery, and the 74-check integrity test suite
+(partitioning disjointness, leakage audit, calibration, evaluation
+protocol, FL smoke tests) passes on every commit.
