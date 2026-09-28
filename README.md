@@ -41,20 +41,38 @@ python tests/test_fl_smoke.py
 #    https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/EBCFKM
 
 # 4. full pipeline (MLP mode recommended first)
-python main.py --no-lstm
+python main.py --no-lstm          # resumable: phase + round-level caches
+#    python main.py --fresh       # force full recompute
 #    LSTM mode: python main.py
 
-# 5. experiment battery
+# 5. experiment battery (all resumable across interruptions)
 python experiments/run_ablations.py --rounds 20      # component isolation
 python experiments/run_sweep.py --rounds 15           # mu x alpha grid
 python experiments/run_multiseed.py --seeds 5         # mean/std/95% CI
 python experiments/analyze_smote_validity.py          # SMOTE plausibility
+python experiments/run_interpretability.py            # XGB + FL SHAP
 python secure_aggregation.py                          # secagg self-test
 ```
 
 Every run writes `outputs/results.json` + `outputs/run_manifest.json`
 (machine-readable, timestamped) — **figures and paper tables must be
 generated from these files, never typed by hand**.
+
+## Completed experiment programme (this branch, v3.0.1)
+
+All experiments below have been executed on the real Cleaned SWAN-SF
+data (train 97,764 @ 48.87% / test 331,185 @ 1.88%) with artefacts
+committed under `outputs/`:
+
+| Experiment | Artefact | Key outcome |
+|---|---|---|
+| Headline run (50 rounds, seed 42) | `results.json` | FedProx AUC 0.954 vs XGBoost 0.977 vs pooled MLP 0.888 |
+| 24-cell ablation grid | `ablation_results.json` | FedProx stable everywhere; DA-FL rescues FedAvg; SMOTE inert |
+| mu/alpha sweep (9 configs) | `sweep_results.json` | val-selected winner alpha=5.0, mu=0.01 |
+| 5-seed study | `multiseed_results.json` | FedProx > FedAvg on 5/5 seeds (Wilcoxon p=0.031) |
+| SMOTE validity | `smote_validity.json` | not applicable (pre-balanced data) — reported null |
+| Interpretability | `interpretability.json` | physical-group consistency (helicity/R-value/Lorentz) |
+| Communication | in `results.json` | 0.24 MB/client/round, 70.5 MB total |
 
 ## Repository layout
 
