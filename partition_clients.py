@@ -1,288 +1,322 @@
 """
-partition_clients.py - Partition data into regional client shards
-FIXED VERSION: Handles both HARPNUM-based and index-based partitioning
+partition_clients.py  (v3.0 — improvements branch)
+──────────────────────────────────────────────────
+Partition training data into regional client shards.
+
+v3.0 FIXES (audit finding B2, P0):
+  - Dirichlet partitioning is now DISJOINT BY CONSTRUCTION. The old
+    implementation sampled indices independently for every
+    (client, class) pair with np.random.choice, so the same underlying
+    sample could land in two different clients, and int() truncation
+    silently dropped samples. Both problems invalidate the
+    "mutually exclusive sovereign shards" simulation premise.
+  - Allocation now uses a single permutation per class, split at
+    cumulative Dirichlet proportions -> every sample is assigned to
+    EXACTLY ONE client and total coverage is 100%.
+  - The index assignment is returned (and auditable) so
+    leakage_audit/audit_leakage.py can verify disjointness at runtime.
+  - Seeds are parameters (multi-seed experiments), not module constants.
+  - Client selection bug in the FL loops (B15) is fixed by returning
+    shard lists whose length is authoritative.
+
+New in v3.0:
+  - partition_data_geographic(): observatory-informed partition for
+    physical-realism experiments (Stage 11). Uses active-region IDs
+    when available; falls back to disjoint Dirichlet with a warning
+    documenting that the cleaned SWAN-SF export does not carry
+    per-sample region IDs.
 """
+
 import numpy as np
 from collections import Counter
 
-def partition_data(X_train, y_train, harpnum_mod=None, n_clients=6, 
-                   min_samples_per_client=100, verbose=True):
-    """
-    Partition training data into non-IID client shards based on HARPNUM_MOD
-    
-    Args:
-        X_train: Training features (n_samples, n_features)
-        y_train: Training labels (n_samples,)
-        harpnum_mod: HARP numbers for each sample (n_samples,) or None
-        n_clients: Number of regional clients
-        min_samples_per_client: Minimum samples per client (warn if less)
-        verbose: Print partition statistics
-    
-    Returns:
-        shards: List of (X_client, y_client) tuples
-    """
-    
-    if verbose:
-        print("[Partition] Splitting training data into regional client shards ...\n")
-    
-    n_samples = len(y_train)
-    
-    # ── CASE 1: No HARPNUM provided → Use balanced random partition ──
-    if harpnum_mod is None or len(harpnum_mod) == 0:
-        if verbose:
-            print("      ⚠ No HARPNUM_MOD provided. Using balanced random partition.")
-        
-        return _partition_balanced_random(X_train, y_train, n_clients, verbose)
-    
-    # ── CASE 2: HARPNUM provided but might be dummy/synthetic ──
-    harpnum_mod = np.array(harpnum_mod).flatten()
-    
-    # Check if HARPNUM looks like real data or just sequential indices
-    unique_harps = np.unique(harpnum_mod)
-    n_unique = len(unique_harps)
-    
-    if verbose:
-        print(f"      [Debug] HARPNUM_MOD stats:")
-        print(f"              Unique values: {n_unique}")
-        print(f"              Range: [{harpnum_mod.min()}, {harpnum_mod.max()}]")
-        print(f"              Value counts: {Counter(harpnum_mod).most_common(5)}")
-    
-    # Detect if HARPNUM is just sequential dummy data (0,1,2,3,4,5,0,1,2,...)
-    is_dummy_sequential = (
-        n_unique <= n_clients * 2 and 
-        np.all(np.sort(unique_harps) == np.arange(n_unique)) and
-        n_samples > n_unique * 10  # Many repeats of same values
-    )
-    
-    if is_dummy_sequential:
-        if verbose:
-            print(f"      ⚠ Detected sequential dummy HARPNUM. Using balanced partition instead.")
-        return _partition_balanced_random(X_train, y_train, n_clients, verbose)
-    
-    # ── CASE 3: Real HARPNUM data ──
-    try:
-        # Map HARPNUMs to clients (modulo n_clients)
-        client_ids = harpnum_mod % n_clients
-        
-        shards = []
-        client_names = [
-            "Americas (NASA/NOAA)",
-            "Europe (ESA/PROBA-2)", 
-            "Asia-Pacific (JAXA)",
-            "South Asia (ISRO)",
-            "East Asia (KASI)",
-            "Oceania (BoM)"
-        ]
-        
-        for client_id in range(n_clients):
-            mask = (client_ids == client_id)
-            X_client = X_train[mask]
-            y_client = y_train[mask]
-            
-            if len(X_client) < min_samples_per_client:
-                if verbose:
-                    print(f"      ⚠ Client {client_id} ({client_names[client_id]}) has "
-                          f"{len(X_client)} samples (< {min_samples_per_client}). Skipping.")
-                continue
-            
-            shards.append((X_client, y_client))
-            
-            flare_rate = y_client.mean() * 100
-            if verbose:
-                print(f"[Partition] {client_names[client_id]:30s} | "
-                      f"n={len(X_client):>6,} | flare rate: {flare_rate:.1f}%")
-        
-        if len(shards) == 0:
-            if verbose:
-                print("      ✗ ERROR: All clients have insufficient samples!")
-                print("      → Falling back to balanced random partition...")
-            return _partition_balanced_random(X_train, y_train, n_clients, verbose)
-        
-        return shards
-        
-    except Exception as e:
-        if verbose:
-            print(f"      ✗ Error in HARPNUM partitioning: {e}")
-            print("      → Falling back to balanced random partition...")
-        return _partition_balanced_random(X_train, y_train, n_clients, verbose)
+CLIENT_NAMES = [
+    "Americas (NASA/NOAA)",
+    "Europe (ESA/PROBA-2)",
+    "Asia-Pacific (JAXA)",
+    "South Asia (ISRO)",
+    "East Asia (KASI)",
+    "Oceania (BoM)",
+]
 
 
-def _partition_balanced_random(X_train, y_train, n_clients=6, verbose=True):
+# ─────────────────────────────────────────────────────────────────────────────
+# CORE: disjoint Dirichlet index allocation (the auditable primitive)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def allocate_indices_dirichlet(y, alpha=1.0, n_clients=6, seed=0,
+                               min_samples=0, max_tries=50):
     """
-    Fallback: Create balanced partitions using stratified sampling
-    Ensures every client gets samples with realistic flare rates
+    Disjoint Dirichlet class-skew allocation.
+
+    For each class c, draw one Dirichlet proportion vector p_c over
+    clients, permute the class's sample indices once, and split the
+    permutation at cumulative cut-points floor(cumsum(p_c) * n_c).
+    Guarantees:
+        * every sample assigned exactly once  (coverage = 100%)
+        * no sample appears in two clients     (overlap = 0)
+        * realised per-class proportions ~ Dirichlet(alpha)
+
+    A minimum-samples-per-client constraint is enforced by rejection
+    resampling of the Dirichlet draw (bounded by max_tries), falling
+    back to the best draw found.
+
+    Returns
+    -------
+    assignment : np.ndarray shape (len(y),), values in [0, n_clients)
+        client id for every sample index (position-aligned with y).
     """
-    
+    rng = np.random.RandomState(seed)
+    y = np.asarray(y)
+    n = len(y)
+    classes = np.unique(y)
+    assignment = np.full(n, -1, dtype=int)
+
+    best_assignment, best_deficit = None, np.inf
+
+    for _ in range(max_tries):
+        assignment.fill(-1)
+        for c in classes:
+            idx_c = np.where(y == c)[0]
+            n_c = len(idx_c)
+            # Dirichlet proportions over clients for this class
+            props = rng.dirichlet([alpha] * n_clients)
+            # cumulative cut-points over a FIXED permutation
+            perm = rng.permutation(n_c)
+            cuts = np.floor(np.cumsum(props) * n_c).astype(int)
+            cuts[-1] = n_c  # exact coverage
+            start = 0
+            for k, end in enumerate(cuts):
+                assignment[idx_c[perm[start:end]]] = k
+                start = end
+
+        # min-samples check
+        sizes = np.bincount(assignment, minlength=n_clients)
+        deficit = int((sizes < min_samples).sum()) if min_samples > 0 else 0
+        if deficit == 0:
+            return assignment
+        if deficit < best_deficit:
+            best_deficit, best_assignment = deficit, assignment.copy()
+
+    if best_assignment is not None and min_samples > 0:
+        print(f"[Partition] WARNING: could not satisfy min_samples={min_samples} "
+              f"with alpha={alpha} after {max_tries} draws; "
+              f"using best draw ({best_deficit} clients below minimum).")
+    if best_assignment is not None:
+        return best_assignment
+    return assignment
+
+
+def _audit_stats(assignment, y, n_clients, verbose=True):
+    """Print and return disjointness/coverage statistics (audit hook)."""
+    sizes = np.bincount(assignment, minlength=n_clients)
+    coverage = (assignment >= 0).sum() / len(y)
+    lines = []
+    for k in range(n_clients):
+        mask = assignment == k
+        rate = y[mask].mean() * 100 if mask.sum() else 0.0
+        lines.append(f"[Partition] {CLIENT_NAMES[k]:30s} | "
+                     f"n={sizes[k]:>7,} | flare rate: {rate:5.1f}%")
+    stats = {
+        "sizes": sizes.tolist(),
+        "coverage": coverage,
+        "total_assigned": int(sizes.sum()),
+        "n_train": int(len(y)),
+    }
     if verbose:
-        print("\n      [Fallback] Using STRATIFIED BALANCED partition...")
-    
-    np.random.seed(42)  # Reproducibility
-    
-    # Separate by class
-    flare_mask = (y_train == 1)
-    noflare_mask = (y_train == 0)
-    
-    X_flare = X_train[flare_mask]
-    y_flare = y_train[flare_mask]
-    X_noflare = X_train[noflare_mask]
-    y_noflare = y_train[noflare_mask]
-    
-    n_flares = len(y_flare)
-    n_noflares = len(y_noflare)
-    
-    if verbose:
-        print(f"      Total flares: {n_flares:,}, Non-flares: {n_noflares:,}")
-    
-    # Shuffle both classes
-    flare_perm = np.random.permutation(n_flares)
-    noflare_perm = np.random.permutation(n_noflares)
-    
-    X_flare_shuffled = X_flare[flare_perm]
-    y_flare_shuffled = y_flare[flare_perm]
-    X_noflare_shuffled = X_noflare[noflare_perm]
-    y_noflare_shuffled = y_noflare[noflare_perm]
-    
-    # Distribute flares roughly equally among clients
+        print("\n".join(lines))
+        print(f"[Partition] coverage: {sizes.sum():,}/{len(y):,} "
+              f"({coverage:.1%}) — disjoint by construction")
+    return stats
+
+
+def partition_indices_dirichlet(X_train, y_train, alpha=1.0, n_clients=6,
+                                seed=0, min_samples=100, verbose=True):
+    """
+    Returns (assignment, stats): the auditable primitive used by
+    audit_leakage.py and run_multiseed.py.
+    """
+    y = np.asarray(y_train)
+    assignment = allocate_indices_dirichlet(y, alpha=alpha, n_clients=n_clients,
+                                            seed=seed, min_samples=min_samples)
+    stats = _audit_stats(assignment, y, n_clients, verbose=verbose)
+    return assignment, stats
+
+
+def partition_data_dirichlet(X_train, y_train, alpha=1.0, n_clients=6,
+                             seed=0, min_samples=100, return_indices=False,
+                             verbose=True):
+    """
+    Backward-compatible shard API: list of (X_client, y_client) tuples.
+
+    v3.0: disjoint by construction, seed-parameterised, optional
+    index return for auditing.
+    """
+    assignment, stats = partition_indices_dirichlet(
+        X_train, y_train, alpha=alpha, n_clients=n_clients, seed=seed,
+        min_samples=min_samples, verbose=verbose)
+
+    X_train = np.asarray(X_train)
+    y_train = np.asarray(y_train)
     shards = []
-    client_names = [
-        "Americas (NASA/NOAA)",
-        "Europe (ESA/PROBA-2)", 
-        "Asia-Pacific (JAXA)",
-        "South Asia (ISRO)",
-        "East Asia (KASI)",
-        "Oceania (BoM)"
-    ]
-    
-    flare_per_client = max(1, n_flares // n_clients)
-    noflare_per_client = max(1, n_noflares // n_clients)
-    
-    for client_id in range(n_clients):
-        start_f = client_id * flare_per_client
-        end_f = min((client_id + 1) * flare_per_client, n_flares)
-        
-        start_nf = client_id * noflare_per_client
-        end_nf = min((client_id + 1) * noflare_per_client, n_noflares)
-        
-        # Handle last client getting remainder
-        if client_id == n_clients - 1:
-            end_f = n_flares
-            end_nf = n_noflares
-        
-        X_client_flare = X_flare_shuffled[start_f:end_f]
-        y_client_flare = y_flare_shuffled[start_f:end_f]
-        
-        X_client_noflare = X_noflare_shuffled[start_nf:end_nf]
-        y_client_noflare = y_noflare_shuffled[start_nf:end_nf]
-        
-        # Combine flare + noflare for this client
-        X_client = np.vstack([X_client_flare, X_client_noflare]) if \
-                   (len(X_client_flare) > 0 and len(X_client_noflare) > 0) else \
-                   (X_client_flare if len(X_client_flare) > 0 else X_client_noflare)
-                   
-        y_client = np.concatenate([y_client_flare, y_client_noflare]) if \
-                   (len(y_client_flare) > 0 and len(y_client_noflare) > 0) else \
-                   (y_client_flare if len(y_client_flare) > 0 else y_client_noflare)
-        
-        # Shuffle client data
-        perm = np.random.permutation(len(X_client))
-        X_client = X_client[perm]
-        y_client = y_client[perm]
-        
-        shards.append((X_client, y_client))
-        
-        flare_rate = y_client.mean() * 100
-        if verbose:
-            print(f"[Partition] {client_names[client_id]:30s} | "
-                  f"n={len(X_client):>6,} | flare rate: {flare_rate:.1f}%")
-    
-    if verbose:
-        total_in_shards = sum(len(s[0]) for s in shards)
-        print(f"\n      ✓ Distributed {total_in_shards:,} samples across {len(shards)} clients")
-    
+    for k in range(n_clients):
+        mask = assignment == k
+        if mask.sum() == 0:
+            print(f"[Partition] WARNING: {CLIENT_NAMES[k]} received 0 samples")
+            shards.append((X_train[mask], y_train[mask]))
+            continue
+        # shuffle within client (deterministic per seed+client)
+        rng = np.random.RandomState(seed * 1000 + k)
+        idx = np.where(mask)[0]
+        idx = idx[rng.permutation(len(idx))]
+        shards.append((X_train[idx], y_train[idx]))
+
+    if return_indices:
+        return shards, assignment
     return shards
 
 
-def partition_data_dirichlet(X_train, y_train, alpha=0.5, n_clients=6):
+# ─────────────────────────────────────────────────────────────────────────────
+# Geographic / observatory-informed partition (Stage 11 — physical realism)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def partition_data_geographic(X_train, y_train, region_ids=None, n_clients=6,
+                              seed=0, alpha_fallback=1.0, verbose=True):
     """
-    Alternative: Dirichlet-based non-IID partitioning
-    Creates more realistic data heterogeneity
+    Observatory-informed partition.
+
+    If per-sample active-region IDs are available, regions are assigned to
+    clients (hash-consistent, so a region's windows never split across
+    clients — this also removes region-level leakage *within* the training
+    federation), producing physically heterogeneous shards.
+
+    The cleaned SWAN-SF export does NOT carry region IDs, so the default
+    behaviour falls back to disjoint Dirichlet and prints an explicit
+    warning: physical heterogeneity is then SIMULATED label skew, not real
+    observatory coverage (documented limitation, audit claim #7).
     """
-    
-    print(f"\n[Partition] Using Dirichlet partitioning (α={alpha})...")
-    
-    np.random.seed(42)
-    n_samples = len(y_train)
-    n_classes = len(np.unique(y_train))
-    
-    # Generate Dirichlet proportions for each client-class combination
-    proportions = np.random.dirichlet([alpha] * n_clients, size=n_classes)
-    
+    if region_ids is None:
+        print("[Partition] WARNING: no region IDs available — geographic "
+              "partition falls back to SIMULATED Dirichlet label skew. "
+              "Real observatory coverage requires raw SWAN-SF metadata.")
+        return partition_data_dirichlet(X_train, y_train,
+                                        alpha=alpha_fallback, n_clients=n_clients,
+                                        seed=seed, verbose=verbose)
+
+    region_ids = np.asarray(region_ids)
+    unique_regions = np.unique(region_ids)
+    rng = np.random.RandomState(seed)
+    # hash-consistent region -> client map
+    region_to_client = {r: int(rng.randint(n_clients)) for r in unique_regions}
+    assignment = np.array([region_to_client[r] for r in region_ids], dtype=int)
+
+    X_train = np.asarray(X_train)
+    y_train = np.asarray(y_train)
+    _audit_stats(assignment, y_train, n_clients, verbose=verbose)
+
     shards = []
-    client_names = [
-        "Americas (NASA/NOAA)",
-        "Europe (ESA/PROBA-2)", 
-        "Asia-Pacific (JAXA)",
-        "South Asia (ISRO)",
-        "East Asia (KASI)",
-        "Oceania (BoM)"
-    ]
-    
-    for client_id in range(n_clients):
-        X_client_list = []
-        y_client_list = []
-        
-        for c in range(n_classes):
-            class_mask = (y_train == c)
-            X_class = X_train[class_mask]
-            y_class = y_train[class_mask]
-            
-            # Number of samples for this client from this class
-            n_for_client = int(proportions[c][client_id] * len(y_class))
-            
-            if n_for_client > 0:
-                indices = np.random.choice(len(y_class), size=n_for_client, replace=False)
-                X_client_list.append(X_class[indices])
-                y_client_list.append(y_class[indices])
-        
-        if len(X_client_list) > 0:
-            X_client = np.vstack(X_client_list)
-            y_client = np.concatenate(y_client_list)
-            
-            # Shuffle
-            perm = np.random.permutation(len(X_client))
-            X_client = X_client[perm]
-            y_client = y_client[perm]
-            
-            shards.append((X_client, y_client))
-            
-            flare_rate = y_client.mean() * 100
-            print(f"[Partition] {client_names[client_id]:30s} | "
-                  f"n={len(X_client):>6,} | flare rate: {flare_rate:.1f}%")
-        else:
-            print(f"[Partition] Warning: {client_names[client_id]} has 0 samples")
-    
+    for k in range(n_clients):
+        mask = assignment == k
+        shards.append((X_train[mask], y_train[mask]))
+    return shards
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Legacy balanced partition (kept for fallback; already disjoint)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def partition_data(X_train, y_train, harpnum_mod=None, n_clients=6,
+                   min_samples_per_client=100, verbose=True, seed=0):
+    """
+    Legacy entry point. HARPNUM-based partitioning is DEPRECATED: the
+    previous implementation partitioned on a fabricated HARPNUM_MOD
+    column (audit finding B13). It now always returns a balanced
+    stratified partition unless genuinely real HARP numbers are passed
+    in (uniqueness check enforced).
+    """
+    if harpnum_mod is not None:
+        harpnum_mod = np.asarray(harpnum_mod).flatten()
+        unique = np.unique(harpnum_mod)
+        genuinely_real = (len(unique) > 10 * n_clients and
+                          not np.all(np.sort(unique) == np.arange(len(unique))))
+        if not genuinely_real:
+            if verbose:
+                print("[Partition] HARPNUM vector looks synthetic — "
+                      "ignoring it (audit B13) and using balanced partition.")
+            harpnum_mod = None
+
+    if harpnum_mod is None:
+        return _partition_balanced_random(X_train, y_train, n_clients,
+                                          verbose=verbose, seed=seed)
+
+    client_ids = harpnum_mod % n_clients
+    X_train = np.asarray(X_train)
+    y_train = np.asarray(y_train)
+    shards = []
+    for cid in range(n_clients):
+        mask = client_ids == cid
+        if mask.sum() < min_samples_per_client:
+            continue
+        shards.append((X_train[mask], y_train[mask]))
+    if not shards:
+        return _partition_balanced_random(X_train, y_train, n_clients,
+                                          verbose=verbose, seed=seed)
+    return shards
+
+
+def _partition_balanced_random(X_train, y_train, n_clients=6, verbose=True,
+                               seed=0):
+    """
+    Stratified balanced fallback (disjoint: contiguous chunks of one
+    permutation per class). seed-parameterised in v3.0.
+    """
+    rng = np.random.RandomState(seed)
+    X_train = np.asarray(X_train)
+    y_train = np.asarray(y_train)
+
+    if verbose:
+        print("\n      [Fallback] Using STRATIFIED BALANCED partition...")
+
+    flare_mask = y_train == 1
+    X_flare, y_flare = X_train[flare_mask], y_train[flare_mask]
+    X_noflare, y_noflare = X_train[~flare_mask], y_train[~flare_mask]
+
+    n_flares, n_noflares = len(y_flare), len(y_noflare)
+    if verbose:
+        print(f"      Total flares: {n_flares:,}, Non-flares: {n_noflares:,}")
+
+    perm_f = rng.permutation(n_flares)
+    perm_nf = rng.permutation(n_noflares)
+    X_flare, y_flare = X_flare[perm_f], y_flare[perm_f]
+    X_noflare, y_noflare = X_noflare[perm_nf], y_noflare[perm_nf]
+
+    # split points (exact coverage, disjoint)
+    f_splits = np.array_split(np.arange(n_flares), n_clients)
+    nf_splits = np.array_split(np.arange(n_noflares), n_clients)
+
+    shards = []
+    for k in range(n_clients):
+        X_c = np.vstack([X_flare[f_splits[k]], X_noflare[nf_splits[k]]])
+        y_c = np.concatenate([y_flare[f_splits[k]], y_noflare[nf_splits[k]]])
+        perm = rng.permutation(len(y_c))
+        shards.append((X_c[perm], y_c[perm]))
+        if verbose:
+            print(f"[Partition] {CLIENT_NAMES[k]:30s} | "
+                  f"n={len(y_c):>7,} | flare rate: {y_c.mean()*100:5.1f}%")
+
+    if verbose:
+        total = sum(len(s[1]) for s in shards)
+        print(f"\n      ✓ Distributed {total:,} samples across {len(shards)} clients")
     return shards
 
 
 if __name__ == '__main__':
-    # Test partitioning
-    from load_cleaned_data import load_cleaned_partition
-    
-    print("="*70)
-    print("TESTING PARTITIONING WITH CLEANED DATASET")
-    print("="*70)
-    
-    X_train, y_train, X_test, y_test, features = load_cleaned_partition(
-        combine_all_partitions=False,
-        partition_num=1,
-        flatten_method='mean'
-    )
-    
-    print("\n" + "="*70)
-    print("Testing HARPNUM-based partition:")
-    print("="*70)
-    shards = partition_data(X_train, y_train, harpnum_mod=None)  # Test fallback
-    
-    print(f"\n✅ Created {len(shards)} client shards")
-    for i, (X_c, y_c) in enumerate(shards):
-        print(f"   Client {i}: {X_c.shape}, flare rate: {y_c.mean():.2%}")
+    # Quick self-test with synthetic labels
+    rng = np.random.RandomState(0)
+    y = rng.binomial(1, 0.05, 20000)
+    X = rng.randn(20000, 10)
+    assignment, stats = partition_indices_dirichlet(X, y, alpha=1.0, seed=42)
+    sizes = np.bincount(assignment, minlength=6)
+    assert sizes.sum() == len(y), "coverage broken"
+    assert (assignment >= 0).all(), "unassigned samples"
+    print("\nSELF-TEST PASSED: disjoint, full coverage")
