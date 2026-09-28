@@ -21,6 +21,8 @@ import pickle
 import sys
 from datetime import datetime, timezone
 
+import numpy as np
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import config as cfg
@@ -64,21 +66,32 @@ def scan_cleaned_dir(data_dir):
 
 
 def label_stats_from_inventory(inventory):
-    """Prevalence from label pickles (X files carry shapes)."""
+    """Prevalence from label pickles, aggregated across ALL partitions
+    (the first version read only one partition — audit B26)."""
     out = {"train": None, "test": None}
     for split in ("train", "test"):
         y_files = [e for e in inventory[split]
                    if "Labels" in e["file"] and "shape" in e]
         if not y_files:
             continue
+        n_total, n_pos, per_part = 0, 0, {}
         try:
-            path = os.path.join(cfg.CLEANED_DATA_DIR, split,
-                                y_files[0]["file"])
-            with open(path, "rb") as f:
-                y = pickle.load(f)
-            out[split] = {"n": int(len(y)),
-                          "n_positive": int((y == 1).sum()),
-                          "prevalence": float((y == 1).mean())}
+            for e in y_files:
+                path = os.path.join(cfg.CLEANED_DATA_DIR, split, e["file"])
+                with open(path, "rb") as f:
+                    y = pickle.load(f)
+                y = np.asarray(y)
+                n_total += int(len(y))
+                n_pos += int((y == 1).sum())
+                per_part[e["file"].split("_")[0]] = {
+                    "n": int(len(y)),
+                    "n_positive": int((y == 1).sum()),
+                    "prevalence": float((y == 1).mean()),
+                }
+            out[split] = {"n": n_total,
+                          "n_positive": n_pos,
+                          "prevalence": n_pos / n_total,
+                          "per_partition": per_part}
         except Exception:
             pass
     return out

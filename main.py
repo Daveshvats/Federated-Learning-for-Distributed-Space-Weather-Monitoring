@@ -31,8 +31,10 @@ Usage:
 """
 
 import argparse
+import hashlib
 import json
 import os
+import shutil
 import time
 import numpy as np
 import sys
@@ -75,6 +77,8 @@ def parse_args():
     p.add_argument("--no-scaffold", action="store_true")
     p.add_argument("--no-mixup", action="store_true")
     p.add_argument("--eval-batch-size", type=int, default=cfg.EVAL_BATCH_SIZE)
+    p.add_argument("--fresh", action="store_true",
+                   help="ignore and wipe the phase cache (full recompute)")
     return p.parse_args()
 
 
@@ -83,6 +87,14 @@ def _save_json(obj, path):
     with open(path, "w") as f:
         json.dump(obj, f, indent=2, default=str)
     print(f"[Results] Written -> {path}")
+
+
+def _atomic_save(path, writer):
+    """Write via temp file + rename so a killed process can never leave a
+    half-written phase cache behind."""
+    tmp = path + ".tmp"
+    writer(tmp)
+    os.replace(tmp, path)
 
 
 def main():
@@ -102,6 +114,43 @@ def main():
 
     use_lstm = cfg.USE_LSTM
     model_name = 'LSTM' if use_lstm else 'MLP'
+    # ── resumable phase cache (keyed by experiment identity) ──────────────
+    # Phases data/baselines/fedavg/fedprox can be resumed across process
+    # restarts; the cache lives under data/cache/ (git-ignored) and is
+    # invalidated automatically whenever any experiment-defining parameter
+    # or the dataset manifest hash changes (anti-stale-result, B18).
+    CACHE_DIR = os.path.join("data", "cache")
+
+    def _phase_key():
+        ds_sha = "none"
+        mf = "data_manifest/manifest.json"
+        if os.path.exists(mf):
+            m = json.load(open(mf))
+            files = m.get("files", {}).get("train", [])
+            if files:
+                ds_sha = files[0].get("sha256", "none")[:16]
+        kb = {"v": cfg.VERSION, "seed": args.seed, "clients": args.clients,
+              "rounds": args.rounds, "mu": args.mu, "alpha": args.alpha,
+              "model": model_name, "val_split": cfg.VAL_SPLIT,
+              "agg": cfg.AGGREGATION_STRATEGY, "smote": cfg.USE_SMOTE,
+              "focal": cfg.USE_FED_FOCAL, "ds": ds_sha}
+        return hashlib.sha256(
+            json.dumps(kb, sort_keys=True).encode()).hexdigest()[:16]
+
+    key = _phase_key()
+    resume = (not args.fresh) and (not use_lstm)
+    key_file = os.path.join(CACHE_DIR, "phase_key.json")
+    if resume and os.path.exists(key_file):
+        old_key = json.load(open(key_file)).get("key")
+        if old_key != key:
+            print("[Cache] experiment key changed — invalidating phase cache")
+            resume = False
+    if not resume:
+        shutil.rmtree(CACHE_DIR, ignore_errors=True)
+    os.makedirs(CACHE_DIR, exist_ok=True)
+    with open(key_file, "w") as f:
+        json.dump({"key": key}, f)
+    resumed = []
 
     print("\n" + "=" * 70)
     print(f"  SF-9 v{cfg.VERSION} | run: {run_id}")
@@ -114,19 +163,49 @@ def main():
     print("=" * 70 + "\n")
 
     # ═══════════════════════════════════════════════════════════════════════
-    # 1. LOAD DATA + IMMUTABLE SPLITS
+    # 1. LOAD DATA + IMMUTABLE SPLITS  (resumable)
     # ═══════════════════════════════════════════════════════════════════════
-    df = load_or_generate_data()
-    splits = preprocess(df, val_fraction=cfg.VAL_SPLIT)
+    data_cache = os.path.join(CACHE_DIR, "phase_data.npz")
+    if resume and os.path.exists(data_cache):
+        z = np.load(data_cache, allow_pickle=False)
+        X_train_2d, y_train = z["X_train"], z["y_train"]
+        X_val_2d, y_val = z["X_val"], z["y_val"]
+        X_test_2d, y_test = z["X_test"], z["y_test"]
+        feature_names = [str(s) for s in z["feature_names"]]
+        train_idx, val_idx, test_idx = z["train_idx"], z["val_idx"], z["test_idx"]
+        assign_cache = os.path.join(CACHE_DIR, "phase_assignment.npz")
+        assignment = np.load(assign_cache)["assignment"] \
+            if os.path.exists(assign_cache) else None
+        print(f"[Cache] splits resumed: train={len(y_train):,} "
+              f"val={len(y_val):,} test={len(y_test):,}")
+        resumed.append("data")
+    else:
+        df = load_or_generate_data()
+        splits = preprocess(df, val_fraction=cfg.VAL_SPLIT)
 
-    X_train_2d, y_train = splits.X_train, splits.y_train
-    X_val_2d, y_val = splits.X_val, splits.y_val
-    X_test_2d, y_test = splits.X_test, splits.y_test
-    feature_names = splits.features
+        X_train_2d, y_train = splits.X_train, splits.y_train
+        X_val_2d, y_val = splits.X_val, splits.y_val
+        X_test_2d, y_test = splits.X_test, splits.y_test
+        feature_names = splits.features
+        train_idx, val_idx, test_idx = (splits.train_idx, splits.val_idx,
+                                        splits.test_idx)
+        assignment = None
+        np.savez(open(data_cache + ".tmp", "wb"),
+                 X_train=np.asarray(X_train_2d, dtype=np.float32),
+                 y_train=np.asarray(y_train, dtype=np.float32),
+                 X_val=np.asarray(X_val_2d, dtype=np.float32),
+                 y_val=np.asarray(y_val, dtype=np.float32),
+                 X_test=np.asarray(X_test_2d, dtype=np.float32),
+                 y_test=np.asarray(y_test, dtype=np.float32),
+                 feature_names=np.array(feature_names),
+                 train_idx=np.asarray(train_idx), val_idx=np.asarray(val_idx),
+                 test_idx=np.asarray(test_idx))
+        os.replace(data_cache + ".tmp", data_cache)
+        print(f"[Cache] splits cached -> {data_cache}")
 
     # ── runtime leakage audit (Gate 1 pass criterion) ──
-    audit = run_audit(train_idx=splits.train_idx, val_idx=splits.val_idx,
-                      test_idx=splits.test_idx)
+    audit = run_audit(train_idx=train_idx, val_idx=val_idx,
+                      test_idx=test_idx)
     _print_report(audit)
     if not audit.get("overall_pass"):
         raise RuntimeError("LEAKAGE AUDIT FAILED — refusing to train. "
@@ -158,12 +237,32 @@ def main():
     # ═══════════════════════════════════════════════════════════════════════
     # 2. DISJOINT DIRICHLET PARTITION (TRAIN only)
     # ═══════════════════════════════════════════════════════════════════════
-    print("[Partition] Disjoint Dirichlet non-IID partitioning "
-          f"(alpha={args.alpha}, seed={args.seed}) ...\n")
-    shards, assignment = partition_data_dirichlet(
-        X_train_fl, y_train_fl, alpha=args.alpha,
-        n_clients=args.clients, seed=args.seed,
-        min_samples=cfg.MIN_SAMPLES_PER_CLIENT, return_indices=True)
+    if assignment is None:
+        print("[Partition] Disjoint Dirichlet non-IID partitioning "
+              f"(alpha={args.alpha}, seed={args.seed}) ...\n")
+        shards, assignment = partition_data_dirichlet(
+            X_train_fl, y_train_fl, alpha=args.alpha,
+            n_clients=args.clients, seed=args.seed,
+            min_samples=cfg.MIN_SAMPLES_PER_CLIENT, return_indices=True)
+        np.savez(open(os.path.join(CACHE_DIR, "phase_assignment.npz.tmp"), 'wb'),
+                 assignment=np.asarray(assignment))
+        os.replace(os.path.join(CACHE_DIR, "phase_assignment.npz.tmp"),
+                   os.path.join(CACHE_DIR, "phase_assignment.npz"))
+    else:
+        # deterministic shard rebuild from the cached client assignment
+        # (replicates partition_clients.py's per-client seeded shuffle)
+        X_arr, y_arr = np.asarray(X_train_fl), np.asarray(y_train_fl)
+        shards = []
+        for k in range(args.clients):
+            idx = np.where(assignment == k)[0]
+            if len(idx) == 0:
+                shards.append((X_arr[:0], y_arr[:0]))
+                continue
+            rng = np.random.RandomState(args.seed * 1000 + k)
+            idx = idx[rng.permutation(len(idx))]
+            shards.append((X_arr[idx], y_arr[idx]))
+        print(f"[Cache] client shards rebuilt from cached assignment "
+              f"({[int((assignment == k).sum()) for k in range(args.clients)]})")
 
     # partition audit: verify disjointness against TRAIN indices
     part_audit = run_audit(
@@ -176,32 +275,82 @@ def main():
     # ═══════════════════════════════════════════════════════════════════════
     # 3. CENTRALIZED BASELINES (pooled 2D data)
     # ═══════════════════════════════════════════════════════════════════════
-    print("\n[Centralised] Training pooled baselines ...")
-    c_models = train_centralized(X_train_2d, y_train,
-                                 X_val_2d, y_val, seed=args.seed)
+    baselines_cache = os.path.join(CACHE_DIR, "phase_baselines.pt")
+    if resume and os.path.exists(baselines_cache):
+        import torch
+        c_models = torch.load(baselines_cache, weights_only=False)
+        print("\n[Centralised] baselines resumed from cache")
+        resumed.append("baselines")
+    else:
+        print("\n[Centralised] Training pooled baselines ...")
+        c_models = train_centralized(X_train_2d, y_train,
+                                     X_val_2d, y_val, seed=args.seed)
+        import torch
+        _atomic_save(baselines_cache,
+                     lambda p: torch.save(c_models, p))
+        print("[Cache] baselines cached")
 
     # ═══════════════════════════════════════════════════════════════════════
     # 4. FEDERATED TRAINING (monitoring on VALIDATION)
     # ═══════════════════════════════════════════════════════════════════════
-    print()
-    fedavg_model, fedavg_history = run_fedavg(
-        shards, X_val_fl, y_val_fl, n_rounds=args.rounds,
-        use_lstm=use_lstm, eval_batch_size=args.eval_batch_size,
-        seed=args.seed)
+    import torch
+    fedavg_cache = os.path.join(CACHE_DIR, "phase_fedavg.pt")
+    fedavg_model, fedavg_history = None, None
+    if resume and os.path.exists(fedavg_cache):
+        try:
+            d = torch.load(fedavg_cache, weights_only=False)
+            if d.get("done"):
+                fedavg_model, fedavg_history = d["model"], d["history"]
+                print("\n[FedAvg] complete run resumed from cache")
+                resumed.append("fedavg")
+        except Exception:
+            pass
+    if fedavg_model is None:
+        print()
+        fedavg_model, fedavg_history = run_fedavg(
+            shards, X_val_fl, y_val_fl, n_rounds=args.rounds,
+            use_lstm=use_lstm, eval_batch_size=args.eval_batch_size,
+            seed=args.seed, resume_path=fedavg_cache)
+        print("[Cache] FedAvg cached (round-resumable)")
 
-    print()
-    fedprox_model, fedprox_history = run_fedprox(
-        shards, X_val_fl, y_val_fl, n_rounds=args.rounds, mu=args.mu,
-        use_lstm=use_lstm, eval_batch_size=args.eval_batch_size,
-        seed=args.seed)
+    fedprox_cache = os.path.join(CACHE_DIR, "phase_fedprox.pt")
+    fedprox_model, fedprox_history = None, None
+    if resume and os.path.exists(fedprox_cache):
+        try:
+            d = torch.load(fedprox_cache, weights_only=False)
+            if d.get("done"):
+                fedprox_model, fedprox_history = d["model"], d["history"]
+                print("\n[FedProx] complete run resumed from cache")
+                resumed.append("fedprox")
+        except Exception:
+            pass
+    if fedprox_model is None:
+        print()
+        fedprox_model, fedprox_history = run_fedprox(
+            shards, X_val_fl, y_val_fl, n_rounds=args.rounds, mu=args.mu,
+            use_lstm=use_lstm, eval_batch_size=args.eval_batch_size,
+            seed=args.seed, resume_path=fedprox_cache)
+        print("[Cache] FedProx cached (round-resumable)")
 
     scaffold_model, scaffold_history = None, []
     if cfg.USE_SCAFFOLD:
         print()
-        scaffold_model, scaffold_history = run_scaffold(
-            shards, X_val_fl, y_val_fl, n_rounds=args.rounds,
-            use_lstm=use_lstm, eval_batch_size=args.eval_batch_size,
-            warm_start_model=fedavg_model, seed=args.seed)
+        scaffold_cache = os.path.join(CACHE_DIR, "phase_scaffold.pt")
+        if resume and os.path.exists(scaffold_cache):
+            try:
+                d = torch.load(scaffold_cache, weights_only=False)
+                if d.get("done"):
+                    scaffold_model, scaffold_history = d["model"], d["history"]
+                    print("[SCAFFOLD] complete run resumed from cache")
+                    resumed.append("scaffold")
+            except Exception:
+                pass
+        if scaffold_model is None:
+            scaffold_model, scaffold_history = run_scaffold(
+                shards, X_val_fl, y_val_fl, n_rounds=args.rounds,
+                use_lstm=use_lstm, eval_batch_size=args.eval_batch_size,
+                warm_start_model=fedavg_model, seed=args.seed,
+                resume_path=scaffold_cache)
 
     # ═══════════════════════════════════════════════════════════════════════
     # 5. CALIBRATION + THRESHOLD — selected on VALIDATION ONLY
@@ -377,6 +526,7 @@ def main():
         "run_id": run_id, "version": cfg.VERSION,
         "seed": args.seed, "clients": args.clients, "rounds": args.rounds,
         "mu": args.mu, "alpha": args.alpha, "model": model_name,
+        "resumed_phases": resumed,
         "aggregation": cfg.AGGREGATION_STRATEGY,
         "calibration": method, "use_smote": cfg.USE_SMOTE,
         "use_fed_focal": cfg.USE_FED_FOCAL,

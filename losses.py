@@ -50,6 +50,12 @@ class DynamicFocalLoss(nn.Module):
         self.gamma = gamma
         self.base_alpha = base_alpha
         self.reduction = reduction
+        self.global_pos_rate = None   # B13: set by caller; fallback below
+
+    def set_global_pos_rate(self, rate):
+        """B13 fix: caller supplies the ACTUAL training prevalence instead
+        of trusting the legacy hardcoded 0.4887."""
+        self.global_pos_rate = float(rate)
 
     def forward(self, logits, targets, client_pos_rate=None):
         # Compute per-sample BCE loss
@@ -67,7 +73,7 @@ class DynamicFocalLoss(nn.Module):
         alpha = self.base_alpha
 
         if client_pos_rate is not None:
-            global_pos_rate = 0.4887  # Balanced training set rate
+            global_pos_rate = self.global_pos_rate if self.global_pos_rate is not None else 0.4887
             adjustment = 1.0 + (global_pos_rate - client_pos_rate) * 0.8
             alpha = self.base_alpha * adjustment
             alpha = torch.clamp(torch.tensor(alpha), 0.1, 0.4).item()
@@ -146,6 +152,12 @@ class FedFocalLoss(nn.Module):
         self.reduction = reduction
         self._current_round = 0
         self._total_rounds = 50
+        self.global_pos_rate = None   # B13: actual train prevalence (set by caller)
+
+    def set_global_pos_rate(self, rate):
+        """B13 fix: caller supplies the ACTUAL training prevalence instead
+        of trusting the legacy hardcoded 0.4887."""
+        self.global_pos_rate = float(rate)
 
     def set_round_info(self, current_round: int, total_rounds: int = 50):
         """Update round info for progressive alpha scheduling."""
@@ -190,7 +202,7 @@ class FedFocalLoss(nn.Module):
 
         # Factor 1: Client-local imbalance adjustment (sqrt-scaled, gentle)
         if client_pos_rate is not None:
-            global_train_rate = 0.4887
+            global_train_rate = self.global_pos_rate if self.global_pos_rate is not None else 0.4887
             raw_ratio = global_train_rate / max(client_pos_rate, 0.01)
             # FIX: sqrt dampening (same principle as DA-FL phi) — a ratio of
             # 81x (0.4887/0.006) becomes 9x instead of 81x, and we cap at 1.5x.

@@ -1,5 +1,5 @@
 {
-  "generated_utc": "2026-09-28T11:12:58.099169+00:00",
+  "generated_utc": "2026-09-28T11:30:30.739284+00:00",
   "generator_version": "3.0.0-improvements",
   "dataset": {
     "name": "SWAN-SF benchmark (Angryk et al., 2020, Sci Data)",
@@ -7,7 +7,13 @@
     "source_repo": "https://github.com/samresume/Cleaned-SWANSF-Dataset",
     "source_doi": "10.7910/DVN/EBCFKM",
     "data_dir": "data/cleaned",
-    "partitions_found": []
+    "partitions_found": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5"
+    ]
   },
   "feature_contract": {
     "n_base_features": 24,
@@ -203,7 +209,275 @@
     "test_policy": "touched exactly once at final evaluation"
   },
   "files": {
-    "train": [],
-    "test": []
+    "train": [
+      {
+        "file": "Partition1_Labels_RUS-Tomek-TimeGAN_LSBZM-Norm_WithoutC_FPCKNN-impute.pkl",
+        "sha256": "379faf6d3708ec6545750b383b9409198c4188d6c5c6c2bb12e829e1005155cc",
+        "bytes": 150344,
+        "shape": [
+          18773
+        ],
+        "dtype": "float64"
+      },
+      {
+        "file": "Partition1_RUS-Tomek-TimeGAN_LSBZM-Norm_WithoutC_FPCKNN-impute.pkl",
+        "sha256": "20a44d4b01ea9a0f001d39520908de61b91cdcc284e673fff2a25691eeccc233",
+        "bytes": 216265124,
+        "shape": [
+          18773,
+          60,
+          24
+        ],
+        "dtype": "float64"
+      },
+      {
+        "file": "Partition2_Labels_RUS-Tomek-TimeGAN_LSBZM-Norm_WithoutC_FPCKNN-impute.pkl",
+        "sha256": "e232e5508ff10da702d54dac187fbd0c4315af3fbcaf2d43de7a786394e56539",
+        "bytes": 158616,
+        "shape": [
+          19807
+        ],
+        "dtype": "float64"
+      },
+      {
+        "file": "Partition2_RUS-Tomek-TimeGAN_LSBZM-Norm_WithoutC_FPCKNN-impute.pkl",
+        "sha256": "479de49c8454d8a9deb64977e001c39fa0190c4692c01b8536231714768c4d95",
+        "bytes": 228176804,
+        "shape": [
+          19807,
+          60,
+          24
+        ],
+        "dtype": "float64"
+      },
+      {
+        "file": "Partition3_Labels_RUS-Tomek-TimeGAN_LSBZM-Norm_WithoutC_FPCKNN-impute.pkl",
+        "sha256": "7a41dcd998b8cf8db8fd17ade70d9ec2f2dc0d187d22af90ce04296bb168c680",
+        "bytes": 159880,
+        "shape": [
+          19965
+        ],
+        "dtype": "float64"
+      },
+      {
+        "file": "Partition3_RUS-Tomek-TimeGAN_LSBZM-Norm_WithoutC_FPCKNN-impute.pkl",
+        "sha256": "082fe2f387584e9851ec211f9617138c545e7d3b96100a3de585ecec81314a65",
+        "bytes": 229996964,
+        "shape": [
+          19965,
+          60,
+          24
+        ],
+        "dtype": "float64"
+      },
+      {
+        "file": "Partition4_Labels_RUS-Tomek-TimeGAN_LSBZM-Norm_WithoutC_FPCKNN-impute.pkl",
+        "sha256": "9e5de70b02c5120a977bd9ed52aa9081078ecc0171961515ae86cd10b323cfb3",
+        "bytes": 154720,
+        "shape": [
+          19320
+        ],
+        "dtype": "float64"
+      },
+      {
+        "file": "Partition4_RUS-Tomek-TimeGAN_LSBZM-Norm_WithoutC_FPCKNN-impute.pkl",
+        "sha256": "024e63c1bb99ac1164d72f94466e8dd132e252cbeda8c0c1163015bfacc32d1e",
+        "bytes": 222566564,
+        "shape": [
+          19320,
+          60,
+          24
+        ],
+        "dtype": "float64"
+      },
+      {
+        "file": "Partition5_Labels_RUS-Tomek-TimeGAN_LSBZM-Norm_WithoutC_FPCKNN-impute.pkl",
+        "sha256": "90861b8dac8039737f72a7062b43b07edbe90453c57f6aaf4383be298417940c",
+        "bytes": 159352,
+        "shape": [
+          19899
+        ],
+        "dtype": "float64"
+      },
+      {
+        "file": "Partition5_RUS-Tomek-TimeGAN_LSBZM-Norm_WithoutC_FPCKNN-impute.pkl",
+        "sha256": "c1746364bc1b8949bed7110f720db5be9d3ff049e4584532485bf81082216ceb",
+        "bytes": 229236644,
+        "shape": [
+          19899,
+          60,
+          24
+        ],
+        "dtype": "float64"
+      }
+    ],
+    "test": [
+      {
+        "file": "Partition1_LSBZM-Norm_FPCKNN-impute.pkl",
+        "sha256": "571336062d64aeae5054b1bca6e3837defccb40b973fb7e39a1e26d31fccc6ae",
+        "bytes": 846628006,
+        "shape": [
+          73492,
+          60,
+          24
+        ],
+        "dtype": "float64"
+      },
+      {
+        "file": "Partition1_Labels_LSBZM-Norm_FPCKNN-impute.pkl",
+        "sha256": "9bba019216a2f55680e9da498ed5bbebd377ce7a9509c8b7cc3a3990dc7e1a8b",
+        "bytes": 588098,
+        "shape": [
+          73492
+        ],
+        "dtype": "float64"
+      },
+      {
+        "file": "Partition2_LSBZM-Norm_FPCKNN-impute.pkl",
+        "sha256": "76cf8ed7794704b48d4bc78d916393881de1be46319ed9eb3d6175d6b36af123",
+        "bytes": 1020176806,
+        "shape": [
+          88557,
+          60,
+          24
+        ],
+        "dtype": "float64"
+      },
+      {
+        "file": "Partition2_Labels_LSBZM-Norm_FPCKNN-impute.pkl",
+        "sha256": "e4aa478384c14bbd521e2e33185900e25897c0dbfb0e8083ba510f1bdf6e45e6",
+        "bytes": 708618,
+        "shape": [
+          88557
+        ],
+        "dtype": "float64"
+      },
+      {
+        "file": "Partition3_LSBZM-Norm_FPCKNN-impute.pkl",
+        "sha256": "e58795bda3bf2e76e6d7e6cac915967d5fb37f973c025a79e8f1543a4d8ab859",
+        "bytes": 489715364,
+        "shape": [
+          42510,
+          60,
+          24
+        ],
+        "dtype": "float64"
+      },
+      {
+        "file": "Partition3_Labels_LSBZM-Norm_FPCKNN-impute.pkl",
+        "sha256": "203f4efc1e91567274347e11db2243b1f71b4dcc42c405efc246d412d323b2fc",
+        "bytes": 340240,
+        "shape": [
+          42510
+        ],
+        "dtype": "float64"
+      },
+      {
+        "file": "Partition4_LSBZM-Norm_FPCKNN-impute.pkl",
+        "sha256": "d73e9b515b476fc7f480d14701aa120906a633e6d220cca760ce04cdf3439014",
+        "bytes": 590526884,
+        "shape": [
+          51261,
+          60,
+          24
+        ],
+        "dtype": "float64"
+      },
+      {
+        "file": "Partition4_Labels_LSBZM-Norm_FPCKNN-impute.pkl",
+        "sha256": "b6f5b6b805cfeda3df9e13b51cb7e18a85eb5adbce40d64355385111ad3dcd78",
+        "bytes": 410248,
+        "shape": [
+          51261
+        ],
+        "dtype": "float64"
+      },
+      {
+        "file": "Partition5_LSBZM-Norm_FPCKNN-impute.pkl",
+        "sha256": "4f0ca4cb13b3b2928c832bfae56af7391b89bf67f59cefb4a2934d5e811282ef",
+        "bytes": 868204966,
+        "shape": [
+          75365,
+          60,
+          24
+        ],
+        "dtype": "float64"
+      },
+      {
+        "file": "Partition5_Labels_LSBZM-Norm_FPCKNN-impute.pkl",
+        "sha256": "e596bc86cf968b48a092a34620fe7081be8dd83e4569b1c8b75d15d575e2f590",
+        "bytes": 603082,
+        "shape": [
+          75365
+        ],
+        "dtype": "float64"
+      }
+    ]
+  },
+  "prevalence": {
+    "train": {
+      "n": 97764,
+      "n_positive": 47773,
+      "prevalence": 0.48865635612290825,
+      "per_partition": {
+        "Partition1": {
+          "n": 18773,
+          "n_positive": 8778,
+          "prevalence": 0.46758642731582595
+        },
+        "Partition2": {
+          "n": 19807,
+          "n_positive": 9807,
+          "prevalence": 0.49512798505578837
+        },
+        "Partition3": {
+          "n": 19965,
+          "n_positive": 9968,
+          "prevalence": 0.49927372902579514
+        },
+        "Partition4": {
+          "n": 19320,
+          "n_positive": 9320,
+          "prevalence": 0.4824016563146998
+        },
+        "Partition5": {
+          "n": 19899,
+          "n_positive": 9900,
+          "prevalence": 0.4975124378109453
+        }
+      }
+    },
+    "test": {
+      "n": 331185,
+      "n_positive": 6234,
+      "prevalence": 0.018823316273381945,
+      "per_partition": {
+        "Partition1": {
+          "n": 73492,
+          "n_positive": 1254,
+          "prevalence": 0.017063081695966906
+        },
+        "Partition2": {
+          "n": 88557,
+          "n_positive": 1401,
+          "prevalence": 0.015820319116501235
+        },
+        "Partition3": {
+          "n": 42510,
+          "n_positive": 1424,
+          "prevalence": 0.03349800047047753
+        },
+        "Partition4": {
+          "n": 51261,
+          "n_positive": 1165,
+          "prevalence": 0.022726829363453698
+        },
+        "Partition5": {
+          "n": 75365,
+          "n_positive": 990,
+          "prevalence": 0.013136071120546673
+        }
+      }
+    }
   }
 }

@@ -26,6 +26,8 @@ Retained from v2.3 (documented fixes that remain correct):
   - focal alpha clamp (0.05, 0.25)
 """
 
+import os
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -72,9 +74,11 @@ def mixup_data(X: np.ndarray, y: np.ndarray, alpha: float = 0.4,
 # ─────────────────────────────────────────────────────────────────────────────
 
 def get_criterion(device, current_round=0, total_rounds=50,
-                  focal_alpha: float = 0.25):
+                  focal_alpha: float = 0.25, global_pos_rate=None):
     """Fed-Focal or DynamicFocalLoss. focal_alpha=0.25 is the effective max
-    (FedFocalLoss clamps to (0.05, 0.25) — audit B17)."""
+    (FedFocalLoss clamps to (0.05, 0.25) — audit B17).
+    global_pos_rate: the ACTUAL training prevalence (B13 — replaces the
+    hardcoded 0.4887 that silently broke whenever the split changed)."""
     if USE_FED_FOCAL:
         from losses import FedFocalLoss
         criterion = FedFocalLoss(
@@ -83,18 +87,39 @@ def get_criterion(device, current_round=0, total_rounds=50,
             reduction='mean'
         ).to(device)
         criterion.set_round_info(current_round, total_rounds)
+        if global_pos_rate is not None:
+            criterion.set_global_pos_rate(global_pos_rate)
         return criterion
     else:
         from losses import DynamicFocalLoss
-        return DynamicFocalLoss(gamma=2.0, base_alpha=0.25).to(device)
+        criterion = DynamicFocalLoss(gamma=2.0, base_alpha=0.25).to(device)
+        if global_pos_rate is not None:
+            criterion.set_global_pos_rate(global_pos_rate)
+        return criterion
 
 
 def _make_loader(X, y, rng=None):
-    ds = torch.utils.data.TensorDataset(
-        torch.FloatTensor(X), torch.FloatTensor(y)
-    )
-    return torch.utils.data.DataLoader(ds, batch_size=512, shuffle=True,
-                                       drop_last=False)
+    """v3.0.1 FastLoader: batch-level slicing instead of per-sample
+    __getitem__ collation (DataLoader collation of 512 single-row tensors
+    dominated round time — ~4x slowdown). Same semantics: batch 512,
+    reshuffled per epoch, last partial batch kept."""
+    class _FastLoader:
+        def __init__(self, X, y, batch_size=512):
+            self.X = torch.as_tensor(X, dtype=torch.float32)
+            self.y = torch.as_tensor(y, dtype=torch.float32)
+            self.batch_size = batch_size
+            self.n = len(self.y)
+
+        def __iter__(self):
+            idx = torch.randperm(self.n)
+            for i in range(0, self.n, self.batch_size):
+                j = idx[i:i + self.batch_size]
+                yield self.X[j], self.y[j]
+
+        def __len__(self):
+            return (self.n + self.batch_size - 1) // self.batch_size
+
+    return _FastLoader(X, y)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -180,14 +205,16 @@ def _maybe_smote(X, y, seed):
 
 def local_train_fedavg(model, X, y, epochs=LOCAL_EPOCHS,
                        current_round=0, total_rounds=50,
-                       seed=None) -> nn.Module:
+                       seed=None, global_pos_rate=None) -> nn.Module:
     device = next(model.parameters()).device
     model.train()
     rng = np.random.RandomState(seed if seed is not None else cfg.SEED)
     X, y = _maybe_smote(X, y, seed=(seed if seed is not None else cfg.SEED))
     X, y = mixup_data(X, y, alpha=MIXUP_ALPHA, rng=rng)
     loader = _make_loader(X, y)
-    criterion = get_criterion(device, current_round, total_rounds, focal_alpha=0.25)
+    criterion = get_criterion(device, current_round, total_rounds,
+                              focal_alpha=0.25,
+                              global_pos_rate=global_pos_rate)
     pos_rate = float(y.mean())
     optimizer = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=1e-4)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
@@ -207,14 +234,16 @@ def local_train_fedavg(model, X, y, epochs=LOCAL_EPOCHS,
 
 def local_train_fedprox(model, global_model, X, y, epochs=LOCAL_EPOCHS,
                         mu=cfg.MU, current_round=0, total_rounds=50,
-                        seed=None) -> nn.Module:
+                        seed=None, global_pos_rate=None) -> nn.Module:
     device = next(model.parameters()).device
     model.train()
     rng = np.random.RandomState(seed if seed is not None else cfg.SEED)
     X, y = _maybe_smote(X, y, seed=(seed if seed is not None else cfg.SEED))
     X, y = mixup_data(X, y, alpha=MIXUP_ALPHA, rng=rng)
     loader = _make_loader(X, y)
-    criterion = get_criterion(device, current_round, total_rounds, focal_alpha=0.25)
+    criterion = get_criterion(device, current_round, total_rounds,
+                              focal_alpha=0.25,
+                              global_pos_rate=global_pos_rate)
     pos_rate = float(y.mean())
     optimizer = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=1e-4)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
@@ -346,11 +375,18 @@ def _compute_global_pos_rate(shards):
 
 def _run_fl_loop(shards, X_monitor, y_monitor, n_rounds, algorithm, mu=0.0,
                  use_lstm=None, eval_batch_size=EVAL_BATCH_SIZE, seed=None,
-                 warm_start_model=None):
+                 warm_start_model=None, resume_path=None):
     """
     Generic FL round loop. X_monitor/y_monitor MUST be the VALIDATION set
     (audit B5): monitoring metrics and any checkpoint selection run on
     validation only. The test set is never accepted here.
+
+    resume_path: optional .pt file for round-level crash recovery. The full
+    loop state (global/best weights, RNG states, control variates, history,
+    next round) is saved atomically after EVERY round, so a killed process
+    resumes mid-FL instead of restarting. On completion the file carries
+    done=True with the final model — callers can treat its existence +
+    done flag as the phase-complete signal.
     """
     seed = cfg.SEED if seed is None else seed
     torch.manual_seed(seed)
@@ -376,6 +412,36 @@ def _run_fl_loop(shards, X_monitor, y_monitor, n_rounds, algorithm, mu=0.0,
     c_locals = {i: [torch.zeros_like(p) for p in global_model.parameters()]
                 for i in range(n_shards)}
     best_val_f1, best_weights = 0.0, None
+    start_round = 1
+
+    # ── mid-run recovery from a previous killed process ───────────────────
+    if resume_path and os.path.exists(resume_path):
+        try:
+            st = torch.load(resume_path, weights_only=False)
+            same = (st.get("algorithm") == algorithm and
+                    st.get("mu", 0.0) == mu and st.get("seed") == seed and
+                    st.get("n_rounds") == n_rounds and
+                    st.get("agg") == cfg.AGGREGATION_STRATEGY and
+                    st.get("smote") == cfg.USE_SMOTE and
+                    st.get("focal") == cfg.USE_FED_FOCAL and
+                    st.get("use_lstm", False) == bool(use_lstm))
+            if same and not st.get("done"):
+                set_weights(global_model, st["global_weights"])
+                history = st["history"]
+                best_val_f1 = st["best_val_f1"]
+                best_weights = st["best_weights"]
+                rng.set_state(st["rng_state"])
+                np.random.set_state(st["np_rng_state"])
+                torch.set_rng_state(st["torch_rng_state"])
+                if algorithm == "scaffold":
+                    c_global = st["c_global"]
+                    c_locals = st["c_locals"]
+                start_round = st["next_round"]
+                print(f"  [{algorithm}] resuming from round {start_round} "
+                      f"(crash recovery)")
+        except Exception as e:
+            print(f"  [{algorithm}] resume state unreadable ({e}) — "
+                  "restarting from round 1")
 
     algo_label = algorithm.upper() if algorithm != "fedprox" else \
         f"FedProx (mu={mu})"
@@ -385,7 +451,33 @@ def _run_fl_loop(shards, X_monitor, y_monitor, n_rounds, algorithm, mu=0.0,
     print(f" monitoring: VALIDATION ({len(y_monitor):,} samples)")
     print("=" * 60)
 
-    for rnd in range(1, n_rounds + 1):
+    def _save_fl_state(next_round, done=False):
+        """Atomic round-level state snapshot (crash recovery)."""
+        if not resume_path:
+            return
+        state = {
+            "algorithm": algorithm, "mu": mu, "seed": seed,
+            "n_rounds": n_rounds, "agg": cfg.AGGREGATION_STRATEGY,
+            "smote": cfg.USE_SMOTE, "focal": cfg.USE_FED_FOCAL,
+            "use_lstm": bool(use_lstm), "next_round": next_round,
+            "done": done,
+            "global_weights": get_weights(global_model),
+            "history": history, "best_val_f1": best_val_f1,
+            "best_weights": best_weights,
+            "rng_state": rng.get_state(),
+            "np_rng_state": np.random.get_state(),
+            "torch_rng_state": torch.get_rng_state(),
+        }
+        if algorithm == "scaffold":
+            state["c_global"] = c_global
+            state["c_locals"] = c_locals
+        if done:
+            state["model"] = global_model
+        tmp = resume_path + ".tmp"
+        torch.save(state, tmp)
+        os.replace(tmp, resume_path)
+
+    for rnd in range(start_round, n_rounds + 1):
         selected = rng.choice(n_shards,
                               max(1, int(FRACTION_FIT * n_shards)),
                               replace=False)
@@ -399,11 +491,13 @@ def _run_fl_loop(shards, X_monitor, y_monitor, n_rounds, algorithm, mu=0.0,
             if algorithm == "fedavg":
                 local = local_train_fedavg(local, X_c, y_c,
                                            current_round=rnd,
-                                           total_rounds=n_rounds, seed=seed)
+                                           total_rounds=n_rounds, seed=seed,
+                                           global_pos_rate=global_pos_rate)
             elif algorithm == "fedprox":
                 local = local_train_fedprox(local, global_model, X_c, y_c,
                                             mu=mu, current_round=rnd,
-                                            total_rounds=n_rounds, seed=seed)
+                                            total_rounds=n_rounds, seed=seed,
+                                            global_pos_rate=global_pos_rate)
             elif algorithm == "scaffold":
                 local, new_c = local_train_scaffold(
                     local, X_c, y_c, c_global, c_locals[cid],
@@ -458,34 +552,42 @@ def _run_fl_loop(shards, X_monitor, y_monitor, n_rounds, algorithm, mu=0.0,
                 best_val_f1 = metrics['f1']
                 best_weights = [w.copy() for w in new_weights]
 
+        # crash-recovery snapshot: after every completed round
+        _save_fl_state(rnd + 1)
+
     if best_weights is not None and best_val_f1 > 0:
         set_weights(global_model, best_weights)
         print(f"\n  [{algorithm}] Restored best VALIDATION checkpoint "
               f"(val F1={best_val_f1:.3f})")
 
+    _save_fl_state(n_rounds + 1, done=True)
+
     return global_model, history
 
 
 def run_fedavg(shards, X_val, y_val, n_rounds=N_ROUNDS,
-               use_lstm=None, eval_batch_size=EVAL_BATCH_SIZE, seed=None):
+               use_lstm=None, eval_batch_size=EVAL_BATCH_SIZE, seed=None,
+               resume_path=None):
     return _run_fl_loop(shards, X_val, y_val, n_rounds, "fedavg",
                         use_lstm=use_lstm, eval_batch_size=eval_batch_size,
-                        seed=seed)
+                        seed=seed, resume_path=resume_path)
 
 
 def run_fedprox(shards, X_val, y_val, n_rounds=N_ROUNDS, mu=cfg.MU,
-                use_lstm=None, eval_batch_size=EVAL_BATCH_SIZE, seed=None):
+                use_lstm=None, eval_batch_size=EVAL_BATCH_SIZE, seed=None,
+                resume_path=None):
     return _run_fl_loop(shards, X_val, y_val, n_rounds, "fedprox", mu=mu,
                         use_lstm=use_lstm, eval_batch_size=eval_batch_size,
-                        seed=seed)
+                        seed=seed, resume_path=resume_path)
 
 
 def run_scaffold(shards, X_val, y_val, n_rounds=N_ROUNDS,
                  use_lstm=None, eval_batch_size=EVAL_BATCH_SIZE,
-                 warm_start_model=None, seed=None):
+                 warm_start_model=None, seed=None, resume_path=None):
     if not cfg.USE_SCAFFOLD:
         print("[SCAFFOLD] Disabled in config.")
         return None, []
     return _run_fl_loop(shards, X_val, y_val, n_rounds, "scaffold",
                         use_lstm=use_lstm, eval_batch_size=eval_batch_size,
-                        seed=seed, warm_start_model=warm_start_model)
+                        seed=seed, warm_start_model=warm_start_model,
+                        resume_path=resume_path)

@@ -25,7 +25,10 @@ still applies.
 """
 
 # ── Identity / provenance ─────────────────────────────────────────────────
-VERSION          = "3.0.0-improvements"
+VERSION          = "3.0.1-improvements"   # v3.0.1: FastLoader (batch-sliced
+#   local training, ~27% faster rounds), B13 global_pos_rate passed into the
+#   focal losses instead of hardcoded 0.4887, round-level FL crash recovery,
+#   manifest prevalence aggregates all partitions (B26).
 PAPER_ID         = "SF-9"
 RUN_ID           = None        # None -> auto-generated timestamp at runtime
 SEED             = 42          # single root seed (multi-seed: SEED + k)
