@@ -440,6 +440,11 @@ def _run_fl_loop(shards, X_monitor, y_monitor, n_rounds, algorithm, mu=0.0,
                     st.get("loss_variant", "fed_focal") ==
                     getattr(cfg, "LOSS_VARIANT", "fed_focal") and
                     st.get("use_lstm", False) == bool(use_lstm))
+            if same and st.get("done") and st.get("model") is not None:
+                # identical completed run — reuse it outright (no retraining)
+                print(f"  [{algorithm}] identical completed run found — "
+                      f"reusing cached model")
+                return st["model"], st.get("history", [])
             if same and not st.get("done"):
                 set_weights(global_model, st["global_weights"])
                 history = st["history"]
