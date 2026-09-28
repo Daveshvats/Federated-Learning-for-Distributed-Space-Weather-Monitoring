@@ -1,64 +1,45 @@
 """
 SF-9: Federated Learning for Distributed Space Weather Monitoring
 ─────────────────────────────────────────────────────────────────
-All hyperparameters and paths in one file.
-Change values here; every other script reads from here.
+config.py v3.0 (improvements branch) — single configuration source.
 
-v2.6 — FL stability fixes (based on DeepSeek agent analysis):
-  - DIRICHLET_ALPHA: 0.5 -> 1.0 (was creating 3%-99% flare-rate clients;
-    alpha=1.0 gives 20%-60% range, making FL aggregation stable)
-  - USE_SCAFFOLD: True -> False (temporarily disabled; get FedProx working
-    first, then re-enable SCAFFOLD later if desired)
-  - USE_MIXUP: True -> False (mixup on 3D time-series creates unrealistic
-    sequences that confuse the LSTM, especially with non-IID clients)
-  - LOCAL_EPOCHS: 3 -> 10 (LSTM needs more gradient steps to learn
-    temporal dynamics; 3 epochs per round is insufficient)
-  - LR: 0.001 -> 0.0005 (lower LR prevents overshooting with more
-    local epochs and milder partitions)
-  - Plus all v2.5 fixes: dataset audit, SCAFFOLD NaN, focal alpha, etc.
+v3.0 consolidation (audit B16/B17):
+  - one VERSION constant, snapshotted into every run's results.json
+  - SEED is the single root seed; multi-seed runs use SEED + k
+  - evaluation protocol switches are explicit:
+      AGGREGATION_STRATEGY : 'plain' (vanilla size-weighted FedAvg) or
+                             'dafl'  (distribution-aware — ablation arm)
+      USE_SMOTE            : per-client SMOTE balancing (ablation arm;
+                             was dead code in v2.x, audit B7)
+      CALIBRATION_METHOD   : 'none' | 'prior_shift' | 'platt' |
+                             'isotonic' | 'temperature'
+      USE_FED_FOCAL        : Fed-Focal loss (ablation arm)
+  - threshold search happens on VALIDATION only (audit B1); the frozen
+    threshold is stored in results.json and applied once to test
+  - normalization policy flag CLEANED_ALREADY_NORMALIZED replaces
+    duck-typed detection of double normalization
+
+Historical notes (v2.6) retained below for traceability of the original
+runs; the FL-stability rationale (Dirichlet alpha, focal alpha clamp)
+still applies.
 """
 
+# ── Identity / provenance ─────────────────────────────────────────────────
+VERSION          = "3.0.0-improvements"
+PAPER_ID         = "SF-9"
+RUN_ID           = None        # None -> auto-generated timestamp at runtime
+SEED             = 42          # single root seed (multi-seed: SEED + k)
+RANDOM_STATE     = SEED        # backward-compatible alias
+
 # ── Paths ─────────────────────────────────────────────────────────────────
-DATA_PATH   = "data/swan_sf.csv"   # Place downloaded SWAN-SF CSV here
-OUTPUT_DIR  = "outputs"            # All plots, logs, and model checkpoints
+DATA_PATH        = "data/swan_sf.csv"
+OUTPUT_DIR       = "outputs"
+RESULTS_JSON     = "outputs/results.json"      # machine-readable results (B18)
+RUN_MANIFEST     = "outputs/run_manifest.json" # config + env snapshot (B18)
 
 # ── Dataset ───────────────────────────────────────────────────────────────
-N_SAMPLES        = 10000           # Synthetic fallback: total rows
-FLARE_RATIO      = 0.06            # ~6% flare rate (matches real SWAN-SF)
-RANDOM_STATE     = 42
-
-# SWAN-SF magnetic-field feature names — EXACT order from Cleaned SWAN-SF Dataset
-# Source: https://github.com/samresume/Cleaned-SWANSF-Dataset
-# Attributes Order (as stored in the 3D pkl files, index 0..23):
-#   Index 0:  R_VALUE   — Sum of positive/negative polarity flux correlation
-#   Index 1:  TOTUSJH   — Total unsigned current helicity
-#   Index 2:  TOTBSQ    — Total magnitude of Lorentz force
-#   Index 3:  TOTPOT    — Total photospheric magnetic free energy
-#   Index 4:  TOTUSJZ   — Total unsigned vertical current
-#   Index 5:  ABSNJZH   — Absolute value of net current helicity
-#   Index 6:  SAVNCPP   — Sum of absolute value of net current per polarity
-#   Index 7:  USFLUX    — Total unsigned flux
-#   Index 8:  TOTFZ     — Total Lorentz force Z-component (was wrongly labeled AREA_ACR)
-#   Index 9:  MEANPOT   — Mean photospheric magnetic free energy
-#   Index 10: EPSX      — Sum of epsilon X-component (was wrongly ordered)
-#   Index 11: EPSY      — Sum of epsilon Y-component
-#   Index 12: EPSZ      — Sum of epsilon Z-component
-#   Index 13: MEANSHR   — Mean shear angle
-#   Index 14: SHRGT45   — Fraction of area with shear > 45 deg
-#   Index 15: MEANGAM   — Mean angle of field from radial
-#   Index 16: MEANGBT   — Mean gradient of total field
-#   Index 17: MEANGBZ   — Mean gradient of Bz (vertical)
-#   Index 18: MEANGBH   — Mean gradient of Bh (horizontal)
-#   Index 19: MEANJZH   — Mean current helicity (Bz contribution)
-#   Index 20: TOTFY     — Total Lorentz force Y-component (was wrongly labeled HARPNUM_MOD)
-#   Index 21: MEANJZD   — Mean vertical current density
-#   Index 22: MEANALP   — Mean alpha parameter
-#   Index 23: TOTFX     — Total Lorentz force X-component (was wrongly labeled TIME_SINCE_LAST_FLARE)
-#
-# v2.5 FIX: Previous version had 3 features that don't exist in the Cleaned dataset:
-#   AREA_ACR, HARPNUM_MOD, TIME_SINCE_LAST_FLARE
-# These were replaced with the actual features present in the data:
-#   TOTFZ, TOTFY, TOTFX (Lorentz Force components — physically important for flares!)
+N_SAMPLES        = 10000
+FLARE_RATIO      = 0.06
 FEATURE_COLS = [
     "R_VALUE",  "TOTUSJH",  "TOTBSQ",   "TOTPOT",
     "TOTUSJZ",  "ABSNJZH",  "SAVNCPP",  "USFLUX",
@@ -67,21 +48,23 @@ FEATURE_COLS = [
     "MEANGBT",  "MEANGBZ",  "MEANGBH",  "MEANJZH",
     "TOTFY",    "MEANJZD",  "MEANALP",  "TOTFX"
 ]
-LABEL_COL   = "label"
+LABEL_COL        = "label"
 
-# ════════════════════════════════════════════════════════════════════════
-# 🔧 FIX #1: Changed from "HARPNUM" to "HARPNUM_MOD" to match main.py!
-# ══════════════════════════════════════════════════════════════════════
-HARPNUM_COL = "HARPNUM_MOD"    # ← MUST MATCH WHAT main.py EXPECTS!
+# ── Evaluation protocol (immutable contract) ──────────────────────────────
+TEST_SPLIT       = 0.20     # global held-out test (touched exactly once)
+VAL_SPLIT        = 0.16     # carved from TRAIN only — all selection happens here
+CLEANED_ALREADY_NORMALIZED = True   # cleaned SWAN-SF is LSBZM-normalized
 
 # ── Federated Learning ────────────────────────────────────────────────────
-N_CLIENTS       = 6        # Regional observatories simulated
-N_ROUNDS        = 50       # Total communication rounds
-LOCAL_EPOCHS    = 10        # Local training epochs per round
-FRACTION_FIT    = 1.0      # Fraction of clients per round (1.0 = all)
-MU              = 0.01     # FedProx proximal coefficient
+N_CLIENTS        = 6
+N_ROUNDS         = 50
+LOCAL_EPOCHS     = 10
+FRACTION_FIT     = 1.0
+MU               = 0.01
+DIRICHLET_ALPHA  = 1.0      # v2.6: 1.0 = moderate non-IID (20%-60% rates)
+FORCE_NON_IID    = True
+MIN_SAMPLES_PER_CLIENT = 100
 
-# Labels used in plots and logs
 CLIENT_NAMES = [
     "Americas (NASA/NOAA)",
     "Europe (ESA/PROBA-2)",
@@ -91,62 +74,54 @@ CLIENT_NAMES = [
     "Oceania (BoM)"
 ]
 
-# ── Model Architecture ──────────────────────────────────────────────────
+# ── Aggregation / loss ablation switches ──────────────────────────────────
+AGGREGATION_STRATEGY = "plain"   # 'plain' (vanilla FedAvg) | 'dafl' (ablation)
+USE_FED_FOCAL    = True
+FOCAL_GAMMA      = 2.0
+FOCAL_ALPHA      = 0.25          # NOTE: FedFocalLoss internally clamps to
+                                 # (0.05, 0.25); 0.25 is the effective max (B17)
+USE_SMOTE        = False         # per-client SMOTE (ablation arm; B7)
+SMOTE_RATIO      = 0.25
+USE_MIXUP        = False
+MIXUP_ALPHA      = 0.4
+
+# ── Threshold & calibration protocol ──────────────────────────────────────
+FBETA_BETA       = 2.0           # recall-weighted F-beta
+CALIBRATION_METHOD = "prior_shift"   # 'none'|'prior_shift'|'platt'|'isotonic'|'temperature'
+THRESHOLD_GRID   = (0.05, 0.95, 0.005)  # search grid ON VALIDATION
+DEFAULT_THRESHOLD = 0.35         # monitoring-only default (never final)
+
+# ── Model architecture ────────────────────────────────────────────────────
 INPUT_DIM   = len(FEATURE_COLS)
 HIDDEN_DIMS = [128, 64, 32]
 DROPOUT     = 0.3
 LR          = 0.0005
 BATCH_SIZE  = 256
 
-# ── LSTM Model ─────────────────────────────────────────────────────────────
-USE_LSTM         = True          # Use LSTM instead of MLP (preserves temporal dynamics)
-LSTM_HIDDEN_SIZE = 128
-LSTM_NUM_LAYERS  = 2
-LSTM_DROPOUT     = 0.3
+# ── LSTM ──────────────────────────────────────────────────────────────────
+USE_LSTM          = True
+LSTM_HIDDEN_SIZE  = 128
+LSTM_NUM_LAYERS   = 2
+LSTM_DROPOUT      = 0.3
 LSTM_BIDIRECTIONAL = False
 
-# ── SCAFFOLD Algorithm ────────────────────────────────────────────────────
-USE_SCAFFOLD     = False         # Add SCAFFOLD as 3rd FL algorithm
+# ── SCAFFOLD ──────────────────────────────────────────────────────────────
+USE_SCAFFOLD     = False
 SCAFFOLD_LR      = 0.001
 
-# ── Fed-Focal Loss ────────────────────────────────────────────────────────
-USE_FED_FOCAL    = True          # Use Fed-Focal Loss instead of DynamicFocalLoss
-FOCAL_GAMMA      = 2.0           # Focusing parameter
-FOCAL_ALPHA      = 0.25          # FIX: was 0.75 → over-predicted flares (F1~0.07)
-                        # 0.25 is standard. federated_learning.py also
-                        # hardcodes 0.25 directly for safety.
+# ── Temporal features ─────────────────────────────────────────────────────
+FLATTEN_METHOD   = "concat_stats_enhanced"
 
-# ── Richer Temporal Features ──────────────────────────────────────────────
-FLATTEN_METHOD   = "concat_stats_enhanced"  # 6-stat extraction: mean/std/max/min/trend/slope
+# ── Statistical validation ────────────────────────────────────────────────
+N_SEEDS          = 5            # multi-seed runs (audit B11)
+CONFIDENCE       = 0.95         # CI level for reporting
 
-# ── Non-IID Partitioning ─────────────────────────────────────────────────
-DIRICHLET_ALPHA  = 1.0           # FIX v2.6: was 0.5 → created 3%-99% flare-rate clients
-                        # 1.0 = realistic non-IID (20%-60% flare rates), FL-stable
-FORCE_NON_IID    = True          # Force Dirichlet partitioning even with cleaned data
+# ── Cleaned dataset settings ──────────────────────────────────────────────
+USE_CLEANED_DATA = True
+CLEANED_DATA_DIR = "data/cleaned"
+COMBINE_PARTITIONS = True
 
-# ── F-beta Threshold Optimization ─────────────────────────────────────────
-FBETA_BETA       = 2.0           # β=2 weights recall 2x more than precision
-
-# ── Mixup Augmentation ───────────────────────────────────────────────────
-USE_MIXUP        = False
-MIXUP_ALPHA      = 0.4           # Beta distribution parameter (0.4 = moderate mixing)
-
-# ── Preprocessing ─────────────────────────────────────────────────────────
-TEST_SPLIT  = 0.20     # Global held-out test set (never seen during federation)
-SMOTE_RATIO = 0.25     # Minority class fraction after SMOTE per client
-
-# ── Evaluation ────────────────────────────────────────────────────────────
-# Lower threshold maximises Recall — missing a flare is worse than a false alarm
-# NOTE: threshold=0.35 is used for F1 evaluation; F-beta optimization finds the
-# optimal threshold separately (typically 0.15-0.40 range for safety-critical recall)
-THRESHOLD   = 0.35
-
-# ── Cleaned Dataset Settings ────────────────────────────────────────────────
-USE_CLEANED_DATA = True           # Set to False to use original merged data
-CLEANED_DATA_DIR = "data/cleaned" # Path to cleaned dataset folder
-COMBINE_PARTITIONS = True         # Use all 5 partitions (recommended)
-
-# ── GPU ACCELERATION ──
-USE_CUDA = True          # Enable CUDA
-PIN_MEMORY = True        # Faster GPU memory transfer
-EVAL_BATCH_SIZE = 2048   # Batch size for evaluation (lower if OOM; 2048 for RTX 3060 12GB)
+# ── GPU ───────────────────────────────────────────────────────────────────
+USE_CUDA = True
+PIN_MEMORY = True
+EVAL_BATCH_SIZE = 2048

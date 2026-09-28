@@ -1,25 +1,52 @@
 """
-data_preparation.py
-───────────────────
+data_preparation.py  (v3.0 — improvements branch)
+──────────────────────────────────────────────────
 Loads the SWAN-SF benchmark dataset (Harvard Dataverse / cleaned pkl files)
 if present, otherwise generates a physics-based synthetic fallback.
 
-SWAN-SF Download:
-  https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/EBCFKM
+v3.0 FIXES:
+  - REAL FEATURE NAMES PROPAGATE (audit B12): stat-prefixed names such as
+    'mean_TOTUSJH' are kept end-to-end, so SHAP plots show physical
+    feature names instead of 'feature_N'. The old code renamed them to
+    feature_0..feature_143, destroying interpretability.
+  - FABRICATED HARPNUM_MOD REMOVED (audit B13): the random client-id
+    column masquerading as HARP numbers is now an opt-in
+    '_SIM_CLIENT_ID' and is never selected as a model feature.
+  - IMMUTABLE TRAIN/VAL/TEST CONTRACT (audit B10): preprocess() now
+    returns a validation split carved ONLY from the training pool.
+    The test set is touched exactly once, at final evaluation.
+    Index arrays are returned so leakage_audit can verify exclusivity.
+  - Double-normalization handling made explicit via config flag
+    (CLEANED_ALREADY_NORMALIZED) instead of duck-typing on '_split'.
+
+Evaluation contract (do not violate anywhere else in the pipeline):
+
+    TRAIN     -> local FL client training
+    VAL       -> client selection monitoring, F-beta threshold search,
+                 calibration fitting, SCAFFOLD checkpointing,
+                 hyperparameter/model selection
+    TEST      -> final evaluation ONLY (one pass, frozen threshold)
 """
 
 import os
 import numpy as np
 import pandas as pd
+from collections import namedtuple
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from imblearn.over_sampling import SMOTE
 
+import config as cfg
 from config import (
     DATA_PATH, FEATURE_COLS, LABEL_COL,
     N_SAMPLES, FLARE_RATIO, N_CLIENTS,
     TEST_SPLIT, SMOTE_RATIO, RANDOM_STATE
 )
+
+Splits = namedtuple("Splits", [
+    "X_train", "y_train", "X_val", "y_val", "X_test", "y_test",
+    "scaler", "features", "train_idx", "val_idx", "test_idx",
+])
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -32,18 +59,17 @@ def load_or_generate_data() -> pd.DataFrame:
       1. Try cleaned pkl partitions (load_cleaned_data.py)
       2. Try raw SWAN-SF CSV
       3. Fall back to physics-based synthetic data
-    Returns a flat 2-D DataFrame with FEATURE_COLS + 'label'.
+    Returns a flat 2-D DataFrame with feature columns + 'label' + '_split'.
     """
 
     # ── Priority 1: cleaned pkl dataset ────────────────────────────────────
     try:
         from config import USE_CLEANED_DATA, CLEANED_DATA_DIR, COMBINE_PARTITIONS
         if not USE_CLEANED_DATA:
-            # Skip cleaned data if disabled — fall through to Priority 2
             raise FileNotFoundError("USE_CLEANED_DATA is False")
-        print("\n╔" + "═"*66 + "╗")
-        print("║" + "      SF-9 DATA LOADING PIPELINE".center(66) + "║")
-        print("╚" + "═"*66 + "╝\n")
+        print("\n" + "=" * 66)
+        print("  SF-9 DATA LOADING PIPELINE")
+        print("=" * 66 + "\n")
         print("[Priority 1] Attempting to load CLEANED dataset...")
         from load_cleaned_data import load_cleaned_partition
         from config import FLATTEN_METHOD
@@ -65,9 +91,6 @@ def load_or_generate_data() -> pd.DataFrame:
         if core.issubset(df.columns) and LABEL_COL in df.columns:
             print(f"[Data] {len(df):,} samples | "
                   f"flare rate: {df[LABEL_COL].mean()*100:.2f}%")
-            # v2.5: No longer adding HARPNUM_MOD or TIME_SINCE_LAST_FLARE
-            # as features — they don't exist in the Cleaned SWAN-SF dataset.
-            # For partitioning, we use Dirichlet (doesn't need HARPNUM).
             return df
 
     # ── Priority 3: synthetic fallback ─────────────────────────────────────
@@ -81,147 +104,61 @@ def load_or_generate_data() -> pd.DataFrame:
 
 def _arrays_to_dataframe(X_tr, y_tr, X_te, y_te, feat_names):
     """
-    Convert pre-split arrays (from cleaned pkl loader) back to a single
+    Convert pre-split arrays (from the cleaned pkl loader) to a single
     DataFrame with a '_split' column so preprocess() can respect the
     original train/test boundary.
 
-    KEY FIX: When using statistical features (concat_stats_enhanced),
-    the feature names are prefixed (e.g., 'mean_TOTUSJH') and won't
-    match FEATURE_COLS in preprocess(). To avoid this mismatch, we use
-    generic 'feature_N' names whenever the feature count differs from
-    the 24 base FEATURE_COLS. This ensures preprocess() can find all
-    features via the 'feature_' prefix fallback.
+    v3.0 (B12): feature names from the loader (e.g. 'mean_TOTUSJH',
+    'std_TOTPOT') are KEPT AS-IS. They are real, ordered, and
+    interpretable; renaming them to feature_N was the cause of the
+    unreadable SHAP figures.
+
+    v3.0 (B13): no fabricated HARPNUM column. An optional '_SIM_CLIENT_ID'
+    (random regional assignment) can be attached for demo purposes via
+    add_simulated_client_ids(); it is never selected as a feature.
     """
     n_feat = X_tr.shape[1]
+    feat_names = list(feat_names) if feat_names is not None else \
+        [f"feature_{i}" for i in range(n_feat)]
 
-    # ════════════════════════════════════════════════════════════════════
-    # 🔧 CRITICAL FIX: Use generic feature names when count ≠ 24
-    #
-    # When concat_stats_enhanced is used, feat_names are like
-    # 'mean_TOTUSJH', 'std_TOTPOT', etc. These do NOT match
-    # FEATURE_COLS entries ('TOTUSJH', 'TOTPOT'), causing preprocess()
-    # to only find 'HARPNUM_MOD' → only 1 feature selected instead of 144!
-    #
-    # Generic names like 'feature_0'..'feature_143' are always found
-    # by the c.startswith('feature_') check in preprocess().
-    # ════════════════════════════════════════════════════════════════════
-    if n_feat != len(FEATURE_COLS):
-        feat_names = [f'feature_{i}' for i in range(n_feat)]
-    elif len(feat_names) != n_feat:
-        feat_names = [f'feature_{i}' for i in range(n_feat)]
+    # sanity: names must be unique and match width
+    if len(feat_names) != n_feat:
+        print(f"[Data] feature-name count {len(feat_names)} != data width "
+              f"{n_feat}; falling back to positional names")
+        feat_names = [f"feature_{i}" for i in range(n_feat)]
 
     cols = feat_names + [LABEL_COL]
-
-    df_tr = pd.DataFrame(
-        np.column_stack([X_tr, y_tr]), columns=cols
-    )
+    df_tr = pd.DataFrame(np.column_stack([X_tr, y_tr]), columns=cols)
     df_tr["_split"] = "train"
-
-    df_te = pd.DataFrame(
-        np.column_stack([X_te, y_te]), columns=cols
-    )
+    df_te = pd.DataFrame(np.column_stack([X_te, y_te]), columns=cols)
     df_te["_split"] = "test"
-
     df = pd.concat([df_tr, df_te], ignore_index=True)
 
-    # ════════════════════════════════════════════════════════════════════
-    # 🔧 FIX: Do NOT add HARPNUM_MOD as a DataFrame column when using
-    # statistical features. It would be found by FEATURE_COLS matching
-    # in preprocess() but would be the ONLY column found, causing the
-    # bug where only 1 feature is selected instead of 144.
-    #
-    # HARPNUM_MOD is NOT needed as a feature — it's only used for
-    # HARPNUM-based partitioning, and we use Dirichlet partitioning
-    # instead (which doesn't need it).
-    # ════════════════════════════════════════════════════════════════════
-    # Store HARPNUM_MOD in a separate attribute for partitioning if needed
-    if n_feat != len(FEATURE_COLS):
-        # Using statistical features — HARPNUM_MOD is already embedded
-        # in the feature columns (as one of the 24 base features)
-        # Generate it only for partitioning reference, NOT as a feature
-        np.random.seed(42)
-        n_total = len(df)
-
-        base_distribution = [0.22, 0.20, 0.18, 0.16, 0.14, 0.10]
-        client_ids = []
-        cumulative = 0
-        for client_id, proportion in enumerate(base_distribution):
-            n_for_client = int(n_total * proportion)
-            if client_id == len(base_distribution) - 1:
-                n_for_client = n_total - cumulative
-            client_ids.extend([client_id] * n_for_client)
-            cumulative += n_for_client
-
-        client_ids = client_ids[:n_total]
-        if len(client_ids) < n_total:
-            client_ids.extend([0] * (n_total - len(client_ids)))
-
-        client_ids = np.array(client_ids)
-        perm = np.random.permutation(n_total)
-        client_ids = client_ids[perm]
-
-        train_indices = df[df["_split"] == "train"].index.tolist()
-        test_indices = df[df["_split"] == "test"].index.tolist()
-
-        final_client_ids = np.zeros(n_total, dtype=int)
-        final_client_ids[train_indices] = client_ids[:len(train_indices)]
-        final_client_ids[test_indices] = client_ids[len(train_indices):]
-
-        # Store as _HARPNUM_MOD (underscore prefix = internal, not a feature)
-        # This prevents preprocess() from selecting it as a feature
-        df["_HARPNUM_MOD"] = final_client_ids
-
-        print(f"      ✓ Generated _HARPNUM_MOD with realistic distribution:")
-        for cid, name in enumerate(["Americas", "Europe", "Asia-Pacific",
-                                    "South Asia", "East Asia", "Oceania"]):
-            count = (df["_HARPNUM_MOD"][:len(X_tr)] == cid).sum()
-            print(f"          {name}: {count:,} train samples")
-    else:
-        # Original 24-feature case — add HARPNUM_MOD normally
-        if "HARPNUM_MOD" not in df.columns:
-            np.random.seed(42)
-            n_total = len(df)
-            base_distribution = [0.22, 0.20, 0.18, 0.16, 0.14, 0.10]
-            client_ids = []
-            cumulative = 0
-            for client_id, proportion in enumerate(base_distribution):
-                n_for_client = int(n_total * proportion)
-                if client_id == len(base_distribution) - 1:
-                    n_for_client = n_total - cumulative
-                client_ids.extend([client_id] * n_for_client)
-                cumulative += n_for_client
-            client_ids = client_ids[:n_total]
-            if len(client_ids) < n_total:
-                client_ids.extend([0] * (n_total - len(client_ids)))
-            client_ids = np.array(client_ids)
-            perm = np.random.permutation(n_total)
-            client_ids = client_ids[perm]
-            train_indices = df[df["_split"] == "train"].index.tolist()
-            test_indices = df[df["_split"] == "test"].index.tolist()
-            final_client_ids = np.zeros(n_total, dtype=int)
-            final_client_ids[train_indices] = client_ids[:len(train_indices)]
-            final_client_ids[test_indices] = client_ids[len(train_indices):]
-            df["HARPNUM_MOD"] = final_client_ids
-
-            print(f"      ✓ Generated HARPNUM_MOD with realistic distribution:")
-            for cid, name in enumerate(["Americas", "Europe", "Asia-Pacific",
-                                        "South Asia", "East Asia", "Oceania"]):
-                count = (df["HARPNUM_MOD"][:len(X_tr)] == cid).sum()
-                print(f"          {name}: {count:,} train samples")
-
     df[LABEL_COL] = df[LABEL_COL].astype(int)
-    print(f"\n✅ SUCCESS: Cleaned dataset loaded!")
+    print(f"\n[Data] Cleaned dataset loaded: {len(df):,} samples "
+          f"({n_feat} features, names preserved for interpretability)")
+    return df
+
+
+def add_simulated_client_ids(df, n_clients=6, seed=42):
+    """
+    OPT-IN demo utility (audit B13): attach a random regional client id.
+    This is a SIMULATION aid, not a HARP-based partition, and is never
+    used as a model feature. The real partitioning is Dirichlet (see
+    partition_clients.py).
+    """
+    rng = np.random.RandomState(seed)
+    df = df.copy()
+    df["_SIM_CLIENT_ID"] = rng.randint(n_clients, size=len(df))
     return df
 
 
 def _generate_synthetic() -> pd.DataFrame:
     """
     Physics-based synthetic dataset with intentional class overlap.
-    
-    v2.5: Updated to use the CORRECT 24 features from the Cleaned SWAN-SF
-    dataset (same order and names as the actual data files). Previous version
-    used AREA_ACR, HARPNUM_MOD, TIME_SINCE_LAST_FLARE which don't exist
-    in the cleaned dataset.
+    (Same generator as v2.5 — 24 correct Cleaned-SWAN-SF features.)
+    Used ONLY when no real data is found; clearly labelled so no paper
+    table can ever silently report synthetic numbers.
     """
     np.random.seed(RANDOM_STATE)
     n_flare = int(N_SAMPLES * FLARE_RATIO)
@@ -229,7 +166,6 @@ def _generate_synthetic() -> pd.DataFrame:
     records = []
 
     for label, n, mag in [(0, n_quiet, 1.0), (1, n_flare, 7.0)]:
-        # Generate features in the CORRECT order matching Cleaned SWAN-SF
         R_VALUE  = np.random.lognormal(np.log(1.8*mag), 0.6, n)
         TOTUSJH  = np.random.lognormal(np.log(4e21 * mag),   0.9, n)
         TOTBSQ   = np.random.lognormal(np.log(9e22*mag), 0.8, n)
@@ -238,7 +174,7 @@ def _generate_synthetic() -> pd.DataFrame:
         ABSNJZH  = np.abs(np.random.normal(9e11 * mag, 4e11 * mag, n))
         SAVNCPP  = np.random.lognormal(np.log(80 * mag),     0.5, n)
         USFLUX   = np.random.lognormal(np.log(8e21 * mag),   0.9, n)
-        TOTFZ    = np.random.normal(0, 9e21*mag, n)    # Lorentz Force Z
+        TOTFZ    = np.random.normal(0, 9e21*mag, n)
         MEANPOT  = np.clip(np.random.normal(250*mag, 90, n), 0, None)
         EPSX     = np.random.normal(0, 9e21*mag, n)
         EPSY     = np.random.normal(0, 9e21*mag, n)
@@ -250,22 +186,15 @@ def _generate_synthetic() -> pd.DataFrame:
         MEANGBZ  = np.random.normal(0, 28*mag, n)
         MEANGBH  = np.random.lognormal(np.log(38*mag), 0.7, n)
         MEANJZH  = np.random.normal(0, 4e7*mag, n)
-        TOTFY    = np.random.normal(0, 9e21*mag, n)    # Lorentz Force Y
+        TOTFY    = np.random.normal(0, 9e21*mag, n)
         MEANJZD  = np.random.normal(0, 9e6*mag, n)
         MEANALP  = np.random.normal(0, 0.4*mag, n)
-        TOTFX    = np.random.normal(0, 9e21*mag, n)    # Lorentz Force X
+        TOTFX    = np.random.normal(0, 9e21*mag, n)
 
-        # 15% overlap to avoid 100% accuracy on synthetic data
-        if label == 1:
+        if label == 1:  # 15% overlap to avoid 100% accuracy on synthetic data
             ov = np.random.rand(n) < 0.15
             TOTUSJH[ov] /= 5; TOTPOT[ov] /= 5
             SHRGT45[ov] /= 3; R_VALUE[ov] /= 4
-
-        client_ids = (
-            np.random.choice(N_CLIENTS, size=n, p=[0.25,0.20,0.20,0.15,0.12,0.08])
-            if label == 1
-            else np.array([i % N_CLIENTS for i in range(n)])
-        )
 
         for i in range(n):
             records.append({
@@ -287,154 +216,142 @@ def _generate_synthetic() -> pd.DataFrame:
     df = (pd.DataFrame(records)
             .sample(frac=1, random_state=RANDOM_STATE)
             .reset_index(drop=True))
-    df["_split"] = None   # will use random split in preprocess()
+    df["_split"] = None        # random stratified split in preprocess()
+    df["_SYNTHETIC"] = True    # provenance flag (never silently mixed)
 
     os.makedirs("data", exist_ok=True)
     df.to_csv(DATA_PATH, index=False)
-    print(f"[Data] Synthetic dataset saved → {DATA_PATH}")
-    print(f"[Data] {len(df):,} samples | flares: {df[LABEL_COL].sum()} "
-          f"({df[LABEL_COL].mean()*100:.2f}%)\n")
+    print(f"[Data] SYNTHETIC fallback dataset saved -> {DATA_PATH} "
+          f"({len(df):,} samples, flare rate {df[LABEL_COL].mean()*100:.2f}%)")
+    print("[Data] WARNING: synthetic data — NOT for paper tables.")
     return df
 
 
-def _compute_time_since_flare(df: pd.DataFrame) -> np.ndarray:
-    tsf = np.random.exponential(48, len(df))
-    if LABEL_COL in df.columns:
-        tsf[df[LABEL_COL] == 1] = np.random.exponential(
-            6, (df[LABEL_COL] == 1).sum()
-        )
-    return tsf
-
-
 # ─────────────────────────────────────────────────────────────────────────────
-# 3.  PREPROCESSING
+# 3.  PREPROCESSING  (immutable train/val/test contract)
 # ─────────────────────────────────────────────────────────────────────────────
 
-def preprocess(df: pd.DataFrame):
+_PROTECTED = {LABEL_COL, "_split", "_SYNTHETIC", "_SIM_CLIENT_ID",
+              "HARPNUM_MOD", "_HARPNUM_MOD"}
+
+
+def _select_feature_columns(df):
     """
-    Scale and split into train/test.
-    Respects the '_split' column if present (cleaned dataset has fixed splits).
-
-    Returns
-    -------
-    X_train, X_test : np.ndarray  (scaled float32)
-    y_train, y_test : np.ndarray  (int)
-    scaler          : fitted StandardScaler
-    features        : list[str]
+    v3.0 (B12): ordered, name-preserving selection.
+      1. exact FEATURE_COLS matches (raw/synthetic path)
+      2. stat-prefixed names from the cleaned loader (mean_TOTUSJH, ...)
+      3. positional feature_N fallback (last resort, logged loudly)
     """
-    print("\n╔" + "═"*66 + "╗")
-    print("║" + "        PREPROCESSING PIPELINE".center(66) + "║")
-    print("╚" + "═"*66 + "╝\n")
-
-    # ════════════════════════════════════════════════════════════════════
-    # 🔧 CRITICAL FIX: Robust feature column selection
-    #
-    # Previous bug: When using concat_stats_enhanced (144 features),
-    # the stat-prefixed names (e.g., 'mean_TOTUSJH') didn't match
-    # FEATURE_COLS entries ('TOTUSJH'). Only 'HARPNUM_MOD' was found,
-    # resulting in 1 feature instead of 144.
-    #
-    # Fix: Collect features from BOTH named columns AND generic
-    # 'feature_N' columns, then combine them.
-    # ════════════════════════════════════════════════════════════════════
-    available = []
-
-    # Strategy 1: Match named features from FEATURE_COLS
     named = [c for c in FEATURE_COLS if c in df.columns]
-    available.extend(named)
+    if named:
+        return named, "base24"
+    stat_prefixed = [c for c in df.columns
+                     if any(c.startswith(p + "_") for p in
+                            ("mean", "std", "max", "min", "trend", "slope"))
+                     and c.split("_", 1)[1] in FEATURE_COLS]
+    if stat_prefixed:
+        return stat_prefixed, "stat_prefixed"
+    positional = [c for c in df.columns if c.startswith("feature_")]
+    if positional:
+        positional = sorted(positional, key=lambda c: int(c.split("_")[1]))
+        return positional, "positional_fallback"
+    numeric = [c for c in df.columns if c not in _PROTECTED]
+    return numeric, "numeric_fallback"
 
-    # Strategy 2: Match generic feature_N columns (from cleaned loader)
-    generic = sorted(
-        [c for c in df.columns if c.startswith("feature_")],
-        key=lambda c: int(c.split("_")[1])  # Sort by index: feature_0, feature_1, ...
-    )
-    available.extend(generic)
 
-    # Remove duplicates while preserving order
-    seen = set()
-    unique_available = []
-    for c in available:
-        if c not in seen:
-            seen.add(c)
-            unique_available.append(c)
-    available = unique_available
+def preprocess(df: pd.DataFrame, val_fraction=0.16) -> Splits:
+    """
+    Scale and split into TRAIN / VALIDATION / TEST with an immutable
+    contract (audit B10):
 
-    # Fallback: use all numeric columns except label/split/internal
-    if not available:
-        available = [c for c in df.columns
-                     if c not in [LABEL_COL, "_split", "HARPNUM_MOD", "_HARPNUM_MOD"]]
+      * If the cleaned dataset provides its own train/test boundary
+        ('_split' column), it is respected exactly; the validation set
+        is carved OUT OF TRAIN ONLY by stratified split.
+      * Otherwise a stratified 64/16/20 split is created.
+      * Returns index arrays so leakage_audit can verify exclusivity.
 
-    print(f"[Preprocess] Selected {len(available)} feature columns "
-          f"({len(named)} named + {len(generic)} generic)")
+    Validation may select: hyperparameters, thresholds, calibration,
+    checkpoints, model selection.
+    Test does: nothing except the single final evaluation.
+    """
+    print("\n" + "=" * 66)
+    print("  PREPROCESSING PIPELINE (v3.0 immutable split contract)")
+    print("=" * 66 + "\n")
+
+    available, mode = _select_feature_columns(df)
+    print(f"[Preprocess] Selected {len(available)} feature columns (mode: {mode})")
+    if mode.endswith("fallback"):
+        print("[Preprocess] WARNING: physical feature names unavailable — "
+              "SHAP labels will degrade.")
 
     X_all = df[available].values.astype(np.float32)
     y_all = df[LABEL_COL].values.astype(int)
-
-    # Replace any inf/nan
     X_all = np.nan_to_num(X_all, nan=0.0, posinf=0.0, neginf=0.0)
 
-    if "_split" in df.columns and df["_split"].notna().any():
-        # Respect pre-existing split from cleaned dataset
-        print("[Preprocess] Using pre-existing train/test split from cleaned dataset.")
-        train_mask = df["_split"].values == "train"
-        X_train, X_test = X_all[train_mask], X_all[~train_mask]
-        y_train, y_test = y_all[train_mask], y_all[~train_mask]
-    else:
-        X_train, X_test, y_train, y_test = train_test_split(
-            X_all, y_all, test_size=TEST_SPLIT,
-            random_state=RANDOM_STATE, stratify=y_all
-        )
+    has_pre_split = "_split" in df.columns and df["_split"].notna().any()
+    rng = np.random.RandomState(cfg.SEED)
 
-    # v2.5 FIX: The Cleaned SWAN-SF dataset is already LSBZM-normalized
-    # (L2-Scaled, Box-Cox, Z-score, Min-max). Applying StandardScaler
-    # on top of that is redundant normalization that can distort the
-    # already-optimized feature distributions.
-    #
-    # However, we keep the scaler for API compatibility (centralized
-    # baselines expect a fitted scaler). We just don't apply it to
-    # already-normalized cleaned data.
-    #
-    # For the CSV/synthetic fallback path, StandardScaler is still needed.
-    scaler  = StandardScaler()
-    if '_split' in df.columns and df['_split'].notna().any():
-        # Cleaned dataset — already LSBZM-normalized, skip rescaling
-        print("[Preprocess] Cleaned dataset is already LSBZM-normalized — skipping StandardScaler.")
-        # Fit scaler on training data anyway (for API compatibility)
+    if has_pre_split:
+        print("[Preprocess] Using pre-existing train/test boundary from cleaned dataset.")
+        train_pos = np.where(df["_split"].values == "train")[0]
+        test_pos = np.where(df["_split"].values != "train")[0]
+        # carve validation out of TRAIN ONLY (stratified)
+        tr_labels = y_all[train_pos]
+        val_rel = train_test_split(
+            train_pos, test_size=val_fraction,
+            random_state=cfg.SEED, stratify=tr_labels)[1]
+        val_set = set(val_rel.tolist())
+        train_idx = np.array([i for i in train_pos if i not in val_set])
+        val_idx = np.asarray(val_rel)
+        test_idx = np.asarray(test_pos)
+    else:
+        print(f"[Preprocess] No pre-existing split — stratified "
+              f"{1 - TEST_SPLIT - val_fraction:.0%}/{val_fraction:.0%}/{TEST_SPLIT:.0%} split.")
+        first = train_test_split(
+            np.arange(len(y_all)), test_size=TEST_SPLIT,
+            random_state=cfg.SEED, stratify=y_all)
+        train_val_idx, test_idx = first[0], first[1]
+        train_idx, val_idx = train_test_split(
+            train_val_idx, test_size=val_fraction / (1 - TEST_SPLIT),
+            random_state=cfg.SEED, stratify=y_all[train_val_idx])
+
+    X_train, y_train = X_all[train_idx], y_all[train_idx]
+    X_val, y_val = X_all[val_idx], y_all[val_idx]
+    X_test, y_test = X_all[test_idx], y_all[test_idx]
+
+    # ── normalization policy (explicit, audit: double-normalization note) ──
+    scaler = StandardScaler()
+    if has_pre_split and getattr(cfg, "CLEANED_ALREADY_NORMALIZED", True):
+        # Cleaned SWAN-SF export is already LSBZM-normalized; fitting only.
+        print("[Preprocess] Cleaned data already LSBZM-normalized — StandardScaler fitted, NOT applied.")
         scaler.fit(X_train)
     else:
-        # Raw CSV or synthetic data — needs scaling
+        print("[Preprocess] Applying StandardScaler (fit on TRAIN only).")
         X_train = scaler.fit_transform(X_train).astype(np.float32)
-        X_test  = scaler.transform(X_test).astype(np.float32)
+        X_val = scaler.transform(X_val).astype(np.float32)
+        X_test = scaler.transform(X_test).astype(np.float32)
 
-    print(f"[Preprocess] Train: {len(X_train):,} | "
-          f"flare rate: {y_train.mean()*100:.2f}%")
-    print(f"[Preprocess] Test:  {len(X_test):,} | "
-          f"flare rate: {y_test.mean()*100:.2f}%\n")
+    print(f"[Preprocess] Train: {len(X_train):,} | flare rate: {y_train.mean()*100:.2f}%")
+    print(f"[Preprocess] Val:   {len(X_val):,} | flare rate: {y_val.mean()*100:.2f}%  "
+          f"(selection-only)")
+    print(f"[Preprocess] Test:  {len(X_test):,} | flare rate: {y_test.mean()*100:.2f}%  "
+          f"(final evaluation ONLY)\n")
 
-    return X_train, X_test, y_train, y_test, scaler, available
+    return Splits(X_train, y_train, X_val, y_val, X_test, y_test,
+                  scaler, available, train_idx, val_idx, test_idx)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 4.  SMOTE  (applied per-client, not globally)
+# 4.  3D DATA (LSTM path) — same immutable contract
 # ─────────────────────────────────────────────────────────────────────────────
 
-def load_and_scale_3d_data():
+def load_and_scale_3d_data(val_fraction=0.16):
     """
-    Load and scale 3D data for LSTM models.
-
-    This is a SEPARATE pipeline from load_or_generate_data() -> preprocess(),
-    which produces 2D DataFrames for MLP and centralized baselines.
-
-    LSTM models need the original 3D temporal structure (N, 60, 24).
-    This function loads it directly from pkl files and scales per-feature
-    across all samples and timesteps.
+    Load 3D data for LSTM models WITH a validation split carved from
+    the training pool only (same contract as preprocess()).
 
     Returns:
-        X_train_3d: (N_train, 60, 24) float32, scaled
-        y_train:    (N_train,) int
-        X_test_3d:  (N_test, 60, 24) float32, scaled
-        y_test:     (N_test,) int
-        scaler:     fitted StandardScaler
+        X_train, y_train, X_val, y_val, X_test, y_test, scaler
     """
     from config import CLEANED_DATA_DIR, COMBINE_PARTITIONS
     from load_cleaned_data import load_cleaned_3d
@@ -444,53 +361,57 @@ def load_and_scale_3d_data():
         combine_all_partitions=COMBINE_PARTITIONS
     )
 
-    # v2.5 FIX: The Cleaned SWAN-SF dataset is already LSBZM-normalized
-    # (L2-Scaled, Box-Cox, Z-score, Min-max). Applying StandardScaler
-    # on top was redundant double-normalization. We now skip it for
-    # the cleaned 3D data, but still fit a scaler for API compatibility.
+    # validation carved from TRAIN only (stratified)
+    from sklearn.model_selection import train_test_split
+    tr_idx, val_idx = train_test_split(
+        np.arange(len(y_train)), test_size=val_fraction,
+        random_state=cfg.SEED, stratify=y_train)
+    X_val, y_val = X_train[val_idx], y_train[val_idx]
+    X_train, y_train = X_train[tr_idx], y_train[tr_idx]
+
+    # Cleaned data is already LSBZM-normalized — scaler fit-only (API compat)
     N_train, T, F = X_train.shape
-    N_test = X_test.shape[0]
-
-    # Fit scaler on training data (for API compatibility)
-    # but DON'T transform — data is already normalized
-    X_train_2d = X_train.reshape(N_train * T, F)
     scaler = StandardScaler()
-    scaler.fit(X_train_2d)  # Fit only, don't transform
+    scaler.fit(X_train.reshape(N_train * T, F))
 
-    print(f"\n[3D Scaling] Cleaned dataset is already LSBZM-normalized — skipping StandardScaler.")
-    print(f"[3D Scaling] Scaler fitted for API compatibility only.")
+    print(f"\n[3D] Train: {X_train.shape} | flare rate: {y_train.mean()*100:.2f}%")
+    print(f"[3D] Val:   {X_val.shape} | flare rate: {y_val.mean()*100:.2f}% (selection-only)")
+    print(f"[3D] Test:  {X_test.shape} | flare rate: {y_test.mean()*100:.2f}% (final only)\n")
 
-    X_train_3d = X_train  # Already float32 from load_cleaned_3d
-    X_test_3d = X_test
-
-    print(f"[3D Scaling] Train: {X_train_3d.shape} | flare rate: {y_train.mean()*100:.2f}%")
-    print(f"[3D Scaling] Test:  {X_test_3d.shape} | flare rate: {y_test.mean()*100:.2f}%")
-    print(f"[3D Scaling] 3D data ready for LSTM!\n")
-
-    return X_train_3d, y_train, X_test_3d, y_test, scaler
+    return X_train, y_train, X_val, y_val, X_test, y_test, scaler
 
 
-def apply_smote(X: np.ndarray, y: np.ndarray):
+# ─────────────────────────────────────────────────────────────────────────────
+# 5.  SMOTE (per-client balancing — NOW ACTUALLY WIRED, audit B7)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def apply_smote(X: np.ndarray, y: np.ndarray, seed=None):
     """
-    Apply SMOTE to a single client shard.
-    BUG FIX: removed 'n_jobs' — not a valid SMOTE parameter in any version
-    of imbalanced-learn. Use k_neighbors only.
+    Apply SMOTE to a single client shard. Dead code in the original
+    pipeline (never called — audit B7). The ablation matrix
+    (experiments/run_ablations.py) now calls this under USE_SMOTE=True.
+
+    v3.0: accepts an explicit seed for multi-seed reproducibility.
     """
-    n_minority = y.sum()
+    if seed is None:
+        seed = cfg.SEED
+    n_minority = int(y.sum())
 
     if n_minority < 2:
-        # Cannot run SMOTE with fewer than 2 minority samples
         return X, y
 
-    # k_neighbors must be < n_minority
+    n_majority = int(len(y) - n_minority)
+    # skip gracefully when the minority is already at/above target ratio
+    if n_majority > 0 and n_minority / n_majority >= SMOTE_RATIO:
+        return X, y
+
     k = min(5, n_minority - 1)
 
     try:
         sm = SMOTE(
             sampling_strategy=SMOTE_RATIO,
-            random_state=RANDOM_STATE,
+            random_state=seed,
             k_neighbors=k
-            # NOTE: do NOT pass n_jobs here — it is not a SMOTE parameter
         )
         X_res, y_res = sm.fit_resample(X, y)
         return X_res, y_res

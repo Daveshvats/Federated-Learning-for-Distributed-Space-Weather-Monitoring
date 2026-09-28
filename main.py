@@ -1,182 +1,93 @@
 """
-main.py
---------
-SF-9: Federated Space Weather Monitoring
-Full pipeline orchestrator (v2.2 -- F-beta Threshold Optimization Fix)
+main.py  (v3.0 — improvements branch)
+────────────────────────────────────────
+SF-9: Federated Space Weather Monitoring — full pipeline orchestrator.
 
-ARCHITECTURE:
-  - LSTM models require 3D data (batch, 60 timesteps, 24 features)
-  - MLP and centralized baselines require 2D data (batch, features)
-  - This version loads BOTH data formats and routes them correctly
+v3.0 PROTOCOL (fixes audit findings B1, B3, B4, B5, B10):
 
-v2.2 FIXES:
-  - F-beta optimal thresholds are now USED (not just computed) for all models
-  - The all_results dict now contains metrics at the optimal threshold
-  - Confusion matrices and comparison table reflect improved numbers
-  - Centralised models (LR, XGBoost) also get threshold optimisation
-  - ROC-AUC remains threshold-independent and unchanged
+    TRAIN  ──> FL client training / centralized training
+    VAL    ──> monitoring, calibration fitting, F-beta threshold search,
+                checkpoint selection (everything that "selects")
+    TEST   ──> touched EXACTLY ONCE, with the frozen pipeline
 
-Run order:
-  1. Load 2D data for baselines (via load_or_generate_data -> preprocess)
-  2. Load 3D data for LSTM FL (via load_and_scale_3d_data)
-  3. Partition into N_CLIENTS regional shards (non-IID Dirichlet)
-  4. Train centralised baselines (LR + XGBoost) -- upper bound
-  5. Run FedAvg for N_ROUNDS (with 3D shards if LSTM, 2D if MLP)
-  6. Run FedProx for N_ROUNDS
-  7. Run SCAFFOLD for N_ROUNDS
-  8. Optimise thresholds using F-beta (beta=2) for ALL models
-  9. Re-evaluate all models at optimal thresholds → update all_results
- 10. Generate all paper figures (using optimized metrics)
+    1.  Load 2D data (and 3D data if LSTM mode)
+    2.  Immutable train/val/test split (+ runtime leakage audit)
+    3.  Partition TRAIN into disjoint Dirichlet client shards
+    4.  Centralized baselines: climatology, LR, centralized MLP, XGBoost
+    5.  FedAvg + FedProx (+SCAFFOLD if enabled), monitored on VAL
+    6.  Calibration selected on VAL (Brier score)
+    7.  F-beta threshold searched on VAL — never on test
+    8.  ONE final evaluation on TEST at the frozen threshold;
+        ALL metrics recomputed there (stale-accuracy bug B4 fixed)
+    9.  results.json + run_manifest.json written; figures regenerated
+        from machine-readable results (B18)
+    10. Client-level evaluation + communication-cost instrumentation
 
 Usage:
   python main.py
-  python main.py --rounds 30          # faster debug run
-  python main.py --clients 4          # fewer clients
-  python main.py --no-lstm            # use MLP instead of LSTM
+  python main.py --rounds 30 --clients 4
+  python main.py --no-lstm            # MLP mode
+  python main.py --calibration platt  # override calibration method
 """
 
 import argparse
-import io
+import json
 import os
 import time
 import numpy as np
 import sys
-import config as cfg
-from data_preparation     import load_or_generate_data, preprocess, load_and_scale_3d_data
-from partition_clients    import partition_data, partition_data_dirichlet
-from centralized_baseline import train_centralized, evaluate_centralized, compute_shap
-from federated_learning   import run_fedavg, run_fedprox, run_scaffold, evaluate_model
-from model                import make_fresh_model, is_lstm_model
-from visualize_results    import (
-    plot_confusion_matrices,
-    plot_roc_curves,
-    plot_fl_convergence,
-    plot_shap_importance,
-    plot_comparison_table,
-    print_results_table,
-)
 
-# Fix Windows encoding issues
+import config as cfg
+from data_preparation import load_or_generate_data, preprocess, \
+    load_and_scale_3d_data
+from partition_clients import partition_data_dirichlet
+from centralized_baseline import (train_centralized, evaluate_centralized,
+                                  model_probs, compute_shap)
+from federated_learning import (run_fedavg, run_fedprox, run_scaffold,
+                                get_model_probs)
+from evaluation import (make_calibrator, select_calibration,
+                        find_optimal_threshold_fbeta, compute_all_metrics)
+from leakage_audit.audit_leakage import run_audit, _print_report
+from visualize_results import (plot_confusion_matrices, plot_roc_curves,
+                               plot_fl_convergence, plot_shap_importance,
+                               plot_comparison_table, print_results_table)
+
 if sys.platform == 'win32':
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
-    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8',
+                                  errors='replace')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8',
+                                  errors='replace')
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="SF-9 Federated Solar Flare Prediction")
-    parser.add_argument("--rounds",  type=int, default=cfg.N_ROUNDS,   help="FL communication rounds")
-    parser.add_argument("--clients", type=int, default=cfg.N_CLIENTS,  help="Number of regional clients")
-    parser.add_argument("--mu",      type=float, default=cfg.MU,       help="FedProx proximal coefficient")
-    parser.add_argument("--dirichlet", action="store_true",            help="Use Dirichlet partitioning")
-    parser.add_argument("--no-lstm", action="store_true",              help="Disable LSTM, use MLP")
-    parser.add_argument("--no-scaffold", action="store_true",          help="Disable SCAFFOLD algorithm")
-    parser.add_argument("--no-mixup", action="store_true",             help="Disable mixup augmentation")
-    parser.add_argument("--eval-batch-size", type=int, default=cfg.EVAL_BATCH_SIZE,
-                        help="Batch size for evaluation (lower if CUDA OOM)")
-    return parser.parse_args()
+    p = argparse.ArgumentParser(description="SF-9 Federated Solar Flare Prediction")
+    p.add_argument("--rounds", type=int, default=cfg.N_ROUNDS)
+    p.add_argument("--clients", type=int, default=cfg.N_CLIENTS)
+    p.add_argument("--mu", type=float, default=cfg.MU)
+    p.add_argument("--seed", type=int, default=cfg.SEED)
+    p.add_argument("--alpha", type=float, default=cfg.DIRICHLET_ALPHA)
+    p.add_argument("--calibration", default=cfg.CALIBRATION_METHOD,
+                   choices=["none", "prior_shift", "platt", "isotonic",
+                            "temperature"])
+    p.add_argument("--dirichlet", action="store_true")
+    p.add_argument("--no-lstm", action="store_true")
+    p.add_argument("--no-scaffold", action="store_true")
+    p.add_argument("--no-mixup", action="store_true")
+    p.add_argument("--eval-batch-size", type=int, default=cfg.EVAL_BATCH_SIZE)
+    return p.parse_args()
 
 
-def find_optimal_threshold_fbeta(y_true, y_probs, model_name, beta=2.0):
-    """
-    Find threshold that maximizes F-beta score instead of F1.
-
-    F-beta = (1 + beta^2) * (precision * recall) / (beta^2 * precision + recall)
-
-    For safety-critical space weather prediction:
-      - beta=2: Recall is weighted 2x more than precision
-      - Missing a flare (false negative) is much worse than a false alarm
-      - This aligns with operational space weather forecasting standards
-
-    Reference:
-      - "The Effects of Data Imbalance Under a FL Setting" (arxiv 2024)
-      - Operational space weather forecasting guidelines (NOAA/SWPC)
-    """
-    from sklearn.metrics import fbeta_score, precision_score, recall_score
-
-    best_fb = 0
-    best_thresh = 0.50
-
-    for thresh in np.arange(0.10, 0.90, 0.01):
-        y_pred = (y_probs >= thresh).astype(int)
-        fb = fbeta_score(y_true, y_pred, beta=beta, zero_division=0)
-
-        if fb > best_fb:
-            best_fb = fb
-            best_thresh = thresh
-
-    prec = precision_score(y_true, (y_probs >= best_thresh).astype(int), zero_division=0)
-    rec = recall_score(y_true, (y_probs >= best_thresh).astype(int), zero_division=0)
-    f1 = 2 * prec * rec / max(prec + rec, 1e-8)
-
-    print(f"  {model_name}: Optimal threshold = {best_thresh:.2f} | "
-          f"F{beta:.0f}={best_fb:.3f} | F1={f1:.3f} | Prec={prec:.3f} | Rec={rec:.3f}")
-
-    metrics_dict = {
-        'precision': prec,
-        'recall':    rec,
-        'f1':        f1,
-        f'f{beta:.0f}': best_fb,
-        'threshold': best_thresh,  # Include optimal threshold for downstream use
-    }
-    return best_thresh, metrics_dict
-
-
-def get_model_probs(model, X_test, device, batch_size=cfg.EVAL_BATCH_SIZE):
-    """
-    Get model probabilities with batched inference (GPU memory safe).
-
-    CRITICAL FIX: The full test set (331K samples x 60 x 24 for LSTM)
-    cannot fit in GPU memory at once. This version processes data in
-    mini-batches to avoid CUDA OOM errors.
-
-    Args:
-        model: Trained PyTorch model (SolarMLP or SolarLSTM)
-        X_test: Test data (2D for MLP, 3D for LSTM)
-        device: torch.device
-        batch_size: Number of samples per inference batch
-                   2048 works well on RTX 3060 (12GB) for LSTM
-
-    Returns:
-        probs: numpy array of probabilities
-    """
-    import torch
-    model.eval()
-    n_samples = len(X_test)
-    all_probs = np.empty(n_samples, dtype=np.float32)
-
-    with torch.no_grad():
-        for start in range(0, n_samples, batch_size):
-            end = min(start + batch_size, n_samples)
-            X_batch = torch.tensor(
-                X_test[start:end], dtype=torch.float32
-            ).to(device)
-            logits = model(X_batch)
-            probs_batch = torch.sigmoid(logits).cpu().numpy().flatten()
-            all_probs[start:end] = probs_batch
-
-            # Free GPU memory after each batch
-            del X_batch, logits
-            if device.type == "cuda":
-                torch.cuda.empty_cache()
-
-    # ── NaN/Inf protection ──
-    nan_count = int(np.isnan(all_probs).sum())
-    inf_count = int(np.isinf(all_probs).sum())
-    if nan_count > 0 or inf_count > 0:
-        print(f"  [Warning] {nan_count} NaN + {inf_count} Inf probabilities detected. "
-              f"Replacing with 0.5 for metric computation.")
-        all_probs = np.nan_to_num(all_probs, nan=0.5, posinf=1.0, neginf=0.0)
-
-    # Clamp to [eps, 1-eps] for stable log computation
-    all_probs = np.clip(all_probs, 1e-7, 1.0 - 1e-7)
-
-    return all_probs
+def _save_json(obj, path):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as f:
+        json.dump(obj, f, indent=2, default=str)
+    print(f"[Results] Written -> {path}")
 
 
 def main():
     args = parse_args()
 
-    # Apply command-line overrides
     if args.no_lstm:
         cfg.USE_LSTM = False
     if args.no_scaffold:
@@ -184,297 +95,312 @@ def main():
     if args.no_mixup:
         cfg.USE_MIXUP = False
 
+    run_id = cfg.RUN_ID or time.strftime("run_%Y%m%d_%H%M%S")
     os.makedirs(cfg.OUTPUT_DIR, exist_ok=True)
-    os.makedirs("data", exist_ok=True)
+    os.makedirs("logs", exist_ok=True)
     t0 = time.time()
 
     use_lstm = cfg.USE_LSTM
     model_name = 'LSTM' if use_lstm else 'MLP'
 
     print("\n" + "=" * 70)
-    print("  SF-9: Federated Space Weather Monitoring -- v2.1 Dual Data Path")
-    print(f"  Clients: {args.clients} | Rounds: {args.rounds} | mu: {args.mu}")
-    print(f"  Model: {model_name} | "
-          f"Loss: {'Fed-Focal' if cfg.USE_FED_FOCAL else 'DAF'} | "
-          f"SCAFFOLD: {'ON' if cfg.USE_SCAFFOLD else 'OFF'}")
-    if use_lstm:
-        print(f"  Data: 3D (batch, 60, 24) for LSTM | 2D (batch, 144) for baselines")
-    else:
-        print(f"  Data: 2D (batch, {cfg.FLATTEN_METHOD}) for all models")
-    print(f"  Mixup: {'ON' if cfg.USE_MIXUP else 'OFF'} | F-beta: {cfg.FBETA_BETA} | "
-          f"Eval batch: {args.eval_batch_size}")
+    print(f"  SF-9 v{cfg.VERSION} | run: {run_id}")
+    print(f"  Clients: {args.clients} | Rounds: {args.rounds} | "
+          f"mu: {args.mu} | seed: {args.seed}")
+    print(f"  Model: {model_name} | agg: {cfg.AGGREGATION_STRATEGY} | "
+          f"calib: {args.calibration} | SMOTE: {cfg.USE_SMOTE}")
+    print("  Protocol: threshold+calibration on VALIDATION; "
+          "test touched ONCE")
     print("=" * 70 + "\n")
 
     # ═══════════════════════════════════════════════════════════════════════
-    # 1. LOAD DATA
+    # 1. LOAD DATA + IMMUTABLE SPLITS
     # ═══════════════════════════════════════════════════════════════════════
-    #
-    # DUAL DATA PATH:
-    #   - 2D data: Always needed for centralized baselines (LR, XGBoost)
-    #   - 3D data: Needed for LSTM models (preserves temporal dimension)
-    #
-    # When USE_LSTM=True:
-    #   - 2D data uses concat_stats_enhanced (144 features) for baselines
-    #   - 3D data uses original (N, 60, 24) shape for LSTM FL
-    #
-    # When USE_LSTM=False:
-    #   - Only 2D data is needed, used for both baselines and FL
-    # ═══════════════════════════════════════════════════════════════════════
-
-    # --- 1a. Load 2D data (always needed for centralized baselines) ---
     df = load_or_generate_data()
-    X_train_2d, X_test_2d, y_train, y_test, scaler, feature_names = preprocess(df)
+    splits = preprocess(df, val_fraction=cfg.VAL_SPLIT)
 
-    # --- 1b. Load 3D data (needed for LSTM FL models) ---
+    X_train_2d, y_train = splits.X_train, splits.y_train
+    X_val_2d, y_val = splits.X_val, splits.y_val
+    X_test_2d, y_test = splits.X_test, splits.y_test
+    feature_names = splits.features
+
+    # ── runtime leakage audit (Gate 1 pass criterion) ──
+    audit = run_audit(train_idx=splits.train_idx, val_idx=splits.val_idx,
+                      test_idx=splits.test_idx)
+    _print_report(audit)
+    if not audit.get("overall_pass"):
+        raise RuntimeError("LEAKAGE AUDIT FAILED — refusing to train. "
+                           "Fix the split before running experiments.")
+
+    # ── 3D data for LSTM (same contract: val carved from train) ──
+    X_train_fl, X_val_fl, X_test_fl = X_train_2d, X_val_2d, X_test_2d
+    y_train_fl, y_val_fl, y_test_fl = y_train, y_val, y_test
     if use_lstm:
-        print("\n" + "=" * 70)
+        print("=" * 70)
         print("  LOADING 3D DATA FOR LSTM MODELS")
         print("=" * 70 + "\n")
-
         try:
-            X_train_3d, y_train_3d, X_test_3d, y_test_3d, scaler_3d = load_and_scale_3d_data()
-
-            # Verify consistency: same number of samples and labels
-            assert len(y_train_3d) == len(y_train), \
-                f"Train sample mismatch: 3D={len(y_train_3d)}, 2D={len(y_train)}"
-            assert len(y_test_3d) == len(y_test), \
-                f"Test sample mismatch: 3D={len(y_test_3d)}, 2D={len(y_test)}"
-
-            # Use 3D data for FL training and evaluation
-            X_train_fl = X_train_3d
-            X_test_fl = X_test_3d
-            y_train_fl = y_train_3d
-            y_test_fl = y_test_3d
-
-            print(f"[Data Path] LSTM mode: Using 3D data (N, 60, 24) for FL")
-            print(f"[Data Path] LSTM mode: Using 2D data ({X_train_2d.shape[1]} feats) for baselines\n")
-
+            (X_train_3d, y_train_3d, X_val_3d, y_val_3d,
+             X_test_3d, y_test_3d, _) = load_and_scale_3d_data()
+            assert len(y_train_3d) == len(y_train) and \
+                len(y_val_3d) == len(y_val), \
+                "3D/2D sample mismatch — check data sources"
+            X_train_fl, X_val_fl, X_test_fl = X_train_3d, X_val_3d, X_test_3d
+            y_train_fl, y_val_fl, y_test_fl = y_train_3d, y_val_3d, y_test_3d
+            print(f"[Data Path] LSTM mode: 3D {X_train_3d.shape[1:]} for FL | "
+                  f"2D ({X_train_2d.shape[1]} feats) for baselines\n")
         except Exception as e:
-            print(f"\n[ERROR] Failed to load 3D data for LSTM: {e}")
-            print(f"[FALLBACK] Switching to MLP mode (2D data only)\n")
-            cfg.USE_LSTM = False
-            use_lstm = False
-            model_name = 'MLP'  # Update model_name to reflect fallback
-            X_train_fl = X_train_2d
-            X_test_fl = X_test_2d
-            y_train_fl = y_train
-            y_test_fl = y_test
-    else:
-        # MLP mode: use same 2D data for everything
-        X_train_fl = X_train_2d
-        X_test_fl = X_test_2d
-        y_train_fl = y_train
-        y_test_fl = y_test
+            print(f"\n[ERROR] 3D data unavailable ({e})\n"
+                  f"[FALLBACK] Switching to MLP mode.\n")
+            cfg.USE_LSTM = use_lstm = False
+            model_name = 'MLP'
 
     # ═══════════════════════════════════════════════════════════════════════
-    # 2. PARTITION (Non-IID Dirichlet)
+    # 2. DISJOINT DIRICHLET PARTITION (TRAIN only)
     # ═══════════════════════════════════════════════════════════════════════
-    print("[Partition] Splitting training data into regional client shards ...\n")
+    print("[Partition] Disjoint Dirichlet non-IID partitioning "
+          f"(alpha={args.alpha}, seed={args.seed}) ...\n")
+    shards, assignment = partition_data_dirichlet(
+        X_train_fl, y_train_fl, alpha=args.alpha,
+        n_clients=args.clients, seed=args.seed,
+        min_samples=cfg.MIN_SAMPLES_PER_CLIENT, return_indices=True)
 
-    use_dirichlet = args.dirichlet or cfg.FORCE_NON_IID
-    alpha = cfg.DIRICHLET_ALPHA
-
-    try:
-        if use_dirichlet:
-            print(f"[Partition] Using DIRICHLET non-IID partitioning (alpha={alpha})\n")
-            shards = partition_data_dirichlet(X_train_fl, y_train_fl, alpha=alpha)
-        else:
-            shards = partition_data(X_train_fl, y_train_fl, harpnum_mod=None)
-    except Exception as e:
-        print(f"[Partition] Error: {e}\n[Partition] Using fallback balanced partition...\n")
-        shards = partition_data(X_train_fl, y_train_fl, harpnum_mod=None)
-
-    # ═══════════════════════════════════════════════════════════════════════
-    # 3. CENTRALISED BASELINES (always use 2D data)
-    # ═══════════════════════════════════════════════════════════════════════
-    print("\n[Centralised] Training pooled baselines (2D data) ...\n")
-    c_models  = train_centralized(X_train_2d, y_train)
-    c_results = evaluate_centralized(c_models, X_test_2d, y_test)
-
-    # Eval batch size — used throughout for GPU memory-safe inference
-    eval_bs = args.eval_batch_size
+    # partition audit: verify disjointness against TRAIN indices
+    part_audit = run_audit(
+        shards=[np.where(assignment == k)[0] for k in range(args.clients)],
+        n_train=len(y_train_fl))
+    if not part_audit.get("shard_disjointness", {}).get("pass") or \
+       not part_audit.get("shard_coverage", {}).get("pass"):
+        raise RuntimeError("PARTITION AUDIT FAILED (overlap/coverage).")
 
     # ═══════════════════════════════════════════════════════════════════════
-    # 4. FEDAVG
+    # 3. CENTRALIZED BASELINES (pooled 2D data)
+    # ═══════════════════════════════════════════════════════════════════════
+    print("\n[Centralised] Training pooled baselines ...")
+    c_models = train_centralized(X_train_2d, y_train,
+                                 X_val_2d, y_val, seed=args.seed)
+
+    # ═══════════════════════════════════════════════════════════════════════
+    # 4. FEDERATED TRAINING (monitoring on VALIDATION)
     # ═══════════════════════════════════════════════════════════════════════
     print()
-    fedavg_model, fedavg_history = run_fedavg(shards, X_test_fl, y_test_fl,
-                                              n_rounds=args.rounds,
-                                              use_lstm=use_lstm,
-                                              eval_batch_size=eval_bs)
-    fedavg_metrics = evaluate_model(fedavg_model, X_test_fl, y_test_fl,
-                                     batch_size=eval_bs)
+    fedavg_model, fedavg_history = run_fedavg(
+        shards, X_val_fl, y_val_fl, n_rounds=args.rounds,
+        use_lstm=use_lstm, eval_batch_size=args.eval_batch_size,
+        seed=args.seed)
 
-    # ═══════════════════════════════════════════════════════════════════════
-    # 5. FEDPROX
-    # ═══════════════════════════════════════════════════════════════════════
     print()
-    fedprox_model, fedprox_history = run_fedprox(shards, X_test_fl, y_test_fl,
-                                                  n_rounds=args.rounds, mu=args.mu,
-                                                  use_lstm=use_lstm,
-                                                  eval_batch_size=eval_bs)
-    fedprox_metrics = evaluate_model(fedprox_model, X_test_fl, y_test_fl,
-                                      batch_size=eval_bs)
+    fedprox_model, fedprox_history = run_fedprox(
+        shards, X_val_fl, y_val_fl, n_rounds=args.rounds, mu=args.mu,
+        use_lstm=use_lstm, eval_batch_size=args.eval_batch_size,
+        seed=args.seed)
 
-    # ═══════════════════════════════════════════════════════════════════════
-    # 6. SCAFFOLD (NEW!)
-    # ═══════════════════════════════════════════════════════════════════════
-    scaffold_model = None
-    scaffold_history = []
-    scaffold_metrics = None
-
+    scaffold_model, scaffold_history = None, []
     if cfg.USE_SCAFFOLD:
         print()
-        scaffold_model, scaffold_history = run_scaffold(shards, X_test_fl, y_test_fl,
-                                                        n_rounds=args.rounds,
-                                                        use_lstm=use_lstm,
-                                                        eval_batch_size=eval_bs,
-                                                        warm_start_model=fedavg_model)
-        if scaffold_model is not None:
-            scaffold_metrics = evaluate_model(scaffold_model, X_test_fl, y_test_fl,
-                                               batch_size=eval_bs)
+        scaffold_model, scaffold_history = run_scaffold(
+            shards, X_val_fl, y_val_fl, n_rounds=args.rounds,
+            use_lstm=use_lstm, eval_batch_size=args.eval_batch_size,
+            warm_start_model=fedavg_model, seed=args.seed)
 
     # ═══════════════════════════════════════════════════════════════════════
-    # 7. F-BETA THRESHOLD OPTIMIZATION (beta=2)
+    # 5. CALIBRATION + THRESHOLD — selected on VALIDATION ONLY
     # ═══════════════════════════════════════════════════════════════════════
-    #
-    # The default threshold (0.35) is far too low for the imbalanced test set
-    # (~1.9% positive), causing near-1.0 recall but catastrophic precision.
-    # We re-evaluate each model at its F-beta-optimal threshold and overwrite
-    # the metrics dict so that downstream tables and figures reflect the
-    # improved numbers.  ROC-AUC is threshold-independent and stays as-is.
-    #
-    # ═══════════════════════════════════════════════════════════════════════
-    print("\n[Optimization] Finding optimal thresholds (F-beta, beta={})...".format(cfg.FBETA_BETA))
+    print("\n" + "=" * 70)
+    print("  EVALUATION PROTOCOL (validation -> freeze -> test once)")
+    print("=" * 70)
 
     import torch
-    from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score
     device = next(fedavg_model.parameters()).device
 
-    # --- FL models: extract probs and optimise ---
-    fedavg_probs = get_model_probs(fedavg_model, X_test_fl, device, batch_size=eval_bs)
-    fedprox_probs = get_model_probs(fedprox_model, X_test_fl, device, batch_size=eval_bs)
+    def fl_probs(model, X):
+        return get_model_probs(model, X, device,
+                               batch_size=args.eval_batch_size)
 
-    fedavg_opt_thresh, fedavg_optimal = find_optimal_threshold_fbeta(
-        y_test_fl, fedavg_probs, "FedAvg", beta=cfg.FBETA_BETA)
-    fedprox_opt_thresh, fedprox_optimal = find_optimal_threshold_fbeta(
-        y_test_fl, fedprox_probs, "FedProx", beta=cfg.FBETA_BETA)
-
-    # Update FedAvg metrics with optimal-threshold values
-    fedavg_metrics['precision'] = fedavg_optimal['precision']
-    fedavg_metrics['recall']    = fedavg_optimal['recall']
-    fedavg_metrics['f1']        = fedavg_optimal['f1']
-    fedavg_metrics['threshold'] = fedavg_opt_thresh
-    fedavg_metrics['preds']     = (fedavg_probs >= fedavg_opt_thresh).astype(int)
-
-    # Update FedProx metrics with optimal-threshold values
-    fedprox_metrics['precision'] = fedprox_optimal['precision']
-    fedprox_metrics['recall']    = fedprox_optimal['recall']
-    fedprox_metrics['f1']        = fedprox_optimal['f1']
-    fedprox_metrics['threshold'] = fedprox_opt_thresh
-    fedprox_metrics['preds']     = (fedprox_probs >= fedprox_opt_thresh).astype(int)
-
-    # SCAFFOLD threshold optimization
-    scaffold_optimal = None
-    if scaffold_model is not None:
-        scaffold_probs = get_model_probs(scaffold_model, X_test_fl, device, batch_size=eval_bs)
-        scaffold_opt_thresh, scaffold_optimal = find_optimal_threshold_fbeta(
-            y_test_fl, scaffold_probs, "SCAFFOLD", beta=cfg.FBETA_BETA)
-
-        # Update SCAFFOLD metrics with optimal-threshold values
-        scaffold_metrics['precision'] = scaffold_optimal['precision']
-        scaffold_metrics['recall']    = scaffold_optimal['recall']
-        scaffold_metrics['f1']        = scaffold_optimal['f1']
-        scaffold_metrics['threshold'] = scaffold_opt_thresh
-        scaffold_metrics['preds']     = (scaffold_probs >= scaffold_opt_thresh).astype(int)
-
-    # --- Centralised models: optimise threshold using stored probabilities ---
-    for model_key in ["logistic_regression", "xgboost"]:
-        c_probs = c_results[model_key]['probs']
-        opt_thresh, opt_metrics = find_optimal_threshold_fbeta(
-            y_test, c_probs, model_key.replace('_', ' ').title(),
-            beta=cfg.FBETA_BETA)
-
-        # Overwrite precision/recall/f1 with optimal-threshold values
-        c_results[model_key]['precision'] = opt_metrics['precision']
-        c_results[model_key]['recall']    = opt_metrics['recall']
-        c_results[model_key]['f1']        = opt_metrics['f1']
-        c_results[model_key]['threshold'] = opt_thresh
-        # Recompute accuracy and predictions at optimal threshold
-        new_preds = (c_probs >= opt_thresh).astype(int)
-        c_results[model_key]['accuracy']  = accuracy_score(y_test, new_preds)
-        c_results[model_key]['preds']     = new_preds
-
-    print("\n[Optimization] All models re-evaluated at F-beta optimal thresholds.")
-
-    # ═══════════════════════════════════════════════════════════════════════
-    # 8. COMBINED RESULTS
-    # ═══════════════════════════════════════════════════════════════════════
-    all_results = {
-        "Logistic Regression":   c_results["logistic_regression"],
-        "XGBoost (Centralised)": c_results["xgboost"],
-        f"FedAvg {model_name}":  fedavg_metrics,
-        f"FedProx {model_name}": fedprox_metrics,
+    # gather VAL probabilities for every model
+    val_probs = {
+        "climatology": model_probs(c_models["climatology"], X_val_2d),
+        "logistic_regression": model_probs(c_models["logistic_regression"], X_val_2d),
+        "xgboost": model_probs(c_models["xgboost"], X_val_2d),
+        f"fedavg_{model_name.lower()}": fl_probs(fedavg_model, X_val_fl),
+        f"fedprox_{model_name.lower()}": fl_probs(fedprox_model, X_val_fl),
     }
-    if scaffold_metrics is not None:
-        all_results[f"SCAFFOLD {model_name}"] = scaffold_metrics
+    if "centralized_mlp" in c_models:
+        val_probs["centralized_mlp"] = model_probs(
+            c_models["centralized_mlp"], X_val_2d)
+    if scaffold_model is not None:
+        val_probs[f"scaffold_{model_name.lower()}"] = \
+            fl_probs(scaffold_model, X_val_fl)
 
-    print_results_table(all_results)
+    # ── 5a. calibration selection on VAL (Brier) ──
+    method = args.calibration
+    if method == "auto":
+        method, cal_table = select_calibration(y_val, val_probs["xgboost"])
+        print(f"[Calibration] auto-selected: {method} (val Brier per method: "
+              f"{cal_table})")
+
+    calibrators = {}
+    for name, p in val_probs.items():
+        cal = make_calibrator(method).fit(y_val, p)
+        if method == "prior_shift":
+            cal.set_prevalences(train_rate=float(y_train.mean()),
+                                test_rate=float(y_val.mean()))
+        calibrators[name] = cal
+
+    # ── 5b. threshold search on (calibrated) VAL probabilities ──
+    thresholds = {}
+    for name, p in val_probs.items():
+        p_cal = calibrators[name].transform(p)
+        t, fb = find_optimal_threshold_fbeta(
+            y_val, p_cal, beta=cfg.FBETA_BETA, grid=cfg.THRESHOLD_GRID)
+        thresholds[name] = t
+        print(f"  [VAL] {name:<28} threshold={t:.3f}  F{cfg.FBETA_BETA:.0f}={fb:.3f}")
+
+    print(f"\n  Frozen: calibration={method} | thresholds={thresholds}")
+    print("  -> applying ONCE to the held-out TEST set ...\n")
 
     # ═══════════════════════════════════════════════════════════════════════
-    # 9. FIGURES
+    # 6. FINAL TEST EVALUATION (single pass, frozen pipeline)
     # ═══════════════════════════════════════════════════════════════════════
-    print("\n[Figures] Generating paper plots ...\n")
+    test_probs = {
+        "climatology": model_probs(c_models["climatology"], X_test_2d),
+        "logistic_regression": model_probs(c_models["logistic_regression"], X_test_2d),
+        "xgboost": model_probs(c_models["xgboost"], X_test_2d),
+        f"fedavg_{model_name.lower()}": fl_probs(fedavg_model, X_test_fl),
+        f"fedprox_{model_name.lower()}": fl_probs(fedprox_model, X_test_fl),
+    }
+    if "centralized_mlp" in c_models:
+        test_probs["centralized_mlp"] = model_probs(
+            c_models["centralized_mlp"], X_test_2d)
+    if scaffold_model is not None:
+        test_probs[f"scaffold_{model_name.lower()}"] = \
+            fl_probs(scaffold_model, X_test_fl)
 
-    plot_confusion_matrices(all_results, y_test_fl)
-    plot_roc_curves(all_results, y_test_fl)
-    plot_fl_convergence(fedavg_history, fedprox_history, scaffold_history)
-    plot_comparison_table(all_results)
+    all_results = {}
+    for name, p in test_probs.items():
+        p_cal = calibrators[name].transform(p)
+        res = compute_all_metrics(y_test_fl if "fed" in name or "scaffold" in name
+                                  else y_test, p_cal, thresholds[name],
+                                  beta=cfg.FBETA_BETA)
+        res["calibration"] = method
+        res["probs"] = p_cal
+        res["preds"] = res.pop("preds", None)
+        all_results[name] = res
 
-    # SHAP for XGBoost (uses 2D data)
+    # display names
+    display = {
+        "climatology": "Climatology",
+        "logistic_regression": "Logistic Regression",
+        "centralized_mlp": "Centralized MLP",
+        "xgboost": "XGBoost (Centralized ref.)",
+        f"fedavg_{model_name.lower()}": f"FedAvg {model_name}",
+        f"fedprox_{model_name.lower()}": f"FedProx {model_name}",
+        f"scaffold_{model_name.lower()}": f"SCAFFOLD {model_name}",
+    }
+    pretty_results = {display.get(k, k): v for k, v in all_results.items()}
+    print_results_table(pretty_results)
+
+    # ═══════════════════════════════════════════════════════════════════════
+    # 7. CLIENT-LEVEL EVALUATION (Stage 10)
+    # ═══════════════════════════════════════════════════════════════════════
     try:
-        _, mean_shap = compute_shap(c_models["xgboost"], X_test_2d, feature_names)
+        from evaluate_clients import evaluate_client_level
+        client_results = evaluate_client_level(
+            shards, (fedavg_model, fedprox_model),
+            X_val_fl, y_val_fl, model_name,
+            batch_size=args.eval_batch_size)
+    except Exception as e:
+        print(f"[Client Eval] Skipped: {e}")
+        client_results = None
+
+    # ═══════════════════════════════════════════════════════════════════════
+    # 8. COMMUNICATION COST (Stage 15)
+    # ═══════════════════════════════════════════════════════════════════════
+    try:
+        from communication_cost import measure_communication
+        comm = measure_communication(fedavg_model, args.clients,
+                                     n_rounds=args.rounds)
+    except Exception as e:
+        print(f"[Comm Cost] Skipped: {e}")
+        comm = None
+
+    # ═══════════════════════════════════════════════════════════════════════
+    # 9. FIGURES (from machine-readable results)
+    # ═══════════════════════════════════════════════════════════════════════
+    print("\n[Figures] Generating plots ...")
+    plot_confusion_matrices(pretty_results, y_test_fl)
+    plot_roc_curves(pretty_results, y_test_fl)
+    plot_fl_convergence(fedavg_history, fedprox_history, scaffold_history)
+    plot_comparison_table(pretty_results)
+
+    try:
+        _, mean_shap = compute_shap(c_models["xgboost"], X_test_2d,
+                                    feature_names)
         if mean_shap is not None:
             plot_shap_importance(mean_shap, feature_names)
     except Exception as e:
         print(f"[SHAP] Skipped: {e}")
 
     # ═══════════════════════════════════════════════════════════════════════
-    # 10. SUMMARY
+    # 10. MACHINE-READABLE RESULTS (B18)
+    # ═══════════════════════════════════════════════════════════════════════
+    serialisable = {}
+    for name, res in all_results.items():
+        serialisable[name] = {k: v for k, v in res.items()
+                              if k not in ("probs", "preds")}
+
+    results = {
+        "run_id": run_id,
+        "version": cfg.VERSION,
+        "protocol": {
+            "split": {"train": len(y_train), "val": len(y_val),
+                      "test": len(y_test)},
+            "calibration": method,
+            "thresholds": thresholds,
+            "threshold_selected_on": "validation",
+            "test_touched_once": True,
+        },
+        "test_metrics": serialisable,
+        "fl_convergence_val": {
+            "fedavg": fedavg_history,
+            "fedprox": fedprox_history,
+            "scaffold": scaffold_history,
+        },
+        "client_level": client_results,
+        "communication": comm,
+        "leakage_audit": {k: v for k, v in audit.items()
+                          if isinstance(v, (str, int, float, bool))},
+    }
+    _save_json(results, cfg.RESULTS_JSON)
+
+    manifest = {
+        "run_id": run_id, "version": cfg.VERSION,
+        "seed": args.seed, "clients": args.clients, "rounds": args.rounds,
+        "mu": args.mu, "alpha": args.alpha, "model": model_name,
+        "aggregation": cfg.AGGREGATION_STRATEGY,
+        "calibration": method, "use_smote": cfg.USE_SMOTE,
+        "use_fed_focal": cfg.USE_FED_FOCAL,
+        "dirichlet_alpha": args.alpha,
+        "feature_names": feature_names,
+        "python": sys.version.split()[0],
+        "elapsed_s": round(time.time() - t0, 1),
+    }
+    _save_json(manifest, cfg.RUN_MANIFEST)
+
+    # ═══════════════════════════════════════════════════════════════════════
+    # 11. SUMMARY
     # ═══════════════════════════════════════════════════════════════════════
     elapsed = time.time() - t0
-    print(f"\n[Done] Total runtime: {elapsed:.1f}s")
-    print(f"[Done] All outputs saved to '{cfg.OUTPUT_DIR}/'")
-
-    # Print key takeaways
-    print("\n" + "=" * 70)
-    print("  KEY TAKEAWAYS FOR YOUR PAPER")
-    print("=" * 70)
-
-    print(f"\n  FedProx {model_name} F1  = {fedprox_metrics['f1']:.3f}  vs  "
-          f"XGBoost F1 = {c_results['xgboost']['f1']:.3f}  "
-          f"(privacy cost = {c_results['xgboost']['f1'] - fedprox_metrics['f1']:.3f})")
-
-    if scaffold_metrics is not None:
-        print(f"  SCAFFOLD {model_name} F1 = {scaffold_metrics['f1']:.3f}  vs  "
-              f"FedAvg {model_name} F1 = {fedavg_metrics['f1']:.3f}  "
-              f"(improvement = {scaffold_metrics['f1'] - fedavg_metrics['f1']:.3f})")
-
-    print(f"\n  FedProx Recall = {fedprox_metrics['recall']:.3f}  vs  "
-          f"FedAvg Recall = {fedavg_metrics['recall']:.3f}  "
-          f"(FedProx advantage = {fedprox_metrics['recall'] - fedavg_metrics['recall']:.3f})")
-
-    if scaffold_metrics is not None:
-        print(f"  SCAFFOLD Recall = {scaffold_metrics['recall']:.3f}  vs  "
-              f"FedAvg Recall = {fedavg_metrics['recall']:.3f}  "
-              f"(SCAFFOLD advantage = {scaffold_metrics['recall'] - fedavg_metrics['recall']:.3f})")
-
-    data_desc = "3D (60x24) + 2D baselines" if use_lstm else f"2D ({cfg.FLATTEN_METHOD})"
-    print(f"\n  Model: {model_name} | "
-          f"Loss: {'Fed-Focal' if cfg.USE_FED_FOCAL else 'DAF'} | "
-          f"Data: {data_desc} | "
-          f"Partition: Dirichlet(alpha={cfg.DIRICHLET_ALPHA})")
-    print("=" * 70 + "\n")
+    print(f"\n[Done] {run_id} finished in {elapsed:.1f}s")
+    print(f"[Done] results -> {cfg.RESULTS_JSON}")
+    if "centralized_mlp" in all_results and f"fedprox_{model_name.lower()}" in all_results:
+        cost = all_results["centralized_mlp"]["pr_auc"] - \
+            all_results[f"fedprox_{model_name.lower()}"]["pr_auc"]
+        print(f"\n  Federation cost (PR-AUC): centralized MLP "
+              f"{all_results['centralized_mlp']['pr_auc']:.3f} vs FedProx "
+              f"{all_results[f'fedprox_{model_name.lower()}']['pr_auc']:.3f} "
+              f"-> delta {cost:+.3f}")
+    print("\n" + "=" * 70 + "\n")
 
 
 if __name__ == "__main__":

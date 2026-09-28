@@ -1,48 +1,188 @@
 """
-centralized_baseline.py
-─────────────────
-Trains XGBoost and Logistic Regression baselines.
+centralized_baseline.py  (v3.0 — improvements branch)
+─────────────────────────────────────────────────────
+Pooled (centralized) reference baselines.
+
+v3.0 FIXES (audit findings B9, B14):
+  - XGBoost scale_pos_weight is COMPUTED from the training labels
+    (n_neg / n_pos) instead of the hardcoded 10.0 that was chosen
+    "to handle test imbalance" (test-set knowledge in training).
+  - ADDED centralized MLP baseline: the crucial comparison that
+    isolates the cost of FEDERATION (centralized MLP vs federated MLP,
+    same architecture) — the old pipeline only compared federated MLP
+    vs XGBoost, which confounds architecture with federation.
+  - ADDED climatology baseline (historical event rate) — the floor any
+    learned model must beat.
+  - Evaluation uses evaluation.compute_all_metrics (full metric set).
+
+Naming note (CLAIMS.md): XGBoost is the "centralized XGBoost reference
+baseline", NOT a "centralized upper bound".
 """
 
 import numpy as np
-import torch
 from typing import Dict, List, Tuple
 
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import (accuracy_score, precision_score,
-                             recall_score, f1_score, roc_auc_score)
+from sklearn.metrics import roc_auc_score
 from xgboost import XGBClassifier
-import shap
 
-from config import RANDOM_STATE, THRESHOLD
+import config as cfg
+from evaluation import compute_all_metrics
 
 
-def train_centralized(
-    X_train: np.ndarray,
-    y_train: np.ndarray
-) -> Dict:
+# ─────────────────────────────────────────────────────────────────────────────
+# Climatology baseline (predict training prevalence everywhere)
+# ─────────────────────────────────────────────────────────────────────────────
+
+class ClimatologyModel:
+    """Constant-probability predictor: outputs the training flare rate."""
+
+    def __init__(self):
+        self.rate_ = 0.5
+
+    def fit(self, X_train, y_train):
+        self.rate_ = float(np.mean(y_train))
+        return self
+
+    def predict_proba(self, X):
+        n = len(X) if hasattr(X, "__len__") else X.shape[0]
+        return np.full((n, 2), [1.0 - self.rate_, self.rate_])
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Centralized MLP (torch; lazy import so the module works without torch)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def train_centralized_mlp(X_train, y_train, X_val, y_val, seed=None,
+                          epochs=30, batch_size=256, verbose=True):
     """
-    Train LR and XGBoost on pooled training set.
+    Train the SAME SolarMLP architecture on the POOLED training data.
+
+    This is the reference that isolates the cost of federation:
+        federation cost = centralized MLP - federated MLP
+    (same architecture, same loss, same data volume).
+
+    Early stopping on VALIDATION loss (patience 5).
     """
+    try:
+        import torch
+        from model import SolarMLP, get_device
+    except ImportError as e:
+        print(f"[Centralized MLP] torch unavailable ({e}) — skipped.")
+        return None
+
+    seed = cfg.SEED if seed is None else seed
+    torch.manual_seed(seed)
+    device = get_device()
+
+    input_dim = X_train.shape[1]
+    model = SolarMLP(input_dim=input_dim).to(device)
+    from federated_learning import get_criterion
+
+    X_t = torch.tensor(X_train, dtype=torch.float32)
+    y_t = torch.tensor(y_train, dtype=torch.float32)
+    X_v = torch.tensor(X_val, dtype=torch.float32).to(device)
+    y_v = torch.tensor(y_val, dtype=torch.float32).to(device)
+
+    optimizer = torch.optim.AdamW(model.parameters(), lr=cfg.LR,
+                                  weight_decay=1e-4)
+    criterion = get_criterion(device, 0, 1, focal_alpha=0.25)
+
+    ds = torch.utils.data.TensorDataset(X_t, y_t)
+    loader = torch.utils.data.DataLoader(ds, batch_size=batch_size,
+                                         shuffle=True, drop_last=False)
+
+    best_val_loss, best_state, patience, wait = np.inf, None, 5, 0
+    for epoch in range(epochs):
+        model.train()
+        for Xb, yb in loader:
+            Xb, yb = Xb.to(device), yb.to(device)
+            optimizer.zero_grad()
+            loss = criterion(model(Xb), yb,
+                             client_pos_rate=float(y_train.mean()))
+            if not (torch.isnan(loss) or torch.isinf(loss)):
+                loss.backward()
+                torch.nn.utils.clip_grad_norm_(model.parameters(), 5.0)
+                optimizer.step()
+
+        model.eval()
+        with torch.no_grad():
+            val_logits = model(X_v)
+            val_loss = torch.nn.functional.binary_cross_entropy_with_logits(
+                val_logits, y_v).item()
+        if val_loss < best_val_loss - 1e-4:
+            best_val_loss, wait = val_loss, 0
+            best_state = {k: v.detach().clone() for k, v in model.state_dict().items()}
+        else:
+            wait += 1
+            if wait >= patience:
+                break
+        if verbose and (epoch + 1) % 5 == 0:
+            print(f"    [Central MLP] epoch {epoch+1}: val loss {val_loss:.4f}")
+
+    if best_state is not None:
+        model.load_state_dict(best_state)
+    return model
+
+
+def mlp_probs(model, X, batch_size=4096):
+    """Batched probability extraction from a torch MLP."""
+    import torch
+    device = next(model.parameters()).device
+    model.eval()
+    out = np.empty(len(X), dtype=np.float32)
+    with torch.no_grad():
+        for s in range(0, len(X), batch_size):
+            e = min(s + batch_size, len(X))
+            Xb = torch.tensor(X[s:e], dtype=torch.float32).to(device)
+            out[s:e] = torch.sigmoid(model(Xb)).cpu().numpy().flatten()
+    return np.clip(out, 1e-7, 1 - 1e-7)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Train all centralized baselines
+# ─────────────────────────────────────────────────────────────────────────────
+
+def train_centralized(X_train, y_train, X_val=None, y_val=None,
+                      seed=None) -> Dict:
+    """
+    Train climatology, LR, centralized MLP, and XGBoost on pooled data.
+
+    XGBoost scale_pos_weight is computed from TRAIN prevalence (B9).
+    """
+    seed = cfg.SEED if seed is None else seed
     models = {}
 
-    # ── Logistic Regression ──────────────────────────────
+    # ── Climatology ──────────────────────────────
+    print("[Centralised] Fitting climatology baseline (train prevalence) ...")
+    clim = ClimatologyModel().fit(X_train, y_train)
+    models["climatology"] = clim
+
+    # ── Logistic Regression ──────────────────────
     print("[Centralised] Training Logistic Regression ...")
     lr = LogisticRegression(
         class_weight="balanced",
         max_iter=2000,
-        random_state=42,
-        # n_jobs removed — deprecated in sklearn 1.8+, has no effect since 1.8
+        random_state=seed,
     )
     lr.fit(X_train, y_train)
     models["logistic_regression"] = lr
-    print("[Centralised] Logistic Regression done.\n")
 
-    # ── XGBoost (GPU-accelerated) ────────────────────────
-    print("[Centralised] Training XGBoost ...")
-    cuda_available = torch.cuda.is_available()
+    # ── Centralized MLP (federation-cost reference, B14) ─────
+    if X_val is not None and y_val is not None:
+        print("[Centralised] Training centralized MLP (federation-cost reference) ...")
+        mlp = train_centralized_mlp(X_train, y_train, X_val, y_val, seed=seed)
+        if mlp is not None:
+            models["centralized_mlp"] = mlp
 
-    # ✅ FIXED: Use only compatible parameters for all XGBoost versions
+    # ── XGBoost (reference baseline) ─────────────
+    print("[Centralised] Training XGBoost (scale_pos_weight from TRAIN, B9) ...")
+    n_pos = max(int(np.sum(y_train == 1)), 1)
+    n_neg = max(int(np.sum(y_train == 0)), 1)
+    spw = float(n_neg / n_pos)
+    print(f"[Centralised] XGBoost scale_pos_weight = {spw:.2f} "
+          f"(train pos rate {n_pos/ (n_pos+n_neg):.3f})")
+
     xgb_params = dict(
         n_estimators=300,
         max_depth=6,
@@ -50,96 +190,85 @@ def train_centralized(
         subsample=0.8,
         colsample_bytree=0.8,
         min_child_weight=5,
-        scale_pos_weight=10.0,  # ✅ Fixed: Handle test imbalance
-        random_state=RANDOM_STATE,
+        scale_pos_weight=spw,       # B9: computed from train, not test
+        random_state=seed,
         verbosity=0,
+        eval_metric="logloss",
     )
 
-    if cuda_available:
-        print("[Centralised] CUDA detected — using GPU acceleration ...")
+    try:
+        import torch
+        cuda = torch.cuda.is_available()
+    except Exception:
+        cuda = False
+
+    if cuda:
         try:
-            # Try modern XGBoost 2.0+ syntax first
             xgb = XGBClassifier(**xgb_params, device="cuda", tree_method="hist")
             xgb.fit(X_train, y_train)
-            print("[Centralised] XGBoost running on GPU.")
-        except Exception as e1:
-            try:
-                # Fallback to older syntax
-                xgb = XGBClassifier(**xgb_params, tree_method="gpu_hist", gpu_id=0)
-                xgb.fit(X_train, y_train)
-                print("[Centralised] XGBoost running on GPU (legacy mode).")
-            except Exception as e2:
-                print(f"[Centralised] GPU failed ({e2}), using CPU.")
-                xgb = XGBClassifier(**xgb_params)
-                xgb.fit(X_train, y_train)
+        except Exception:
+            xgb = XGBClassifier(**xgb_params)
+            xgb.fit(X_train, y_train)
     else:
-        print("[Centralised] No CUDA — XGBoost on CPU.")
         xgb = XGBClassifier(**xgb_params)
         xgb.fit(X_train, y_train)
-
     models["xgboost"] = xgb
-    print("[Centralised] XGBoost done.\n")
 
     return models
 
 
-def evaluate_centralized(
-    models:    Dict,
-    X_test:    np.ndarray,
-    y_test:    np.ndarray,
-    threshold: float = THRESHOLD
-) -> Dict[str, Dict]:
-    """Evaluate each centralised model; return results dict."""
+def model_probs(model, X):
+    """Probability extraction for any centralized model."""
+    if isinstance(model, ClimatologyModel):
+        return model.predict_proba(X)[:, 1]
+    if hasattr(model, "predict_proba"):
+        return model.predict_proba(X)[:, 1]
+    # centralized MLP
+    return mlp_probs(model, X)
+
+
+def evaluate_centralized(models: Dict, X, y, threshold) -> Dict[str, Dict]:
+    """
+    Evaluate each centralized model at the given (frozen) threshold.
+    Full metric set via compute_all_metrics.
+    """
     results = {}
-
     for name, model in models.items():
-        try:
-            probs = model.predict_proba(X_test)[:, 1]
-        except:
-            # Fallback for models without predict_proba
-            probs = model.predict(X_test).astype(float)
-        
-        preds = (probs >= threshold).astype(int)
-
-        results[name] = {
-            "accuracy":  accuracy_score(y_test, preds),
-            "precision": precision_score(y_test, preds, zero_division=0),
-            "recall":    recall_score(y_test, preds, zero_division=0),
-            "f1":        f1_score(y_test, preds, zero_division=0),
-            "roc_auc":   roc_auc_score(y_test, probs),
-            "probs":     probs,
-            "preds":     preds,
-        }
-        print(f"[Centralised] {name:<25} | "
-              f"F1: {results[name]['f1']:.3f} | "
-              f"Recall: {results[name]['recall']:.3f} | "
-              f"ROC-AUC: {results[name]['roc_auc']:.3f}")
-
+        probs = model_probs(model, X)
+        res = compute_all_metrics(y, probs, threshold, beta=cfg.FBETA_BETA)
+        res["probs"] = probs
+        res.pop("preds", None)
+        results[name] = res
+        print(f"[Centralised] {name:<22} | F1: {res['f1']:.3f} | "
+              f"R: {res['recall']:.3f} | PR-AUC: {res['pr_auc']:.3f} | "
+              f"ROC-AUC: {res['roc_auc']:.3f}")
     return results
 
 
-def compute_shap(
-    xgb_model:     XGBClassifier,
-    X_test:        np.ndarray,
-    feature_names: List[str]
-) -> Tuple[np.ndarray, np.ndarray]:
+# ─────────────────────────────────────────────────────────────────────────────
+# SHAP interpretability
+# ─────────────────────────────────────────────────────────────────────────────
+
+def compute_shap(xgb_model, X_sample, feature_names: List[str],
+                 sample_size=500):
     """
-    Compute SHAP values for XGBoost.
-    Returns (shap_values, mean_abs_shap) for plotting.
+    SHAP values for the XGBoost reference baseline.
+    v3.0: feature_names are the REAL (stat-prefixed) names (B12 fixed
+    upstream), so the plot shows physically interpretable labels.
     """
-    print("[SHAP] Computing SHAP values (may take ~30s) ...")
-    
+    import shap
+
+    print("[SHAP] Computing SHAP values (XGBoost reference) ...")
     try:
-        # Use subset for speed
-        sample_size = min(500, len(X_test))
-        sample = X_test[:sample_size]
-        
+        sample_size = min(sample_size, len(X_sample))
+        sample = X_sample[:sample_size]
         explainer = shap.TreeExplainer(xgb_model)
         shap_vals = explainer.shap_values(sample)
+        if isinstance(shap_vals, list):  # some shap versions return list
+            shap_vals = shap_vals[1] if len(shap_vals) == 2 else shap_vals[0]
         mean_shap = np.abs(shap_vals).mean(axis=0)
-        print("[SHAP] Done.\n")
+        print("[SHAP] Done.")
         return shap_vals, mean_shap
-        
     except Exception as e:
-        print(f"[SHAP] Failed: {e}\n")
+        print(f"[SHAP] Failed: {e}")
         return None, None

@@ -261,32 +261,42 @@ def clone_model(model) -> nn.Module:
     return new_model.to(device)
 
 
-def make_fresh_model(input_dim: int = INPUT_DIM, use_lstm: bool = None):
+def make_fresh_model(input_dim: int = INPUT_DIM, use_lstm: bool = None,
+                     seed: int = None):
     """
     Create a new model and move it to GPU if available.
+
+    v3.0: accepts an explicit `seed` (multi-seed runs, audit B11).
+    Falls back to config.SEED. Seeding happens ONLY here at model
+    creation, so repeated calls with the same seed are reproducible.
 
     Args:
         input_dim: Number of input features (used only for MLP)
         use_lstm: If True, create SolarLSTM; if False, create SolarMLP
                   If None, reads USE_LSTM from config
+        seed: RNG seed for weight initialisation
 
     Returns
     -------
     model  : SolarMLP or SolarLSTM (already on DEVICE)
     device : torch.device
     """
+    import config as cfg
     if use_lstm is None:
-        import config as cfg
         use_lstm = cfg.USE_LSTM
+    if seed is None:
+        seed = cfg.SEED
 
-    torch.manual_seed(RANDOM_STATE)
+    torch.manual_seed(seed)
 
     if use_lstm:
+        input_size = input_dim if input_dim is not None else 24
         print(f"[Model] Creating SolarLSTM (hidden={LSTM_HIDDEN_SIZE}, "
-              f"layers={LSTM_NUM_LAYERS}, bidir={LSTM_BIDIRECTIONAL})")
-        model = SolarLSTM(input_size=24).to(DEVICE)
+              f"layers={LSTM_NUM_LAYERS}, bidir={LSTM_BIDIRECTIONAL}, "
+              f"seed={seed})")
+        model = SolarLSTM(input_size=input_size).to(DEVICE)
     else:
-        print(f"[Model] Creating SolarMLP (input_dim={input_dim})")
+        print(f"[Model] Creating SolarMLP (input_dim={input_dim}, seed={seed})")
         model = SolarMLP(input_dim=input_dim).to(DEVICE)
 
     if DEVICE.type == "cuda":
