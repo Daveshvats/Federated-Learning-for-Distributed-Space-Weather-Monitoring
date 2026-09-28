@@ -1,48 +1,70 @@
-# Abstract — SF-9
-## Federated Learning for Privacy-Preserving Distributed Space Weather Monitoring in Smart Grid Protection
+# Abstract — SF-9 (revised on `improvements`)
+## Federated Learning for Data-Locality-Preserving Distributed Space Weather Monitoring: A Solar-Flare Prediction Component for Grid-Resilience Pipelines
 
 ---
 
-The vulnerability of modern Smart Grids to Geomagnetically Induced Currents (GICs),
-triggered by M-class and X-class solar flares, presents a critical threat to power
-infrastructure. High-voltage transformers exposed to GIC saturation can suffer
-irreversible damage, as demonstrated by the 1989 Quebec blackout. Effective early
-warning systems require predictive models trained on high-fidelity solar observational
-data spanning multiple geographic regions; however, nationally sensitive space weather
-data collected by agencies such as NASA, ESA, JAXA, and ISRO cannot be centralised
-due to data sovereignty constraints and inter-agency data-sharing agreements. This
-paper proposes the first application of Federated Learning (FL) to solar flare
-prediction for Smart Grid protection, explicitly addressing this data privacy barrier.
+Solar flares of class M and X are the proximate precursors of the
+coronal mass ejections and geomagnetic disturbances that drive
+geomagnetically induced currents (GICs) in high-voltage grids — the
+mechanism behind the 1989 Québec blackout. Early flare warning therefore
+buys preparation time at the earliest link of the flare → CME → storm →
+GIC chain. Training competitive flare-prediction models requires pooling
+magnetogram-derived feature histories that different agencies may be
+unable or unwilling to centralise for governance, locality, and
+institutional reasons. Federated learning (FL) removes the need to pool
+raw observations: only model updates are shared.
 
-The proposed framework partitions the SWAN-SF benchmark dataset (Harvard Dataverse,
-Angryk et al., 2020) by solar active region identifiers to simulate six geographically
-distributed regional observatories. Each client trains a local Multi-Layer Perceptron
-(MLP) on its private shard of 24 magnetic-field complexity features, including total
-unsigned current helicity (TOTUSJH), total photospheric magnetic free energy (TOTPOT),
-and the R-value flux emergence proxy. Only model weight updates — never raw satellite
-measurements — are transmitted to the aggregation server. Two federation strategies
-are evaluated: FedAvg (McMahan et al., 2017) and FedProx (Li et al., 2020). FedProx
-introduces a proximal regularisation term (μ = 0.01) that penalises local model drift,
-specifically designed to handle the non-IID data heterogeneity arising when different
-observatories monitor different populations of active regions.
+We evaluate FL as a training paradigm for solar-flare prediction on the
+SWAN-SF benchmark partitioned into six simulated regional clients under
+Dirichlet label skew (non-IID). The present work makes three
+methodological contributions over our earlier prototype: (i) a
+disjoint-by-construction client partition with a runtime leakage audit
+(sample overlap, active-region overlap, and split exclusivity are
+verified programmatically); (ii) a strict evaluation contract in which
+calibration and F-beta threshold selection occur exclusively on a
+validation split, with the held-out test set evaluated exactly once
+under the frozen pipeline — together with prior-shift-aware probability
+calibration addressing the ~25x gap between balanced training
+prevalence and the ~1.9% operational prevalence; and (iii) an
+ablation design that isolates the effects of the proximal regulariser
+(FedProx), Fed-Focal loss, per-client SMOTE, and distribution-aware
+aggregation, relative to a centralized multi-layer perceptron of
+identical architecture that quantifies the accuracy cost of
+federation itself.
 
-Experimental results demonstrate that FedProx achieves a Recall of [X.XX] and an
-F1-Score of [X.XX] — within [X.X]% of the centralised XGBoost upper bound — while
-preserving complete data locality. FedAvg converges to a lower Recall, confirming
-that the proximal correction is necessary under geographic data heterogeneity.
-Feature importance analysis via SHAP values identifies total unsigned current helicity
-and photospheric free energy as the dominant predictors across federated clients,
-consistent with established solar physics. The framework converges within 50
-communication rounds, making it operationally viable for integration with existing
-SCADA-based grid management infrastructure.
-
-This work demonstrates that distributed space weather agencies can collaboratively
-train a high-recall flare prediction model without compromising data sovereignty,
-establishing federated machine learning as a practical mechanism for global Smart
-Grid resilience against geomagnetic threats.
+Results are reported as PR-AUC, Brier score, expected calibration
+error, and recall at fixed false-alarm budgets (0.5–5% FPR), reflecting
+operational alarm economics rather than threshold-flattering accuracy.
+Because the evaluation protocol was corrected after an internal audit,
+all numerical claims are regenerated from machine-readable run
+artifacts (results.json) by the pipeline on the `improvements` branch;
+no hand-entered numbers survive from the earlier prototype. The scope
+of this work is deliberately bounded: it demonstrates a federated
+flare-probability component and quantifies its cost and calibration
+behaviour — it does not model CME propagation, geomagnetic response, or
+GIC magnitude, and it does not claim cryptographic privacy (secure
+aggregation is scaffolded and threat-modelled, not yet deployed).
+Within these bounds, federated learning offers a governance-compatible
+training mechanism for distributed space-weather agencies, at a
+measured and reportable accuracy cost.
 
 ---
-*Keywords: Federated Learning, Solar Flare Prediction, Smart Grid, GIC, FedProx,
-Space Weather, SWAN-SF, Data Privacy*
+
+*Keywords: Federated Learning, Solar Flare Prediction, Non-IID Data,
+SWAN-SF, Class Imbalance, Probability Calibration, Space Weather*
 
 *Track: Track 3 — Computational Intelligence and Machine Learning Applications*
+
+**Change log vs. the original abstract (honesty revision):**
+- "privacy-preserving" → "data-locality-preserving" (no secure
+  aggregation/DP in the training path yet)
+- "partitioned by active-region identifiers" → "Dirichlet label-skew
+  partition" (matches the actual implementation; region-based
+  partitioning is provided but the cleaned export lacks region IDs)
+- removed "[X.XX] within [X.X]% of the centralized XGBoost upper bound"
+  → XGBoost is now a *reference baseline*; the federation cost is
+  measured against a centralized MLP of identical architecture
+- added the protocol corrections (validation-only selection,
+  leakage audit) as explicit contributions
+- "integration with existing SCADA infrastructure" → explicitly
+  out of scope (see docs/GIC_BOUNDARY.md)

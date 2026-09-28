@@ -1,0 +1,44 @@
+% ════════════════════════════════════════════════════════════════════
+% SECTION 9 — CONCLUSION
+% ════════════════════════════════════════════════════════════════════
+\section{Conclusion}\label{sec:conclusion}
+
+We presented the first application of federated learning to solar
+flare prediction for smart-grid protection, motivated by a structural
+impasse in operational space weather: the high-fidelity observations
+needed to train strong flare-forecasting models are held by national
+agencies whose data-sovereignty commitments forbid pooling them. The
+proposed framework partitions the SWAN-SF benchmark into six
+simulated regional observatories under Dirichlet label skew, federates
+MLP clients with FedAvg and FedProx under distribution-aware
+aggregation, handles extreme class imbalance with per-client SMOTE and
+a clamped server-aware focal loss, and converts converged models into
+safety-critical detectors through recall-weighted $F_\beta$ threshold
+optimisation.
+
+The empirical outcome is two-sided and honest. On the side of promise:
+FedProx retains 95.0\% of the centralised XGBoost ROC-AUC (0.930
+against 0.978) and 77.6\% of its F1 (0.326 against 0.420) at a 2\%
+false-alarm rate, converging within 50 communication rounds on
+single-GPU compute---evidence that a jointly trained, globally
+informed, sovereignty-preserving flare sentinel is technically within
+reach, and that its interpretability layer recovers exactly the
+magnetic parameters (flux-emergence proxies, current helicity,
+Lorentz-force variability) that flare physics predicts. On the side of
+caution: FedAvg collapses outright under the same conditions, the
+training-time calibration of rebalanced federated data is broken
+enough that threshold re-optimisation is mandatory rather than
+optional, and the strongest claims (cryptographic privacy, LSTM and
+SCAFFOLD evaluation, multi-seed statistics) remain future work. The
+released framework---code, configuration history, and artefact
+pipeline---is intended to make that follow-up work a matter of
+execution rather than re-engineering.
+
+For the smart-grid community the message is that resilience against
+geomagnetic threats does not require choosing between data
+sovereignty and forecast skill; for the machine-learning community it
+is a demonstration that the cross-silo regime of the physical sciences
+has failure modes---prior mismatch, layered imbalance handling,
+optimiser--variance-reduction interactions---that the medical and
+mobile FL literature does not fully anticipate, and that are worth
+studying in their own right.

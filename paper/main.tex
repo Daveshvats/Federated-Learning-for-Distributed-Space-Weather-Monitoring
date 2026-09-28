@@ -1,0 +1,178 @@
+\documentclass[11pt,a4paper]{article}
+
+% ════════════════════════════════════════════════════════════════════
+%  Federated Learning for Privacy-Preserving Distributed Space
+%  Weather Monitoring in Smart Grid Protection
+%  arXiv-preprint-style single-column manuscript
+% ════════════════════════════════════════════════════════════════════
+
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\geometry{a4paper, top=2.6cm, bottom=2.6cm, left=2.5cm, right=2.5cm}
+% left and right margins are symmetric (iron rule)
+
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{adjustbox}
+\usepackage{enumitem}
+\usepackage{caption}
+\usepackage{microtype}
+\usepackage{xurl}          % allow URLs to break at any character
+\usepackage{placeins}   % \FloatBarrier at each section
+\usepackage{needspace}
+
+\captionsetup{font=small, labelfont=bf, skip=6pt}
+
+% Bibliography: numeric citations, arXiv preprint style
+\usepackage[numbers,sort&compress]{natbib}
+\bibliographystyle{unsrtnat}
+
+% hyperref ALWAYS last among content packages
+\usepackage[
+    colorlinks=true,
+    linkcolor=blue!55!black,
+    citecolor=blue!45!black,
+    urlcolor=blue!55!black,
+    bookmarks=true,
+    bookmarksnumbered=true,
+    unicode=true,
+    pdftitle={Federated Learning for Privacy-Preserving Distributed Space
+              Weather Monitoring in Smart Grid Protection},
+    pdfauthor={Deepanshu Balhara, Davesh Vats},
+    pdfsubject={Federated Learning, Solar Flare Prediction, Smart Grid
+                Protection, Space Weather},
+    pdfkeywords={federated learning, solar flare prediction, smart grid,
+                 GIC, FedProx, SWAN-SF}
+]{hyperref}
+
+% Orphan/widow prevention
+\widowpenalty=10000
+\clubpenalty=10000
+
+% Allow emergency line stretching to avoid overfull boxes
+\emergencystretch=1.8em
+
+% Ragged-bottom: avoid stretched vertical glue
+\raggedbottom
+
+% Slight paragraph spacing for preprint readability
+\setlength{\parindent}{1.2em}
+\setlength{\parskip}{2pt plus 1pt}
+
+% ── Custom math macros ──────────────────────────────────────────────
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\w}{\mathbf{w}}
+\newcommand{\norm}[1]{\left\lVert #1 \right\rVert}
+\newcommand{\Fbeta}{F_{\beta}}
+
+\title{Federated Learning for Privacy-Preserving Distributed Space
+Weather Monitoring in Smart Grid Protection}
+\author{Deepanshu Balhara \and Davesh Vats}
+\date{September 2026}
+
+\begin{document}
+
+% ════════════════════════════════════════════════════════════════════
+%  CUSTOM TITLE BLOCK (arXiv-preprint aesthetic, page 1)
+% ════════════════════════════════════════════════════════════════════
+\thispagestyle{plain}
+
+\begin{center}
+    {\color{black!85}\rule{\textwidth}{0.4pt}}\\[2.2em]
+    {\LARGE\bfseries Federated Learning for Privacy-Preserving\\[0.35em]
+     Distributed Space Weather Monitoring\\[0.35em]
+     in Smart Grid Protection\par}
+    \vspace{1.6em}
+    {\large Deepanshu Balhara\textsuperscript{1} \quad and \quad
+     Davesh Vats\textsuperscript{2}\par}
+    \vspace{0.7em}
+    {\small\textit{Independent Researchers}\textsuperscript{1,2}\par}
+    % NOTE FOR AUTHORS: replace the affiliation line above with your
+    % institutional affiliations and contact e-mails before posting.
+    \vspace{1.1em}
+    {\small September 2026\par}
+    \vspace{1.4em}
+    {\color{black!85}\rule{\textwidth}{0.4pt}}
+\end{center}
+
+\vspace{0.4em}
+
+\begin{center}
+\begin{minipage}{0.92\textwidth}
+\small
+\textbf{Abstract ---}
+The vulnerability of modern power grids to geomagnetically induced
+currents (GICs), triggered by M- and X-class solar flares, presents a
+critical and recurring threat to bulk electric infrastructure; the 1989
+Qu\'ebec system collapse remains the canonical demonstration of how a
+single geomagnetic storm can disable an entire provincial grid.
+Effective early-warning systems require predictive models trained on
+high-fidelity solar observations spanning multiple geographic regions,
+yet nationally sensitive space-weather data collected by agencies such
+as NASA, ESA, JAXA, ISRO, KASI, and the Australian Bureau of
+Meteorology cannot be centralised because of data-sovereignty
+constraints and inter-agency data-sharing agreements. This paper
+presents, to the best of our knowledge, the first application of
+federated learning (FL) to solar flare prediction for smart-grid
+protection, explicitly addressing this privacy barrier. The proposed
+framework partitions the SWAN-SF benchmark dataset into six
+geographically distributed regional-observatory clients using Dirichlet
+sampling, inducing realistic non-IID label skew. Each client trains a
+local neural model on 144 statistical features derived from 24
+photospheric magnetic-field parameters, and transmits only weight
+updates---never raw satellite measurements---to an aggregation server
+that combines FedAvg and FedProx (proximal coefficient
+$\mu = 0.01$) with distribution-aware weighting. On a held-out test set
+that preserves the natural $\sim$1.9\% flare prevalence, FedProx attains
+an ROC-AUC of 0.930 (95.0\% of the centralised XGBoost upper bound of
+0.978), a recall of 0.416, and an F1-score of 0.326 at an
+$F_\beta$-optimal decision threshold ($\beta=2$), whereas FedAvg
+degenerates under the same partition. SHAP analysis of the centralised
+surrogate identifies extrema of the flux-emergence proxy
+(R-value), current helicity, and Lorentz-force variability as the
+dominant predictors, consistent with established solar physics. The
+framework converges within 50 communication rounds, making it
+operationally compatible with existing SCADA-based grid-management
+infrastructure. These results demonstrate that distributed space-weather
+agencies can jointly train a usable flare-prediction model without
+compromising data sovereignty, establishing federated machine learning
+as a practical mechanism for global smart-grid resilience against
+geomagnetic threats.
+
+\vspace{0.55em}
+\noindent\textbf{Keywords:} federated learning; solar flare prediction;
+smart grid; geomagnetically induced currents; FedProx; space weather;
+SWAN-SF; non-IID data; class imbalance; data privacy
+
+\vspace{0.55em}
+\noindent\footnotesize Source code and all experimental artefacts:
+\url{https://github.com/Daveshvats/Federated-Learning-for-Distributed-Space-Weather-Monitoring}
+\end{minipage}
+\end{center}
+
+\vspace{0.8em}
+
+\input{sections/sec_intro}
+\input{sections/sec_related}
+\input{sections/sec_problem}
+\input{sections/sec_method}
+\input{sections/sec_experiments}
+\input{sections/sec_results}
+\input{sections/sec_discussion}
+\input{sections/sec_limitations}
+\input{sections/sec_conclusion}
+
+\FloatBarrier
+\appendix
+\input{sections/sec_appendix}
+
+% ════════════════════════════════════════════════════════════════════
+\FloatBarrier
+\bibliography{refs}
+
+\end{document}

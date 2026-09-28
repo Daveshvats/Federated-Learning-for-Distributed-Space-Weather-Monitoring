@@ -1,0 +1,86 @@
+================================================================
+  SF-9 FL SMOKE TEST (torch, synthetic data)
+================================================================
+  [PASS] shards disjoint & complete
+
+[1] FedAvg (plain aggregation) — 4 rounds
+[Model] Creating SolarMLP (input_dim=6, seed=42)
+[Model] CUDA not available — using CPU. Install CUDA PyTorch build for GPU acceleration.
+[Model] Parameters: 11,713
+============================================================
+ FEDAVG [cpu] | MLP | agg=plain | pos_rate=0.080
+ monitoring: VALIDATION (480 samples)
+============================================================
+  Round   4 | val F1: 0.147 | val Recall: 1.000 | val ROC-AUC: 0.995
+
+  [fedavg] Restored best VALIDATION checkpoint (val F1=0.147)
+  [PASS] fedavg history non-empty
+  [PASS] fedavg history contains val metrics
+  [PASS] fedavg weights finite
+
+[2] FedProx (mu=0.01) — 4 rounds
+[Model] Creating SolarMLP (input_dim=6, seed=42)
+[Model] CUDA not available — using CPU. Install CUDA PyTorch build for GPU acceleration.
+[Model] Parameters: 11,713
+============================================================
+ FedProx (mu=0.01) [cpu] | MLP | agg=plain | pos_rate=0.080
+ monitoring: VALIDATION (480 samples)
+============================================================
+  Round   4 | val F1: 0.147 | val Recall: 1.000 | val ROC-AUC: 0.995
+
+  [fedprox] Restored best VALIDATION checkpoint (val F1=0.147)
+  [PASS] fedprox history non-empty
+  [PASS] fedprox weights finite
+
+[3] Frozen-protocol final evaluation
+  [PASS] fedavg: test metrics sane (AUC>0.7 on separable data)
+  [PASS] fedavg: full metric set present
+  [PASS] fedprox: test metrics sane (AUC>0.7 on separable data)
+  [PASS] fedprox: full metric set present
+
+[4] Plain aggregation is size-weighted (B6)
+  [PASS] size-weighted average exact (param 0)
+  [PASS] size-weighted average exact (param 1)
+
+[5] SMOTE path runs (B7 — previously dead code)
+[Model] Creating SolarMLP (input_dim=6, seed=42)
+[Model] CUDA not available — using CPU. Install CUDA PyTorch build for GPU acceleration.
+[Model] Parameters: 11,713
+============================================================
+ FEDAVG [cpu] | MLP | agg=plain | pos_rate=0.080
+ monitoring: VALIDATION (480 samples)
+============================================================
+  Round   2 | val F1: 0.147 | val Recall: 1.000 | val ROC-AUC: 0.997
+
+  [fedavg] Restored best VALIDATION checkpoint (val F1=0.147)
+  [PASS] fedavg+SMOTE completes without error
+
+[6] Client-level evaluation (Stage 10)
+[Model] Creating SolarMLP (input_dim=6, seed=42)
+[Model] CUDA not available — using CPU. Install CUDA PyTorch build for GPU acceleration.
+[Model] Parameters: 11,713
+[Client Eval] Americas (NASA/NOAA): n=107 (pos 4.7%) | local PR-AUC 0.098 | fed PR-AUC 1.000
+[Model] Creating SolarMLP (input_dim=6, seed=43)
+[Model] CUDA not available — using CPU. Install CUDA PyTorch build for GPU acceleration.
+[Model] Parameters: 11,713
+[Client Eval] Europe (ESA/PROBA-2): n=117 (pos 50.4%) | local PR-AUC 0.706 | fed PR-AUC 1.000
+[Model] Creating SolarMLP (input_dim=6, seed=44)
+[Model] CUDA not available — using CPU. Install CUDA PyTorch build for GPU acceleration.
+[Model] Parameters: 11,713
+[Client Eval] Asia-Pacific (JAXA): n=391 (pos 3.3%) | local PR-AUC 0.059 | fed PR-AUC 0.948
+[Model] Creating SolarMLP (input_dim=6, seed=45)
+[Model] CUDA not available — using CPU. Install CUDA PyTorch build for GPU acceleration.
+[Model] Parameters: 11,713
+[Client Eval] South Asia (ISRO): n=920 (pos 4.8%) | local PR-AUC 0.084 | fed PR-AUC 1.000
+  [PASS] client evaluation returns per-client rows
+  [PASS] client evaluation summary has local/federated PR-AUC
+
+[7] Communication cost on a real model (Stage 15)
+[Comm] model: 11,713 params (0.05 MB @ 32-bit)
+[Comm] per client per round: 0.09 MB (up+down)
+[Comm] full run (4 rounds, 4 clients): 1.5 MB total, 0.4 MB per client
+  [PASS] comm cost measured
+
+================================================================
+  RESULT: 16 passed, 0 failed
+================================================================

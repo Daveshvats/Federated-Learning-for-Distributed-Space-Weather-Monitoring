@@ -1,0 +1,108 @@
+% ════════════════════════════════════════════════════════════════════
+% SECTION 2 — BACKGROUND AND RELATED WORK
+% ════════════════════════════════════════════════════════════════════
+\section{Background and Related Work}\label{sec:related}
+
+\subsection{Solar flare prediction from photospheric magnetograms}
+
+The physical premise of data-driven flare forecasting is that the
+photospheric magnetic field of an active region encodes the stress
+budget that a future flare will release. Schrijver~\cite{schrijver2007}
+demonstrated that a single scalar---the R-value, the unsigned flux
+within high-gradient polarity-separation corridors---separates
+major-flaring regions from non-flaring ones with striking reliability,
+and this proxy remains among the strongest single flare predictors
+identified to date. Bobra and Couvidat~\cite{bobra2015} operationalised
+the machine-learning view of the problem, showing that a support-vector
+machine trained on 25~SHARP parameters derived from SDO/HMI vector
+magnetograms can forecast M-class flares with useful skill, and that
+feature selection matters as much as model choice. Subsequent
+community-wide blind tests, most notably the multi-method comparison of
+Leka et al.~\cite{leka2019}, established two durable findings: (i)~no
+single method dominates across all event definitions and skill
+metrics, and (ii)~the effective ceiling on skill is set by the quality
+and homogeneity of the training data rather than by classifier
+complexity.
+
+The European FLARECAST project~\cite{georgoulis2021} pushed the
+operational agenda further, combining multiple forecasting methods and
+data sources in an open framework, and it explicitly confronted the
+data-heterogeneity problem that motivates the present paper. On the
+data side, the SWAN-SF benchmark of Angryk et
+al.~\cite{angryk2020} released a multivariate time-series dataset of
+roughly 8{,}000 active-region tracks with 24 physical parameters per
+timestep and flare-history labels, specifically designed to make flare
+prediction reproducible and comparable; it has since become the
+community's reference benchmark, and a family of cleaned and rebalanced
+variants (random undersampling, Tomek-link cleaning, and TimeGAN-based
+synthetic augmentation \cite{yoon2019}) has been curated to make the
+benchmark tractable for supervised learning. Recent deep-learning work
+on SWAN-SF continues to raise the centralised ceiling: contrastive
+pretraining and multifaceted preprocessing \cite{eskandari2024} and
+LSTM-style temporal architectures \cite{hassani2025} exploit the
+sequential structure of the 60-minute observation windows. All of these
+works, without exception, assume that the full training corpus is
+available in one place.
+
+\subsection{Federated learning under statistical heterogeneity}
+
+Federated learning was introduced by McMahan et
+al.~\cite{mcmahan2017} in the FedAvg formulation: clients perform
+several epochs of local SGD on private data, and a server aggregates
+the resulting weights by sample-size-weighted averaging. The defining
+difficulty, identified almost immediately, is statistical
+heterogeneity: when client data distributions differ---the non-IID
+setting---local optima diverge from the global optimum, and naive
+averaging can oscillate or diverge \cite{zhao2018}. FedProx
+\cite{li2020} addresses this by adding a proximal term
+$(\mu/2)\norm{\w-\w^{(t)}}^{2}$ to each client's local objective that
+anchors local training to the current global model, tolerating partial
+work and heterogeneous local computation. SCAFFOLD \cite{karimireddy2020}
+attacks the same problem with control variates that correct client
+drift using variance reduction. The comprehensive survey of Kairouz et
+al.~\cite{kairouz2021} situates these algorithms within the broader
+open-problem landscape, including robust aggregation, personalisation,
+and privacy. Cross-silo FL---few, reliable, institutionally owned
+clients---is the deployment regime relevant to space-weather agencies,
+and it contrasts with the cross-device regime in its stability
+requirements and long-lived participants.
+
+\subsection{Class imbalance in federated learning}
+
+Flare prediction inherits an extreme class-imbalance regime: in
+SWAN-SF's natural test distribution, roughly 1.9\% of windows precede
+M/X-class flares, while the rebalanced training partitions sit near
+parity. The focal loss of Lin et al.~\cite{lin2017}, originally
+developed for dense object detection, down-weights easy examples with a
+$(1-p_t)^{\gamma}$ modulating factor and concentrates gradient on hard
+positives; it has become the default imbalance workhorse. Sarkar et
+al.~\cite{sarkar2020} adapted focal loss specifically to FL in the
+Fed-Focal formulation, in which the class-weighting parameter is
+adjusted using information available at the server about the global
+class distribution, so that clients with different local positivity
+rates do not implicitly reweight the global objective. In parallel,
+synthetic oversampling remains a standard pre-processing response:
+SMOTE \cite{chawla2002} interpolates minority-class neighbours, and
+mixup \cite{zhang2018} creates convex combinations of training pairs.
+Under federation, rebalancing must be applied locally per client, since
+the pooled distribution is precisely what no participant can inspect.
+
+\subsection{Positioning of this work}
+
+Two research threads---physics-grounded flare prediction and
+heterogeneity-robust federated learning---have developed largely
+independently, and we are not aware of any prior work that joins them.
+Searches of the FL literature reveal applications spanning digital
+health \cite{rieke2020}, finance, and IoT sensing, but none addressing
+space-weather forecasting or solar flare prediction; conversely, the
+flare-forecasting literature, including its most recent deep-learning
+incarnations \cite{eskandari2024,hassani2025}, is entirely
+centralised. The present work is, to the best of our knowledge, the
+first federated treatment of solar flare prediction, the first
+FL framework evaluated on the SWAN-SF benchmark, and the first to
+quantify the privacy cost of federation---the gap between federated and
+centralised skill---specifically for a safety-critical smart-grid
+application. In doing so it also contributes a rarely documented
+artifact: an honest engineering log of the failure modes encountered
+when FL meets a severely imbalanced physical-science benchmark
+(Appendix~\ref{sec:appendix}).

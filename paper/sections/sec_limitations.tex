@@ -1,0 +1,74 @@
+% ════════════════════════════════════════════════════════════════════
+% SECTION 8 — LIMITATIONS AND FUTURE WORK
+% ════════════════════════════════════════════════════════════════════
+\section{Limitations and Future Work}\label{sec:limitations}
+
+\paragraph{Privacy scope.}
+This work enforces the data-sovereignty constraint (raw data never
+leaves the agency), which is the binding constraint of the
+space-weather setting, but the stronger cryptographic notion of
+privacy is not yet addressed. The communication transcript of
+Eq.~\eqref{eq:privacy}---gradients or weight deltas---is known to leak
+training information under gradient-inversion attacks
+\cite{zhu2019}, particularly for over-parameterised models on
+low-entropy data. Before any cross-agency deployment handling
+genuinely sensitive observations, the natural next steps are secure
+aggregation (the server sees only the sum of updates) and differential
+privacy in the local update \cite{kairouz2021}; both compose cleanly
+with the FedProx loop used here and are standard engineering, but they
+carry accuracy budgets that would need to be re-measured on this
+benchmark.
+
+\paragraph{Threshold selection and calibration.}
+The reported thresholds are selected directly on the held-out test
+set, mirroring the released evaluation code; the stricter protocol
+would select $\tau^\ast$ on a validation split disjoint from the
+reporting test set. Given that threshold selection chooses one scalar
+from an 81-point grid, the optimism this injects is limited, but a
+re-run with proper threshold validation is the single easiest
+strengthening of the reported numbers. More fundamentally, the
+always-positive behaviour during training
+(Fig.~\ref{fig:convergence}) is a calibration defect, and principled
+prior-correction methods (logit adjustment to the deployment prior, or
+post-hoc Platt scaling at the server) should replace or complement
+the threshold sweep in future versions.
+
+\paragraph{Partition realism and disjointness.}
+Two aspects of the partition simulation invite refinement. First, the
+Dirichlet sampler in the released implementation draws class
+sub-samples independently per client, so shards are not guaranteed
+mutually disjoint; the realised overlap is a small fraction under the
+released seed but should be eliminated by index bookkeeping for a
+strict partition semantics. Second, geographic realism would map
+active regions to the agencies whose instruments actually observed
+them (HARP-tracking metadata supports this), replacing statistical
+label skew with instrument- and coverage-driven skew.
+
+\paragraph{Algorithm coverage.}
+The committed artefacts cover the MLP path; the LSTM path---which
+consumes the raw $60\times24$ windows and matches the recent temporal
+architectures that lead centralised SWAN-SF benchmarks
+\cite{hassani2025}---is fully implemented but not yet evaluated
+federated, and SCAFFOLD is disabled pending the SGD-stability work
+described in Appendix~\ref{sec:appendix}. Both are near-term
+experiments: the LSTM is the most likely route to closing the F1 gap
+to the tree-ensemble upper bound, and SCAFFOLD is the natural third
+point on the drift-correction axis between FedAvg and FedProx.
+Personalised FL (per-client heads over a shared backbone, in the
+spirit of Ditto) is a third direction: agencies may prefer a global
+model for situational awareness plus a locally adapted model for their
+own asset fleet.
+
+\paragraph{Single-seed, single-benchmark scope.}
+The reported numbers are one run of one configuration on one
+benchmark. Seed variance in FL is material, and the appropriate
+follow-up is a five-seed repetition with confidence intervals on all
+metrics of Table~\ref{tab:main}, plus a sweep over $\mu \in \{0.001,
+0.01, 0.1\}$ and $\alpha \in \{0.5, 1.0, 5.0\}$ to map the
+stability boundary of Appendix~\ref{sec:appendix} quantitatively. The
+benchmark itself, and its cleaned variant, encode particular
+preprocessing choices (resampling, synthetic augmentation,
+normalisation) that shape the class-prior mismatch at the centre of
+the calibration story; a complementary evaluation on the raw
+unbalanced SWAN-SF partitions would separate benchmark-construction
+effects from federation effects.

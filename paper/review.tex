@@ -1,0 +1,214 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{geometry}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{adjustbox}
+\usepackage{enumitem}
+\usepackage{caption}
+\usepackage{microtype}
+\usepackage{xurl}
+\usepackage{placeins}
+
+\geometry{a4paper, top=2.6cm, bottom=2.6cm, left=2.5cm, right=2.5cm}
+\captionsetup{font=small, labelfont=bf, skip=6pt}
+\widowpenalty=10000
+\clubpenalty=10000
+\emergencystretch=1.8em
+\raggedbottom
+
+
+\usepackage[
+    colorlinks=true,
+    linkcolor=blue!55!black,
+    citecolor=blue!45!black,
+    urlcolor=blue!55!black,
+    bookmarks=true,
+    unicode=true,
+    pdftitle={Companion Review: Research Assessment, Code Audit, and Recommendations},
+    pdfauthor={Prepared as companion to the SF-9 research paper},
+    pdfsubject={Code audit and research assessment}
+]{hyperref}
+
+\newcommand{\code}[1]{\texttt{#1}}
+
+\begin{document}
+
+\begin{center}
+    {\color{black!85}\rule{\textwidth}{0.4pt}}\\[1.6em]
+    {\LARGE\bfseries Companion Review\par}
+    \vspace{0.4em}
+    {\large Research Assessment, Code Audit, and Recommendations\par}
+    \vspace{0.8em}
+    {\small for the repository \code{Daveshvats/}\\
+    \code{Federated-Learning-for-Distributed-Space-Weather-Monitoring} (SF-9)\par}
+    \vspace{1.0em}
+    {\color{black!85}\rule{\textwidth}{0.4pt}}
+\end{center}
+
+\vspace{0.6em}
+
+\section*{1. Overall Rating: 7.0 / 10 --- ``Promising first application with a
+clear improvement path''}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabularx}{0.94\textwidth}{@{}l c X@{}}
+\toprule
+\textbf{Dimension} & \textbf{Score} & \textbf{Rationale} \\
+\midrule
+Problem importance & 9/10 & GIC risk to grids is real, documented
+(1989 Qu\'ebec; 2012 near-miss), and the data-sovereignty barrier is
+genuine. \\
+Novelty & 8/10 & First FL treatment of solar flare prediction; verified
+against the current literature during paper preparation. Well-targeted
+cross-silo scenario. \\
+Methodology & 6.5/10 & Sound framework (Dirichlet non-IID, FedProx,
+Fed-Focal, $F_\beta$ thresholds), but the evaluation carries
+methodological debts: single seed, thresholds tuned on the test set,
+non-disjoint shards, and one stale metric. \\
+Results strength & 5.5/10 & The direction is right (FedProx AUC 0.930
+vs centralised 0.978) but absolute skill (F1 0.326, recall 0.416) is
+sentinel-grade, not forecaster-grade; FedAvg's collapse is instructive
+but weakens the headline. \\
+Reproducibility & 7.5/10 & Deterministic seed, versioned fixes
+(v2.1--v2.6), committed result figures; but no README, placeholder
+values in \code{ABSTRACT.md}, and metrics exist only as PNG images. \\
+Code quality & 7/10 & Exceptional inline documentation and diagnostic
+commentary; offset by the audit findings in \S3. \\
+\midrule
+\textbf{Overall} & \textbf{7.0/10} & A credible workshop/short-conference
+contribution; the fixes in \S4 would lift it toward a strong
+full-conference or journal paper. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section*{2. What the research does well}
+
+\begin{enumerate}[leftmargin=2em, itemsep=3pt]
+  \item \textbf{The right regime.} Cross-silo FL with six institution-like
+  clients is the correct abstraction for space-weather agencies; the
+  privacy constraint is enforced by construction, not just claimed.
+  \item \textbf{Honest engineering narrative.} The v2.1--v2.6 fix log
+  (SCAFFOLD NaN root cause, focal-alpha drift, feature-schema audit) is
+  rare, valuable documentation; the companion paper turns it into a
+  transferable lessons section.
+  \item \textbf{Safety-critical framing done correctly.} Recall-weighted
+  $F_\beta$ ($\beta=2$) threshold optimisation, rather than default
+  0.5-threshold metrics, matches how a grid operator would actually
+  consume the model.
+  \item \textbf{Discrimination retained.} FedProx holds 95\% of the
+  centralised AUC (0.930/0.978) with zero raw-data movement --- the core
+  feasibility result stands.
+  \item \textbf{Interpretable, physical features.} Decoded SHAP ranks
+  (R-value extrema, TOTUSJH, Lorentz-force variability) align with
+  established flare physics, which strengthens scientific credibility.
+\end{enumerate}
+
+\section*{3. Code Audit Findings (cross-check of the released scripts)}
+
+Ordered by severity; all were cross-checked against the committed
+artefacts and the extracted result values.
+
+\begin{enumerate}[leftmargin=2em, itemsep=4pt]
+  \item \textbf{[Bug, medium] Stale accuracy for federated models.}
+  In \code{main.py}, after $F_\beta$ threshold optimisation, the
+  \code{accuracy} field of FedAvg/FedProx results is never recomputed
+  (only the centralised models get
+  \code{accuracy\_score(...)} on new predictions). The committed
+  \code{Comparison\_Table.png} therefore reports FedProx accuracy as
+  0.019 --- the value at the pre-optimisation threshold --- while its
+  confusion matrix implies $\approx$0.969. The companion paper reports
+  the corrected value with a footnote. \emph{Fix:} recompute accuracy
+  (and store predictions) for FL models exactly as done for baselines.
+  \item \textbf{[Bug, medium] Dirichlet shards are not disjoint.}
+  The Dirichlet partitioner in \code{partition\_clients.py} draws, for
+  every (client, class) pair, a fresh random subset of the class pool
+  with \code{np.random.choice}; nothing excludes indices already
+  assigned to other clients, so training samples can appear in
+  multiple clients (and some samples are never used). This inflates
+  effective duplication and weakens the ``six disjoint observatories''
+  semantics. \emph{Fix:} draw a single permutation per class and slice
+  it by the Dirichlet proportions.
+  \item \textbf{[Bug, low-medium] Interpretability names lost.}
+  The 144 statistical features are renamed \code{feature\_0..143} in
+  \code{\_arrays\_to\_dataframe}, so the SHAP plot (and every downstream
+  table) shows opaque indices; the companion paper had to decode them
+  analytically. \emph{Fix:} propagate
+  \code{mean\_R\_VALUE}-style names end to end.
+  \item \textbf{[Transparency] ``FedAvg'' is not vanilla FedAvg.} Both
+  \code{run\_fedavg} and \code{run\_fedprox} aggregate through
+  \code{aggregate\_weights\_dafl} (distribution-aware weighting). The
+  comparison therefore isolates the proximal term \emph{given} DA-FL
+  weighting --- a legitimate design, but the labels in the committed
+  figures understate this. \emph{Fix:} either add a true-FedAvg
+  (size-weighted only) arm, or describe DA-FL in the figure caption.
+  \item \textbf{[Config mismatch] LSTM vs committed outputs.}
+  \code{config.py} ships \code{USE\_LSTM=True}, but every committed
+  artefact (\code{FedAvg MLP}, \code{FedProx MLP}) is from the MLP path
+  with 144 statistical features. Anyone re-running ``as released'' will
+  get a different pipeline than the one that produced the figures.
+  \emph{Fix:} pin the configuration that reproduces the committed
+  outputs (or commit the LSTM outputs too).
+  \item \textbf{[Methodological debt] Threshold selected on the test
+  set.} The $F_\beta$ sweep of \code{main.py} runs directly on the test
+  partitions. The optimism is bounded (one scalar from an 81-point
+  grid) but reviewers will flag it. \emph{Fix:} select $\tau^\ast$ on a
+  carved-out validation split, report final numbers on test only.
+  \item \textbf{[Consistency, low]} \code{config.py}
+  \code{BATCH\_SIZE=256} is unused by the FL loop
+  (\code{\_make\_loader} hardcodes 512); \code{FOCAL\_ALPHA} in config
+  is bypassed by the hardcoded \code{focal\_alpha=0.25} argument;
+  \code{THRESHOLD=0.35} silently drives the misleading training-time
+  convergence curves (the paper documents why these are uninformative).
+  Consolidate these into one source of truth.
+  \item \textbf{[Hygiene, low]} \code{ABSTRACT.md} still contains
+  \code{[X.XX]} placeholder metrics; the repo has no README (setup,
+  data download, and run instructions live only in docstrings); results
+  exist only as PNGs, not JSON/CSV, which blocks automated
+  re-comparison.
+\end{enumerate}
+
+\section*{4. Recommendations (prioritised)}
+
+\begin{description}[leftmargin=2em, itemsep=4pt]
+  \item[P0 --- before any submission:] fix findings 1--2 above; add
+  \code{F2} (the optimised metric!) to the reported table; run the
+  five-seed repetition with means $\pm$ std; regenerate the figures from
+  the fixed code.
+  \item[P1 --- strengthens the science:] add a \emph{centralised MLP}
+  baseline (currently the federated model is compared only against a
+  300-tree XGBoost, which conflates architecture with privacy cost);
+  evaluate the LSTM path; re-enable SCAFFOLD now that its SGD
+  control-variate fix is in; replace the threshold sweep with prior
+  correction / logit adjustment so calibration is principled rather
+  than post hoc.
+  \item[P2 --- for the venue:] a $\mu$-sweep ($10^{-3}$--$10^{-1}$) and
+  $\alpha$-sweep (0.5--5) to map the stability boundary; per-client
+  evaluation (is the global model better than each client's local
+  model?); HARP-based geographic partitioning for realism.
+  \item[P3 --- deployment track:] secure aggregation and differential
+  privacy on the update channel (the current design protects data
+  locality, not gradient-inversion attacks); Ditto-style personalised
+  heads; SCADA integration notes.
+\end{description}
+
+\section*{5. Verdict}
+
+The repository delivers a genuinely novel, well-motivated, and
+honestly-engineered first study of federated solar flare prediction,
+with a usable feasibility result (95\% of centralised AUC without data
+movement) and unusually good in-code documentation. Its weaknesses ---
+single-seed evidence, sentinel-grade absolute skill, several
+audit-level bugs, and metrics recoverable only from images --- are all
+fixable with bounded effort, and none undermines the core claim. With
+the P0/P1 items addressed, this is a solid conference paper; the
+companion manuscript is written to that standard so the numbers it
+reports will survive the fixes (the one corrected value is footnoted
+at its source).
+
+\end{document}

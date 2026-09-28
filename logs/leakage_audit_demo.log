@@ -1,0 +1,33 @@
+
+================================================================
+  SF-9 LEAKAGE AUDIT REPORT
+================================================================
+
+  Detector self-check:
+      PASS  detects_shard_overlap
+      PASS  detects_split_overlap
+      PASS  detects_region_leakage
+      PASS  clean_shards_pass
+      PASS  clean_split_pass
+
+  [PASS] shard_disjointness
+    duplicate_count: 0
+    total_assigned: 5000
+    unique_assigned: 5000
+    pass: True
+
+  [PASS] shard_coverage
+    n_train: 5000
+    assigned: 5000
+    missing_count: 0
+    pass: True
+
+  [PASS] split_exclusivity
+    train_val_overlap: 0
+    train_test_overlap: 0
+    val_test_overlap: 0
+    pass: True
+
+  OVERALL: PASS
+================================================================
+

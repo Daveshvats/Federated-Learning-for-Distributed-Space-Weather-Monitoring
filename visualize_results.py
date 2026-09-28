@@ -1,7 +1,9 @@
 """
 visualize_results.py
 ─────────────────────
-Generates all figures needed for the ICE2CT-2026 paper.
+Generates all paper figures FROM the results dict (v3.0: never
+hand-typed numbers, audit B18; convergence plots come from VALIDATION
+monitoring, not test — audit B5).
 
 Figures produced:
   1. Confusion_Matrices.png      — 4 models side by side
@@ -21,7 +23,7 @@ import seaborn as sns
 from sklearn.metrics import confusion_matrix, roc_curve, auc
 from typing import Dict, List
 
-from config import OUTPUT_DIR, CLIENT_NAMES, THRESHOLD
+from config import OUTPUT_DIR, CLIENT_NAMES, DEFAULT_THRESHOLD
 
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -204,7 +206,7 @@ def plot_comparison_table(all_results: Dict) -> None:
     header = ["Model", "Accuracy", "Precision", "Recall", "F1-Score", "ROC-AUC", "Threshold"]
 
     for name, res in all_results.items():
-        thresh_str = f"{res.get('threshold', THRESHOLD):.2f}"
+        thresh_str = f"{res.get('threshold', DEFAULT_THRESHOLD):.2f}"
         rows.append([
             name,
             f"{res['accuracy']:.3f}",
@@ -256,7 +258,7 @@ def print_results_table(all_results: Dict) -> None:
     print(fmt.format("Model", "Acc", "Prec", "Recall", "F1", "ROC-AUC", "Thresh"))
     print(sep)
     for name, res in all_results.items():
-        thresh_str = f"{res.get('threshold', THRESHOLD):.2f}"
+        thresh_str = f"{res.get('threshold', DEFAULT_THRESHOLD):.2f}"
         print(fmt.format(
             name,
             f"{res['accuracy']:.3f}",

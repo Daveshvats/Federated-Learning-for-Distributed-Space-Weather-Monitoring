@@ -1,0 +1,134 @@
+% ════════════════════════════════════════════════════════════════════
+% SECTION 1 — INTRODUCTION
+% ════════════════════════════════════════════════════════════════════
+\section{Introduction}\label{sec:intro}
+
+Modern society has quietly built its electrical backbone in the path of
+a cosmic hazard. Geomagnetically induced currents (GICs) are
+quasi-direct currents that flow in high-voltage transmission lines when
+a geomagnetic storm---itself driven by the arrival of a coronal mass
+ejection (CME) associated with a major solar flare---distorts the
+Earth's magnetosphere. The time-varying geomagnetic field induces
+geo-electric fields in the conducting crust, and these fields drive GICs
+through grounded transformer neutrals. Once inside a high-voltage
+transformer, even a modest GIC biases the alternating flux into
+half-cycle saturation, producing harmonics, reactive-power absorption,
+and localized heating that can culminate in irreversible thermal
+damage~\cite{bolduc2002,boteler2019}. The canonical demonstration of
+this failure mode remains the 13~March 1989 storm, which collapsed the
+Hydro-Qu\'ebec grid in ninety seconds and left six million customers
+without power for nine hours~\cite{bolduc2002,boteler2019}. The
+July~2012 event, an eruptive flare/CME of Carrington-class magnitude
+that missed Earth's orbital position by roughly nine days, is a stark
+reminder that the next exposure is a matter of when, not
+if~\cite{baker2013}.
+
+The first line of defence against such events is forecasting. Grid
+operators who receive an early warning that an M- or X-class flare has
+erupted, or is likely to erupt, in a magnetically complex active region
+can pre-emptively derate transformers, adjust reserve margins, postpone
+switching operations, and prepare load-shedding plans in the
+window between the flare observation and the CME's arrival one to three
+days later. Machine-learning flare-prediction models built on
+photospheric vector-magnetogram summaries---the SHARP parameter
+suite~\cite{bobra2015} and its descendants---have demonstrated
+statistically skilful classification of flaring versus non-flaring
+active regions~\cite{leka2019,georgoulis2021}. The predictive signal
+lives in quantities such as total unsigned current helicity, magnetic
+free energy, and flux-emergence proxies, all of which are computed
+routinely by solar observatories on every continent and in orbit.
+
+There is, however, a structural obstacle to training the strongest
+possible model: the data cannot be pooled. The highest-fidelity
+flare-forecasting observations are produced and curated by nationally
+mandated agencies---NASA and NOAA in the Americas, ESA in Europe, JAXA
+in the Asia-Pacific region, ISRO in South Asia, KASI in East Asia, and
+the Australian Bureau of Meteorology (BoM) in Oceania. Raw
+magnetogram-derived time series are treated as nationally sensitive
+assets in many jurisdictions, and inter-agency data-sharing agreements
+historically favour metadata exchange over bulk data transfer.
+Consequently, each agency trains (or could train) models on its own
+regional shard, and the global community inherits the fragmentation of
+six models each seeing a biased slice of the active-region population.
+A genuinely global model, trained on all regions' data without any
+region surrendering that data, has been out of reach.
+
+Federated learning (FL)~\cite{mcmahan2017,kairouz2021} is precisely the
+mechanism for this setting. In cross-silo FL, each data-holder trains a
+shared model architecture locally and transmits only parameter updates
+to an aggregation server, which averages them into a new global model.
+Raw measurements never leave the custodian's infrastructure. FL has
+already proven transformative in medicine and digital health, where
+patient-privacy constraints are structurally identical to the
+data-sovereignty constraints of space-weather
+agencies~\cite{rieke2020}. What has not existed, prior to the present
+work, is a systematic treatment of FL for solar flare
+prediction---the solar-physics community's benchmark workflows
+\cite{leka2019,georgoulis2021,angryk2020} are all centrally pooled, and
+the FL literature contains, to the best of our knowledge, no
+application to photospheric flare forecasting.
+
+This paper closes that gap. We present a complete, reproducible
+federated framework---implemented, versioned, and released as open
+source---that simulates six geographically distributed regional
+observatories, each holding a non-IID shard of the SWAN-SF benchmark
+\cite{angryk2020} in its cleaned and rebalanced form, and evaluates
+whether federation can approach the centralised upper bound without
+any data movement. The specific contributions are:
+
+\begin{enumerate}[leftmargin=2em, itemsep=3pt]
+  \item \textbf{A problem formulation and system architecture} that maps
+  smart-grid GIC early warning onto a cross-silo federated
+  classification problem with a safety-critical, recall-weighted
+  objective, and that abstracts the data-sovereignty constraint of
+  national space-weather agencies into a concrete, simulable protocol
+  (Section~\ref{sec:problem} and Section~\ref{sec:method}).
+  \item \textbf{A non-IID federation protocol for SWAN-SF} that combines
+  Dirichlet label-skew partitioning across six regional clients,
+  per-client SMOTE oversampling, a server-aware Fed-Focal loss
+  \cite{sarkar2020} for extreme class imbalance, and
+  distribution-aware aggregation weighting, on top of both FedAvg
+  \cite{mcmahan2017} and FedProx \cite{li2020} training loops
+  (Section~\ref{sec:method}).
+  \item \textbf{A safety-critical evaluation protocol} based on
+  $F_\beta$ threshold optimisation with $\beta = 2$, which recognises
+  that in grid protection a missed flare is operationally far costlier
+  than a false alarm, and an end-to-end comparison against
+  centralised logistic-regression and XGBoost baselines under the
+  natural test-set prevalence of approximately 1.9\% flares
+  (Section~\ref{sec:experiments}).
+  \item \textbf{An empirical privacy-cost quantification.} On the
+  held-out test partitions, FedProx achieves an ROC-AUC of 0.930
+  against the centralised XGBoost upper bound of 0.978 (95.0\% of
+  pooled discrimination), with recall 0.416 and F1 0.326 at the
+  recall-weighted threshold, while FedAvg collapses under the same
+  partition---evidence that proximal regularisation, not merely
+  federation, is what makes the non-IID setting tractable
+  (Section~\ref{sec:results}).
+  \item \textbf{An interpretability audit.} SHAP analysis of the
+  centralised surrogate, with a decoding of the statistical feature
+  space back to physical magnetic parameters, identifies extrema of the
+  Schrijver flux-emergence proxy \cite{schrijver2007}, current
+  helicity, and Lorentz-force components as the dominant predictors,
+  consistent with established flare physics
+  (Section~\ref{sec:results}).
+\end{enumerate}
+
+In addition to these scientific contributions, the released framework
+embodies a documented engineering narrative: a six-version stability
+iteration (v2.1--v2.6) in which Dirichlet concentration, focal-loss
+alpha clamping, optimiser choice for variance-reduced FL, and dataset
+auditing were each adjusted in response to diagnosed failure modes. We
+summarise this evolution in Appendix~\ref{sec:appendix} because it
+constitutes, in our view, transferable know-how for practitioners
+attempting the first FL deployment in any physical-science domain.
+
+The remainder of the paper is organised as follows.
+Section~\ref{sec:related} reviews flare prediction and federated
+learning. Section~\ref{sec:problem} formalises the problem.
+Section~\ref{sec:method} details the system architecture and
+methodology. Section~\ref{sec:experiments} describes the experimental
+setup, Section~\ref{sec:results} presents and analyses results, and
+Section~\ref{sec:discussion} discusses operational integration and
+engineering lessons. Section~\ref{sec:limitations} states limitations
+and future work, and Section~\ref{sec:conclusion} concludes.

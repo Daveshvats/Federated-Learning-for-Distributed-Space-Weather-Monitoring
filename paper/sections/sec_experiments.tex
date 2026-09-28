@@ -1,0 +1,104 @@
+% ════════════════════════════════════════════════════════════════════
+% SECTION 5 — EXPERIMENTAL SETUP
+% ════════════════════════════════════════════════════════════════════
+\section{Experimental Setup}\label{sec:experiments}
+
+\subsection{Protocol and baselines}
+
+The evaluation protocol is fixed in the released pipeline and consists
+of four stages executed in sequence: (1)~data loading with the
+train/test boundary inherited from the benchmark's partition structure
+(the test partitions are never seen during federation, aggregation, or
+threshold tuning except for the final metric computation described
+below); (2)~Dirichlet partitioning of the pooled training data into six
+regional shards; (3)~centralised training of the pooled baselines
+followed by the two federated runs (FedAvg and FedProx, 50 rounds
+each); and (4)~per-model $F_\beta$ threshold optimisation and final
+evaluation on the held-out test set.
+
+Two centralised baselines trained on the pooled 144-dimensional
+features provide the non-private upper bounds. \textbf{Logistic
+regression} uses balanced class weights and a maximum of 2{,}000
+iterations. \textbf{XGBoost} \cite{chen2016} is configured with 300
+estimators, maximum depth 6, learning rate 0.05, subsample and column
+subsample ratios of 0.8, minimum child weight 5, and
+\texttt{scale\_pos\_weight} of 10 to reflect the test-set imbalance.
+Both baselines receive the same threshold optimisation as the
+federated models, so the comparison is uniform with respect to the
+decision layer. Because tree ensembles cannot be weight-averaged, no
+federated XGBoost is attempted; the comparison is deliberately between
+the best pooled model and the best federated neural model.
+
+\subsection{Hyperparameters}
+
+Table~\ref{tab:hyper} summarises the hyperparameters of the released
+configuration (v2.6) as defined in the framework's central
+configuration module. Every federated run uses all six clients every
+round (client fraction 1.0), 10 local epochs, AdamW at learning rate
+$5\times10^{-4}$ with weight decay $10^{-4}$ and cosine-annealing warm
+restarts (period 5), mini-batches of 512 samples, and gradient clipping
+at norm 5.0. Evaluation uses batched inference (2{,}048 samples per
+batch) so that the full test set fits in accelerator memory.
+
+\begin{table}[t]
+\centering
+\caption{Released configuration (v2.6) of the federated framework.}
+\label{tab:hyper}
+\small
+\begin{tabularx}{\textwidth}{@{}l >{\raggedright\arraybackslash}X l@{}}
+\toprule
+\textbf{Component} & \textbf{Setting} & \textbf{Source} \\
+\midrule
+Federation & $K=6$ clients (all selected each round), $T=50$ rounds &
+config \\
+Local optimisation & 10 local epochs, AdamW, lr $5\times10^{-4}$, wd
+$10^{-4}$, cosine warm restarts, batch 512, grad-clip 5.0 &
+federated learning module \\
+FedProx & proximal coefficient $\mu = 0.01$ & config \\
+Aggregation & DA-FL weights $\rho_k \propto n_k\sqrt{\phi_k}$, cap
+$2/K$ (Eq.~\ref{eq:dafl}) & aggregation module \\
+Loss & Fed-Focal, $\gamma = 2.0$, base $\alpha = 0.25$, clamped to
+$(0.05,0.25)$ & losses module \\
+Local rebalancing & per-client SMOTE, minority fraction 0.25 &
+preprocessing \\
+Partitioning & Dirichlet, $\alpha = 1.0$, RNG seed 42 &
+partition module \\
+MLP & $144\!\to\!128\!\to\!64\!\to\!32\!\to\!1$, BatchNorm, ReLU,
+dropout 0.3 & model module \\
+LSTM (implemented) & hidden 128, 2 layers, dropout 0.3 &
+model module \\
+Decision layer & $F_\beta$ ($\beta=2$) threshold sweep
+$\tau\in[0.10,0.90]$ & evaluation \\
+Centralised LR & balanced class weights, max iter 2{,}000 &
+baseline module \\
+Centralised XGBoost & 300 trees, depth 6, lr 0.05,
+\texttt{scale\_pos\_weight} 10 & baseline module \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Metrics}
+
+We report accuracy, precision, recall, F1, ROC-AUC, and the selected
+threshold $\tau^\ast$. Given the severe test-set imbalance
+($\approx$1.9\% positives), accuracy is dominated by the negative
+class and we treat recall, F1, and ROC-AUC as the primary skill
+measures, with $\Fbeta$ driving threshold selection. ROC-AUC in
+particular measures the ranking quality of the model's probabilities
+independently of any threshold, and therefore isolates what federation
+costs in discrimination from what miscalibration costs in decision
+quality. All metrics are computed on the pooled held-out test set
+under each model's optimal threshold; the confusion matrices are
+row-normalised so that per-class error structure is visible despite
+the 50:1 class ratio.
+
+\subsection{Compute}
+
+The framework runs on a single consumer-grade GPU (the pipeline's
+evaluation batching and memory management target a 12\,GB RTX
+3060-class device) with a CPU fallback. A full run---baselines, FedAvg,
+and FedProx at 50 rounds---completes in tens of minutes on GPU. This
+footprint is itself part of the contribution: the entire experimental
+programme is reproducible on hardware available to any agency or
+research group, and the released code is deterministic with respect to
+the fixed RNG seed for partitioning.

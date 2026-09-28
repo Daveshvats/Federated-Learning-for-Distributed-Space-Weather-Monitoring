@@ -1,0 +1,116 @@
+================================================================
+  SF-9 PIPELINE INTEGRITY TESTS (fixes verification)
+================================================================
+
+[1] Disjoint Dirichlet partitioning (B2)
+  [PASS] alpha=0.5 seed=1: coverage 100%
+  [PASS] alpha=0.5 seed=1: 0 duplicate samples
+  [PASS] alpha=0.5 seed=1: shard sizes match assignment
+  [PASS] alpha=1.0 seed=42: coverage 100%
+  [PASS] alpha=1.0 seed=42: 0 duplicate samples
+  [PASS] alpha=1.0 seed=42: shard sizes match assignment
+  [PASS] alpha=5.0 seed=7: coverage 100%
+  [PASS] alpha=5.0 seed=7: 0 duplicate samples
+  [PASS] alpha=5.0 seed=7: shard sizes match assignment
+  [PASS] alpha=0.1 seed=3: coverage 100%
+  [PASS] alpha=0.1 seed=3: 0 duplicate samples
+  [PASS] alpha=0.1 seed=3: shard sizes match assignment
+  [PASS] alpha=0.5 produces label skew (spread > 5pp)
+
+[2] Leakage detector detects seeded leakage
+  [PASS] detects shard overlap
+  [PASS] passes clean shards
+  [PASS] detects split overlap
+  [PASS] detects region leakage across boundary
+  [PASS] passes region-exclusive split
+  [PASS] detects window boundary overlap
+
+[3] Immutable train/val/test contract (B10)
+
+==================================================================
+  PREPROCESSING PIPELINE (v3.0 immutable split contract)
+==================================================================
+
+[Preprocess] Selected 10 feature columns (mode: positional_fallback)
+[Preprocess] WARNING: physical feature names unavailable — SHAP labels will degrade.
+[Preprocess] No pre-existing split — stratified 64%/16%/20% split.
+[Preprocess] Applying StandardScaler (fit on TRAIN only).
+[Preprocess] Train: 3,840 | flare rate: 5.81%
+[Preprocess] Val:   960 | flare rate: 5.83%  (selection-only)
+[Preprocess] Test:  1,200 | flare rate: 5.83%  (final evaluation ONLY)
+
+  [PASS] train ∩ val = ∅
+  [PASS] train ∩ test = ∅
+  [PASS] val ∩ test = ∅
+  [PASS] union = all samples
+  [PASS] sizes 64/16/20 ±1%
+
+==================================================================
+  PREPROCESSING PIPELINE (v3.0 immutable split contract)
+==================================================================
+
+[Preprocess] Selected 10 feature columns (mode: positional_fallback)
+[Preprocess] WARNING: physical feature names unavailable — SHAP labels will degrade.
+[Preprocess] Using pre-existing train/test boundary from cleaned dataset.
+[Preprocess] Cleaned data already LSBZM-normalized — StandardScaler fitted, NOT applied.
+[Preprocess] Train: 4,200 | flare rate: 5.95%
+[Preprocess] Val:   800 | flare rate: 6.00%  (selection-only)
+[Preprocess] Test:  1,000 | flare rate: 5.10%  (final evaluation ONLY)
+
+  [PASS] cleaned path: val carved from train only
+
+[4] Threshold protocol: validation selection, no test oracle (B1)
+  [PASS] val-selected threshold exists
+  [PASS] frozen-threshold F2 <= oracle F2 (no leakage upside)
+  [PASS] val and oracle thresholds usually differ (selection is not test-fit)
+
+[5] Stale-accuracy fix: full metric recomputation (B4)
+  [PASS] accuracy recomputed at frozen threshold
+  [PASS] PR-AUC present
+  [PASS] Brier present
+  [PASS] ECE present
+  [PASS] recall@FPR keys present
+  [PASS] F2 = fbeta(beta=2)
+
+[6] Calibration under prior shift
+  [PASS] ECE discriminates (calibrated << miscalibrated)
+  [PASS] fixture prevalence ~5%
+  [PASS] prior-shift: corrected mean ~ operational prevalence
+  [PASS] prior-shift: Brier improves
+  [PASS] PlattScaling: Brier <= raw+0.02
+  [PASS] TemperatureScaling: Brier <= raw+0.02
+  [PASS] IsotonicCalibration: Brier <= raw+0.02
+  [PASS] select_calibration returns a valid method
+  [PASS] select_calibration prefers prior_shift on shifted data
+
+[7] Secure aggregation round-trip
+  [PASS] masks cancel exactly (server sees SUM only)
+
+[8] Communication cost arithmetic
+  [PASS] model size = params * 4 bytes
+  [PASS] dropout schedule has >=1 client per round
+  [PASS] dropout schedule shape
+  [PASS] mean participation in plausible range
+
+[9] Feature-name propagation (B12)
+  [PASS] stat-prefixed names selected in order
+
+[Data] Cleaned dataset loaded: 12 samples (4 features, names preserved for interpretability)
+  [PASS] dataframe carries physical names
+  [PASS] no fabricated HARPNUM column
+
+[10] Multi-seed statistics summary (B11)
+  [PASS] mean correct
+  [PASS] std (ddof=1) correct
+  [PASS] CI95 present and positive
+  [PASS] n recorded
+
+[11] Balanced fallback & geographic partition
+  [PASS] balanced fallback covers 100%
+  [PASS] geographic partition covers 100%
+[Partition] WARNING: no region IDs available — geographic partition falls back to SIMULATED Dirichlet label skew. Real observatory coverage requires raw SWAN-SF metadata.
+  [PASS] geographic fallback returns 6 shards
+
+================================================================
+  RESULT: 58 passed, 0 failed
+================================================================
