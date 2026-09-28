@@ -1,0 +1,7 @@
+{
+  "status": "not_applicable_inert",
+  "reason": "Cleaned SWAN-SF training partitions are pre-balanced (48.87% positive); SMOTE at the configured ratio generates ZERO synthetic samples, so the balancing arm is a no-op in every ablation cell (identical metrics).",
+  "n_real_minority": 40129,
+  "n_synthetic": 0,
+  "implication": "The SMOTE-vs-focal-vs-none ablation cannot be studied on this dataset variant; would require an unbalanced variant (e.g. WithoutC-free raw prevalence) or a per-client artificially-skewed split. Documented per claim-discipline: no balancing effect is claimed."
+}

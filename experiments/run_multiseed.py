@@ -48,13 +48,40 @@ def _summary(values):
     return out
 
 
-def run_seed(seed, n_rounds):
-    """One full frozen-protocol run at a given seed."""
+def _atomic_json(obj, path):
+    tmp = path + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(obj, f, indent=2, default=str)
+    os.replace(tmp, path)
+
+
+def _load_splits():
+    """Use the shared phase cache when valid; else load from source."""
+    cache = os.path.join("data", "cache")
+    data_npz = os.path.join(cache, "phase_data.npz")
+    try:
+        if os.path.exists(data_npz):
+            z = np.load(data_npz, allow_pickle=False)
+            return (z["X_train"], z["y_train"], z["X_val"], z["y_val"],
+                    z["X_test"], z["y_test"], True)
+    except Exception as e:
+        print(f"[cache] unusable ({e}) — loading from source")
     df = load_or_generate_data()
     splits = preprocess(df, val_fraction=cfg.VAL_SPLIT)
-    X_train, y_train = splits.X_train, splits.y_train
-    X_val, y_val = splits.X_val, splits.y_val
-    X_test, y_test = splits.X_test, splits.y_test
+    return (splits.X_train, splits.y_train, splits.X_val, splits.y_val,
+            splits.X_test, splits.y_test, False)
+
+
+def run_seed(seed, n_rounds, splits_cache=None, state_dir=None):
+    """One full frozen-protocol run at a given seed."""
+    if splits_cache is not None:
+        (X_train, y_train, X_val, y_val, X_test, y_test) = splits_cache
+    else:
+        df = load_or_generate_data()
+        splits = preprocess(df, val_fraction=cfg.VAL_SPLIT)
+        X_train, y_train = splits.X_train, splits.y_train
+        X_val, y_val = splits.X_val, splits.y_val
+        X_test, y_test = splits.X_test, splits.y_test
     cfg.USE_LSTM = False
 
     shards = partition_data_dirichlet(
@@ -65,10 +92,15 @@ def run_seed(seed, n_rounds):
     import torch
 
     for algo, runner in (("fedavg", run_fedavg), ("fedprox", run_fedprox)):
+        resume_path = None
+        if state_dir:
+            resume_path = os.path.join(state_dir,
+                                       f"{algo}_s{seed}_r{n_rounds}.pt")
         model, hist = runner(shards, X_val, y_val, n_rounds=n_rounds,
-                             seed=seed) if algo == "fedavg" else \
+                             seed=seed,
+                             resume_path=resume_path) if algo == "fedavg" else \
             run_fedprox(shards, X_val, y_val, n_rounds=n_rounds,
-                        mu=cfg.MU, seed=seed)
+                        mu=cfg.MU, seed=seed, resume_path=resume_path)
         device = next(model.parameters()).device
         p_val = get_model_probs(model, X_val, device)
         cal = make_calibrator(cfg.CALIBRATION_METHOD).fit(y_val, p_val)
@@ -100,12 +132,46 @@ def main():
           f"95% CI, frozen protocol)")
     print("=" * 70)
 
-    runs = []
+    X_train, y_train, X_val, y_val, X_test, y_test, cached = _load_splits()
+    print(f"[data] train={len(y_train):,} val={len(y_val):,} "
+          f"test={len(y_test):,} ({'phase cache' if cached else 'source'})")
+    splits_cache = (X_train, y_train, X_val, y_val, X_test, y_test)
+    cfg.USE_LSTM = False
+
+    RESULTS_PATH = os.path.join(cfg.OUTPUT_DIR, "multiseed_results.json")
+    STATE_DIR = os.path.join(cfg.OUTPUT_DIR, "multiseed_state")
+    os.makedirs(STATE_DIR, exist_ok=True)
+
+    # incremental: skip seeds already completed in earlier sessions
+    payload = {"rounds": args.rounds, "base_seed": args.base_seed, "runs": []}
+    if os.path.exists(RESULTS_PATH):
+        try:
+            prev = json.load(open(RESULTS_PATH))
+            if prev.get("rounds") == args.rounds and \
+               prev.get("base_seed") == args.base_seed:
+                payload = prev
+                done = {r.get("seed") for r in prev.get("runs", [])
+                        if "fedavg" in r and "fedprox" in r}
+                print(f"[resume] {len(done)} completed seeds skipped")
+        except Exception:
+            pass
+
+    runs = payload["runs"]
     for k in range(args.seeds):
         seed = args.base_seed + k
+        if seed in {r.get("seed") for r in runs
+                    if "fedavg" in r and "fedprox" in r}:
+            continue  # already completed
         print(f"\n──── seed {seed} ({k+1}/{args.seeds}) ────")
         try:
-            runs.append(run_seed(seed, args.rounds))
+            runs.append(run_seed(seed, args.rounds,
+                                 splits_cache=splits_cache,
+                                 state_dir=STATE_DIR))
+            # incremental atomic save after every seed
+            payload["runs"] = runs
+            payload["elapsed_s"] = round(time.time() - t0, 1)
+            _atomic_json(payload, RESULTS_PATH)
+            print(f"[save] incremental -> {RESULTS_PATH} ({len(runs)} seeds)")
         except Exception as e:
             print(f"[multiseed] seed {seed} FAILED: {e}")
 

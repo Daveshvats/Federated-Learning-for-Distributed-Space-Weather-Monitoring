@@ -42,12 +42,31 @@ def shap_torch_model(model, X_sample, feature_names, sample_size=300,
     Uses shap.DeepExplainer when possible, GradientShap otherwise,
     with a background sample of 100 training points. Batched for
     GPU-memory safety.
+
+    v3.0.1: the model is wrapped so its logits keep shape (N, 1) —
+    SolarMLP squeezes to (N,), which breaks GradientExplainer/DeepExplainer
+    indexing (outputs[:, idx]).
     """
     import torch
+    import torch.nn as nn
     import shap
 
     device = next(model.parameters()).device
     model.eval()
+
+    class _OutputWrapper(nn.Module):
+        def __init__(self, m):
+            super().__init__()
+            self.m = m
+
+        def forward(self, x):
+            out = self.m(x)
+            if out.ndim == 1:
+                out = out.unsqueeze(-1)
+            return out
+
+    wrapped = _OutputWrapper(model).to(device)
+    wrapped.eval()
 
     n = min(sample_size, len(X_sample))
     background_idx = np.random.RandomState(cfg.SEED).choice(
@@ -59,12 +78,12 @@ def shap_torch_model(model, X_sample, feature_names, sample_size=300,
 
     try:
         if method == "deeplift":
-            explainer = shap.DeepExplainer(model, background)
+            explainer = shap.DeepExplainer(wrapped, background)
         else:
-            explainer = shap.GradientExplainer(model, background)
+            explainer = shap.GradientExplainer(wrapped, background)
         shap_vals = explainer.shap_values(test_tensor)
     except Exception:
-        explainer = shap.GradientExplainer(model, background)
+        explainer = shap.GradientExplainer(wrapped, background)
         shap_vals = explainer.shap_values(test_tensor)
 
     if isinstance(shap_vals, list):

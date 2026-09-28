@@ -1,0 +1,268 @@
+======================================================================
+  SF-9 MULTI-SEED VALIDATION (5 seeds, 95% CI, frozen protocol)
+======================================================================
+[data] train=82,121 val=15,643 test=331,185 (phase cache)
+
+──── seed 42 (1/5) ────
+[Partition] Americas (NASA/NOAA)           | n= 16,688 | flare rate:  80.5%
+[Partition] Europe (ESA/PROBA-2)           | n= 29,273 | flare rate:  28.6%
+[Partition] Asia-Pacific (JAXA)            | n= 14,480 | flare rate:  36.9%
+[Partition] South Asia (ISRO)              | n= 17,716 | flare rate:  64.2%
+[Partition] East Asia (KASI)               | n=  1,879 | flare rate:  37.3%
+[Partition] Oceania (BoM)                  | n=  2,085 | flare rate:  43.5%
+[Partition] coverage: 82,121/82,121 (100.0%) — disjoint by construction
+[Model] Creating SolarMLP (input_dim=144, seed=42)
+[Model] CUDA not available — using CPU. Install CUDA PyTorch build for GPU acceleration.
+[Model] Parameters: 29,377
+============================================================
+ FEDAVG [cpu] | MLP | agg=plain | pos_rate=0.489
+ monitoring: VALIDATION (15,643 samples)
+============================================================
+  Round   5 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.992
+  Round  10 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.990
+  Round  15 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.990
+  Round  20 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.800
+
+  [fedavg] Restored best VALIDATION checkpoint (val F1=0.657)
+[Model] Creating SolarMLP (input_dim=144, seed=42)
+[Model] CUDA not available — using CPU. Install CUDA PyTorch build for GPU acceleration.
+[Model] Parameters: 29,377
+============================================================
+ FedProx (mu=0.01) [cpu] | MLP | agg=plain | pos_rate=0.489
+ monitoring: VALIDATION (15,643 samples)
+============================================================
+  Round   5 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.994
+  Round  10 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.992
+  Round  15 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.991
+  Round  20 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.990
+
+  [fedprox] Restored best VALIDATION checkpoint (val F1=0.657)
+[save] incremental -> outputs/multiseed_results.json (1 seeds)
+
+──── seed 43 (2/5) ────
+[Partition] Americas (NASA/NOAA)           | n=  2,549 | flare rate:  47.5%
+[Partition] Europe (ESA/PROBA-2)           | n= 21,587 | flare rate:  52.4%
+[Partition] Asia-Pacific (JAXA)            | n= 15,819 | flare rate:  90.1%
+[Partition] South Asia (ISRO)              | n=  5,891 | flare rate:  48.9%
+[Partition] East Asia (KASI)               | n= 11,747 | flare rate:  63.1%
+[Partition] Oceania (BoM)                  | n= 24,528 | flare rate:  12.5%
+[Partition] coverage: 82,121/82,121 (100.0%) — disjoint by construction
+[Model] Creating SolarMLP (input_dim=144, seed=42)
+[Model] CUDA not available — using CPU. Install CUDA PyTorch build for GPU acceleration.
+[Model] Parameters: 29,377
+============================================================
+ FEDAVG [cpu] | MLP | agg=plain | pos_rate=0.489
+ monitoring: VALIDATION (15,643 samples)
+============================================================
+  Round   5 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.995
+  Round  10 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.983
+  Round  15 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.925
+======================================================================
+  SF-9 MULTI-SEED VALIDATION (5 seeds, 95% CI, frozen protocol)
+======================================================================
+[data] train=82,121 val=15,643 test=331,185 (phase cache)
+[resume] 1 completed seeds skipped
+
+──── seed 43 (2/5) ────
+[Partition] Americas (NASA/NOAA)           | n=  2,549 | flare rate:  47.5%
+[Partition] Europe (ESA/PROBA-2)           | n= 21,587 | flare rate:  52.4%
+[Partition] Asia-Pacific (JAXA)            | n= 15,819 | flare rate:  90.1%
+[Partition] South Asia (ISRO)              | n=  5,891 | flare rate:  48.9%
+[Partition] East Asia (KASI)               | n= 11,747 | flare rate:  63.1%
+[Partition] Oceania (BoM)                  | n= 24,528 | flare rate:  12.5%
+[Partition] coverage: 82,121/82,121 (100.0%) — disjoint by construction
+[Model] Creating SolarMLP (input_dim=144, seed=42)
+[Model] CUDA not available — using CPU. Install CUDA PyTorch build for GPU acceleration.
+[Model] Parameters: 29,377
+  [fedavg] resuming from round 20 (crash recovery)
+============================================================
+ FEDAVG [cpu] | MLP | agg=plain | pos_rate=0.489
+ monitoring: VALIDATION (15,643 samples)
+============================================================
+  Round  20 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.809
+
+  [fedavg] Restored best VALIDATION checkpoint (val F1=0.657)
+[Model] Creating SolarMLP (input_dim=144, seed=42)
+[Model] CUDA not available — using CPU. Install CUDA PyTorch build for GPU acceleration.
+[Model] Parameters: 29,377
+============================================================
+ FedProx (mu=0.01) [cpu] | MLP | agg=plain | pos_rate=0.489
+ monitoring: VALIDATION (15,643 samples)
+============================================================
+  Round   5 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.992
+  Round  10 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.989
+  Round  15 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.991
+  Round  20 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.992
+
+  [fedprox] Restored best VALIDATION checkpoint (val F1=0.657)
+[save] incremental -> outputs/multiseed_results.json (2 seeds)
+
+──── seed 44 (3/5) ────
+[Partition] Americas (NASA/NOAA)           | n= 19,763 | flare rate:  25.1%
+[Partition] Europe (ESA/PROBA-2)           | n=    996 | flare rate:   8.6%
+[Partition] Asia-Pacific (JAXA)            | n= 13,294 | flare rate:  15.6%
+[Partition] South Asia (ISRO)              | n= 21,950 | flare rate:  83.3%
+[Partition] East Asia (KASI)               | n= 12,331 | flare rate:  70.3%
+[Partition] Oceania (BoM)                  | n= 13,787 | flare rate:  44.0%
+[Partition] coverage: 82,121/82,121 (100.0%) — disjoint by construction
+[Model] Creating SolarMLP (input_dim=144, seed=42)
+[Model] CUDA not available — using CPU. Install CUDA PyTorch build for GPU acceleration.
+[Model] Parameters: 29,377
+============================================================
+ FEDAVG [cpu] | MLP | agg=plain | pos_rate=0.489
+ monitoring: VALIDATION (15,643 samples)
+============================================================
+  Round   5 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.991
+  Round  10 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.989
+  Round  15 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.988
+  Round  20 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.990
+
+  [fedavg] Restored best VALIDATION checkpoint (val F1=0.657)
+[Model] Creating SolarMLP (input_dim=144, seed=42)
+[Model] CUDA not available — using CPU. Install CUDA PyTorch build for GPU acceleration.
+[Model] Parameters: 29,377
+============================================================
+ FedProx (mu=0.01) [cpu] | MLP | agg=plain | pos_rate=0.489
+ monitoring: VALIDATION (15,643 samples)
+============================================================
+  Round   5 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.990
+  Round  10 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.986
+======================================================================
+  SF-9 MULTI-SEED VALIDATION (5 seeds, 95% CI, frozen protocol)
+======================================================================
+[data] train=82,121 val=15,643 test=331,185 (phase cache)
+[resume] 2 completed seeds skipped
+
+──── seed 44 (3/5) ────
+[Partition] Americas (NASA/NOAA)           | n= 19,763 | flare rate:  25.1%
+[Partition] Europe (ESA/PROBA-2)           | n=    996 | flare rate:   8.6%
+[Partition] Asia-Pacific (JAXA)            | n= 13,294 | flare rate:  15.6%
+[Partition] South Asia (ISRO)              | n= 21,950 | flare rate:  83.3%
+[Partition] East Asia (KASI)               | n= 12,331 | flare rate:  70.3%
+[Partition] Oceania (BoM)                  | n= 13,787 | flare rate:  44.0%
+[Partition] coverage: 82,121/82,121 (100.0%) — disjoint by construction
+[Model] Creating SolarMLP (input_dim=144, seed=42)
+[Model] CUDA not available — using CPU. Install CUDA PyTorch build for GPU acceleration.
+[Model] Parameters: 29,377
+  [fedavg] identical completed run found — reusing cached model
+[Model] Creating SolarMLP (input_dim=144, seed=42)
+[Model] CUDA not available — using CPU. Install CUDA PyTorch build for GPU acceleration.
+[Model] Parameters: 29,377
+  [fedprox] resuming from round 11 (crash recovery)
+============================================================
+ FedProx (mu=0.01) [cpu] | MLP | agg=plain | pos_rate=0.489
+ monitoring: VALIDATION (15,643 samples)
+============================================================
+  Round  15 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.985
+  Round  20 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.984
+
+  [fedprox] Restored best VALIDATION checkpoint (val F1=0.657)
+[save] incremental -> outputs/multiseed_results.json (3 seeds)
+
+──── seed 45 (4/5) ────
+[Partition] Americas (NASA/NOAA)           | n= 30,241 | flare rate:   9.8%
+[Partition] Europe (ESA/PROBA-2)           | n=  6,468 | flare rate:  25.5%
+[Partition] Asia-Pacific (JAXA)            | n= 24,910 | flare rate:  92.0%
+[Partition] South Asia (ISRO)              | n=  4,733 | flare rate:  89.7%
+[Partition] East Asia (KASI)               | n=  9,965 | flare rate:  64.3%
+[Partition] Oceania (BoM)                  | n=  5,804 | flare rate:  33.3%
+[Partition] coverage: 82,121/82,121 (100.0%) — disjoint by construction
+[Model] Creating SolarMLP (input_dim=144, seed=42)
+[Model] CUDA not available — using CPU. Install CUDA PyTorch build for GPU acceleration.
+[Model] Parameters: 29,377
+============================================================
+ FEDAVG [cpu] | MLP | agg=plain | pos_rate=0.489
+ monitoring: VALIDATION (15,643 samples)
+============================================================
+  Round   5 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.990
+  Round  10 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.988
+  Round  15 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.963
+  Round  20 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.946
+
+  [fedavg] Restored best VALIDATION checkpoint (val F1=0.657)
+[Model] Creating SolarMLP (input_dim=144, seed=42)
+[Model] CUDA not available — using CPU. Install CUDA PyTorch build for GPU acceleration.
+[Model] Parameters: 29,377
+============================================================
+ FedProx (mu=0.01) [cpu] | MLP | agg=plain | pos_rate=0.489
+ monitoring: VALIDATION (15,643 samples)
+============================================================
+  Round   5 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.991
+  Round  10 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.991
+  Round  15 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.993
+  Round  20 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.994
+
+  [fedprox] Restored best VALIDATION checkpoint (val F1=0.657)
+[save] incremental -> outputs/multiseed_results.json (4 seeds)
+
+──── seed 46 (5/5) ────
+[Partition] Americas (NASA/NOAA)           | n= 18,824 | flare rate:  53.8%
+[Partition] Europe (ESA/PROBA-2)           | n=  8,246 | flare rate:  30.6%
+[Partition] Asia-Pacific (JAXA)            | n=  2,624 | flare rate:  38.0%
+[Partition] South Asia (ISRO)              | n= 25,403 | flare rate:  68.3%
+[Partition] East Asia (KASI)               | n=  4,721 | flare rate:  54.8%
+[Partition] Oceania (BoM)                  | n= 22,303 | flare rate:  29.5%
+[Partition] coverage: 82,121/82,121 (100.0%) — disjoint by construction
+[Model] Creating SolarMLP (input_dim=144, seed=42)
+[Model] CUDA not available — using CPU. Install CUDA PyTorch build for GPU acceleration.
+[Model] Parameters: 29,377
+============================================================
+ FEDAVG [cpu] | MLP | agg=plain | pos_rate=0.489
+ monitoring: VALIDATION (15,643 samples)
+============================================================
+======================================================================
+  SF-9 MULTI-SEED VALIDATION (5 seeds, 95% CI, frozen protocol)
+======================================================================
+[data] train=82,121 val=15,643 test=331,185 (phase cache)
+[resume] 4 completed seeds skipped
+
+──── seed 46 (5/5) ────
+[Partition] Americas (NASA/NOAA)           | n= 18,824 | flare rate:  53.8%
+[Partition] Europe (ESA/PROBA-2)           | n=  8,246 | flare rate:  30.6%
+[Partition] Asia-Pacific (JAXA)            | n=  2,624 | flare rate:  38.0%
+[Partition] South Asia (ISRO)              | n= 25,403 | flare rate:  68.3%
+[Partition] East Asia (KASI)               | n=  4,721 | flare rate:  54.8%
+[Partition] Oceania (BoM)                  | n= 22,303 | flare rate:  29.5%
+[Partition] coverage: 82,121/82,121 (100.0%) — disjoint by construction
+[Model] Creating SolarMLP (input_dim=144, seed=42)
+[Model] CUDA not available — using CPU. Install CUDA PyTorch build for GPU acceleration.
+[Model] Parameters: 29,377
+  [fedavg] resuming from round 4 (crash recovery)
+============================================================
+ FEDAVG [cpu] | MLP | agg=plain | pos_rate=0.489
+ monitoring: VALIDATION (15,643 samples)
+============================================================
+  Round   5 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.995
+  Round  10 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.996
+  Round  15 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.995
+  Round  20 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.994
+
+  [fedavg] Restored best VALIDATION checkpoint (val F1=0.657)
+[Model] Creating SolarMLP (input_dim=144, seed=42)
+[Model] CUDA not available — using CPU. Install CUDA PyTorch build for GPU acceleration.
+[Model] Parameters: 29,377
+============================================================
+ FedProx (mu=0.01) [cpu] | MLP | agg=plain | pos_rate=0.489
+ monitoring: VALIDATION (15,643 samples)
+============================================================
+  Round   5 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.993
+  Round  10 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.992
+  Round  15 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.992
+  Round  20 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.992
+
+  [fedprox] Restored best VALIDATION checkpoint (val F1=0.657)
+[save] incremental -> outputs/multiseed_results.json (5 seeds)
+/home/z/.venv/lib/python3.12/site-packages/scipy/stats/_wilcoxon.py:199: UserWarning: Sample size too small for normal approximation.
+  temp = _wilcoxon_iv(x, y, zero_method, correction, alternative, method, axis)
+
+[Done] multi-seed statistics -> outputs/multiseed_results.json
+
+  fedavg:
+    pr_auc     0.266 ± 0.025 (CI95 ±0.031)
+    f1         0.046 ± 0.011 (CI95 ±0.014)
+    recall     0.999 ± 0.001 (CI95 ±0.001)
+
+  fedprox:
+    pr_auc     0.293 ± 0.029 (CI95 ±0.036)
+    f1         0.043 ± 0.002 (CI95 ±0.003)
+    recall     0.999 ± 0.000 (CI95 ±0.000)

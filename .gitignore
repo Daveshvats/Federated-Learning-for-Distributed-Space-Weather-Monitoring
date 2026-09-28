@@ -1,3 +1,4 @@
 data
 __pycache__outputs/ablation_state/
 outputs/sweep_state/
+outputs/multiseed_state/

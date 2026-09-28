@@ -96,10 +96,18 @@ def main():
     print("  SMOTE PHYSICAL-VALIDITY ANALYSIS (Stage 12)")
     print("=" * 70)
 
-    df = load_or_generate_data()
-    splits = preprocess(df, val_fraction=cfg.VAL_SPLIT)
-    X_train, y_train = splits.X_train, splits.y_train
-    feature_names = splits.features
+    # phase-cache aware loading (falls back to source)
+    data_npz = os.path.join("data", "cache", "phase_data.npz")
+    if os.path.exists(data_npz):
+        z = np.load(data_npz, allow_pickle=False)
+        X_train, y_train = z["X_train"], z["y_train"]
+        feature_names = [str(s) for s in z["feature_names"]]
+        print(f"[data] phase cache: train={len(y_train):,}")
+    else:
+        df = load_or_generate_data()
+        splits = preprocess(df, val_fraction=cfg.VAL_SPLIT)
+        X_train, y_train = splits.X_train, splits.y_train
+        feature_names = splits.features
 
     pos = np.where(y_train == 1)[0]
     X_pos = X_train[pos]
