@@ -36,24 +36,29 @@ reported test metrics are recomputed from those predictions (the v2.x
 code reported a stale accuracy for federated models).
 \item \textbf{Protocol extensions released with this revision.} The
 following components are implemented, unit-tested (78-check integrity
-suite), and smoke-validated, with their full quantitative execution
-queued for the next training pass on the complete corpus (owner-side
-generates the artefacts; the numbers in this paper predate them and
-are labelled accordingly): (i)~a region-disjoint train/validation split
+suite), and smoke-validated. Three of them were additionally
+\emph{executed} end-to-end in the independent re-execution of
+Section~\ref{sec:repro} and their results are reported in
+Section~\ref{sec:results}: (ii)\ the validation-frozen fixed-FPR
+operating-point protocol of Section~\ref{sec:thresholding} (realised
+test behaviour in Section~\ref{sec:res-calib}); (iii)\ the
+untouched-holdout client evaluation mode, in which every client
+reserves a fraction its models never train on, so local versus
+global comparisons are clean generalisation estimates
+(Section~\ref{sec:res-clients}); and (vi)\ the calibration-comparison
+harness (raw, prior-shift, Platt, isotonic, and temperature arms,
+validation-fit and single-pass test evaluation;
+Section~\ref{sec:res-calib}). The remaining extensions are released
+and awaiting full-data execution, blocked on data that the cleaned
+export does not carry: (i)\ a region-disjoint train/validation split
 generator that partitions by active-region identifier when available
-(review context: the current cleaned export lacks HARP/AR identifiers,
-so the committed split remains the stratified carve-out); (ii)~a
-natural-prevalence validation mode plus the validation-frozen fixed-FPR
-operating-point protocol of Section~\ref{sec:thresholding};
-(iii)~an untouched-holdout client evaluation mode, in which every
-client reserves a fraction its models never train on, so local versus
-global comparisons are clean generalisation estimates; (iv)~an explicit
-training-budget audit (Section~\ref{sec:budget}); (v)~an event-level
-evaluation module (detection rate, missed events, duplicate alerts,
-warning lead time, alert rate per day); and (vi)~a calibration-comparison
-harness (raw, prior-shift, Platt, isotonic, temperature, and frozen-FPR
-thresholding arms, evaluated on balanced validation, natural validation,
-and the single test pass).
+(the cleaned export lacks HARP/AR identifiers, so the committed split
+remains the stratified carve-out); (iv)\ an explicit training-budget
+audit (Section~\ref{sec:budget}; the audit artefact is emitted by the
+re-executed pipeline, the budget-matched \emph{retraining} is queued);
+and (v)\ an event-level evaluation module (detection rate, missed
+events, duplicate alerts, warning lead time, alert rate per day;
+requires event keys absent from the cleaned export).
 \end{itemize}
 
 \subsection{Baselines}
@@ -190,6 +195,7 @@ Budgets matched & \multicolumn{2}{l}{No---federated arm consumed the larger budg
 \end{table}
 
 \subsection{Compute and reproducibility}
+\label{sec:repro}
 
 The complete experimental programme of this revision (headline run,
 24-cell ablation grid, 9-configuration sweep, 5-seed study,
@@ -205,8 +211,32 @@ and tables are generated from these artefacts. The pipeline supports
 round-level crash recovery, and the 78-check integrity test suite
 (partitioning disjointness, leakage audit, calibration, evaluation
 protocol, threshold-freezing arithmetic, event-level metrics, FL smoke
-tests) passes on every commit. The v3.1 protocol extensions
-(Section~\ref{sec:protocol}) ship with their own smoke-mode artefacts
-(e.g.\ \texttt{calibration\_comparison.json}, produced on a synthetic
-probabilistic model that numerically validates the harness end-to-end)
-and await the owner-side full-data re-run.
+tests) passes on every commit.
+
+\paragraph{Independent re-execution from the public artefacts.}
+Following the review of v3.0.1, the entire headline pipeline was
+re-executed from scratch in a clean environment: the Cleaned SWAN-SF
+release was downloaded from the dataset repository's official
+distribution, all 20 partition files were verified byte-identical to
+the frozen data manifest (SHA-256 match on every file), and the frozen
+protocol was run end-to-end (data load and flattening, immutable
+splits, Dirichlet partition, pooled baselines, FedAvg and FedProx to
+50 rounds, validation-fit calibration and thresholds, single-pass test
+evaluation, figures, and SHAP attribution) on CPU only (Python 3.12,
+PyTorch 2.14). Every test-set metric of every model reproduced
+\emph{exactly}, to all reported significant digits: all six models'
+ROC-AUC, PR-AUC, Brier, ECE, precision, recall, F1, and accuracy
+match the published artefacts at three decimals, and the FedAvg
+divergence signature reproduces round-for-round. The pipeline is
+therefore bit-stable under this protocol: fixed seeds, deterministic
+CPU kernels, disjoint index arithmetic, and single-precision training
+make the published numbers re-derivable by anyone from the public
+dataset and the released code, which is the strongest form of
+reproducibility claim this study can make. The same re-execution
+session ran, for the first time on real data, the calibration-arm
+comparison (Table~\ref{tab:calib}), the untouched-holdout client
+evaluation (Section~\ref{sec:res-clients},
+\texttt{client\_holdout\_eval.json}), and the frozen-FPR operating
+points now reported in Section~\ref{sec:res-calib}; the multi-seed,
+sweep, and ablation studies were not re-executed and their numbers
+remain the owner-side artefacts embedded in the repository.

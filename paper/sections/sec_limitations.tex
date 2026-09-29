@@ -129,17 +129,25 @@ validation splits by construction.
 
 \paragraph{Queued re-run programme.}
 For auditability we collect the pending experiments in one place.
-Each is implemented, unit-tested, and blocked only on compute and on
-raw-metadata access, not on further code: (1)~region-disjoint splits
+Three items of the original programme have since been \emph{executed}
+in the independent re-execution (Section~\ref{sec:repro}) and are
+reported in Section~\ref{sec:results}: the validation-frozen FPR
+operating-point report (realised test behaviour, quantified in
+Section~\ref{sec:res-calib}), the calibration-comparison harness
+across raw / prior-shift / Platt / isotonic / temperature arms
+(Table~\ref{tab:calib}), and the untouched-holdout client evaluation
+(Section~\ref{sec:res-clients}). Each was implemented, unit-tested,
+and blocked only on compute; their results sharpen but do not
+overturn any claim of this revision. The remaining items are still
+queued, each implemented and unit-tested, blocked on compute or on
+raw-metadata access rather than code: (1)~region-disjoint splits
 from raw SWAN-SF metadata (needs HARP/AR identifiers);
-(2)~natural-prevalence validation plus the full frozen-FPR operating
-point report; (3)~the calibration-comparison harness across raw /
-prior-shift / Platt / isotonic / temperature arms;
-(4)~event-level evaluation (needs event keys and timestamps);
-(5)~untouched-holdout client evaluation; (6)~budget-matched
-centralised-versus-federated training; (7)~promotion of the sweep
+(2)~natural-prevalence validation (needs the raw benchmark's
+untouched partition structure); (3)~event-level evaluation (needs
+event keys and timestamps); (4)~budget-matched
+centralised-versus-federated training; (5)~promotion of the sweep
 winner ($\alpha{=}5.0$) through multiseed and ablation studies;
-(8)~federated LSTM and SCAFFOLD evaluation; and (9)~the raw-benchmark
-experiment programme of the previous paragraph. Items (1)--(5) are
+(6)~federated LSTM and SCAFFOLD evaluation; and (7)~the raw-benchmark
+experiment programme of the previous paragraph. Items (1)--(3) are
 preconditions for quoting any number in this paper as an operational
 performance figure rather than a benchmark result.

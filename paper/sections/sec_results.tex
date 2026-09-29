@@ -12,7 +12,12 @@ table and figure is generated from the machine-readable
 results-json artefacts of the runs; no value is transcribed by
 hand. The headline run uses 50 communication rounds, six clients, and
 seed 42; Sections~\ref{sec:res-multiseed} and~\ref{sec:res-ablation}
-quantify seed sensitivity and component attribution.
+quantify seed sensitivity and component attribution. An independent
+re-execution of the headline pipeline from the public, byte-verified
+dataset artefacts reproduces every test metric of every model exactly
+(Section~\ref{sec:repro}); the calibration, frozen-FPR, and
+client-holdout results below were produced in that re-execution
+session.
 
 \subsection{Headline comparison on the held-out test set}
 
@@ -211,17 +216,79 @@ deployment data, which leaks no labels), Platt/isotonic fitting on a
 natural-prevalence validation carve-out, or the negative-quantile FPR
 thresholds of Section~\ref{sec:thresholding}; using the test set's own
 statistics, as the v2.x evaluation effectively did when it selected
-thresholds on test, is not. To make that comparison systematic, the
-released code ships a calibration-comparison harness that evaluates
-raw, prior-shift, Platt, isotonic, and temperature calibrators plus
-frozen-FPR thresholding on balanced validation, natural-prevalence
-validation, and the single test pass; it is unit-tested and
-smoke-validated on a synthetic probabilistic model, and its execution
-against the trained FL models is queued with the protocol re-run
-(Section~\ref{sec:experiments}). Until that re-run lands, the
-calibration question on this benchmark is \emph{open}, and we state it
-as such rather than claiming any of the current numbers as
-deployment-grade.
+thresholds on test, is not.
+
+\paragraph{Calibration-arm comparison (executed).}
+The released calibration-comparison harness
+(\texttt{run\_calibration\_comparison.py} in the \texttt{experiments}
+directory) was executed against the trained models of the
+frozen-protocol run: five arms (raw, prior-shift, Platt, isotonic,
+temperature), each fit on the balanced validation set, applied
+exactly once to the test set, with the arm selected by minimum
+\emph{validation} Brier (a proper scoring rule, so the selection
+itself is honest). Table~\ref{tab:calib} reports the outcome. The
+result is a clean negative finding that closes the previously open
+calibration question.
+
+\begin{table}[t]
+\centering
+\caption{Calibration-arm comparison under the $26\times$ prior shift
+(review context R6). Every arm is fit on the balanced validation set
+(48.9\% prevalence) and applied once to the test set (1.88\%).
+\emph{Val.\ Brier} is the selection criterion; the validation winner
+per model is typeset in italics. Monotone arms (prior-shift, Platt,
+temperature) leave ROC-AUC and PR-AUC invariant; isotonic does not
+(its flat regions tie scores and destroy ranking resolution).
+Bold marks the best \emph{test} Brier per model.}
+\label{tab:calib}
+\footnotesize
+\setlength{\tabcolsep}{3.4pt}
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}X ccc ccc ccc@{}}
+\toprule
+& \multicolumn{3}{c}{\textbf{FedProx MLP}} &
+\multicolumn{3}{c}{\textbf{Centralised MLP}} &
+\multicolumn{3}{c}{\textbf{XGBoost}} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}\cmidrule(lr){8-10}
+\textbf{Arm} & val.\ & test & test & val.\ & test & test & val.\ & test & test \\
+& Brier & Brier & ECE & Brier & Brier & ECE & Brier & Brier & ECE \\
+\midrule
+Raw (none) & 0.234 & \textbf{0.264} & 0.496 & 0.016 & \textbf{0.277} & 0.440 & 0.004 & 0.063 & 0.116 \\
+Prior-shift & 0.234 & 0.276 & 0.508 & 0.016 & 0.284 & 0.447 & 0.004 & 0.065 & 0.118 \\
+Platt & 0.026 & 0.541 & 0.642 & 0.012 & 0.352 & 0.442 & 0.004 & \textbf{0.053} & 0.080 \\
+Isotonic & \textit{0.025} & 0.541 & 0.639 & \textit{0.012} & 0.357 & 0.449 & \textit{0.003} & 0.057 & 0.075 \\
+Temperature & 0.064 & 0.784 & 0.865 & 0.012 & 0.334 & 0.425 & 0.004 & 0.064 & 0.099 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Four facts matter. \textbf{(i)~The selection criterion itself is broken
+by the prior shift.} Minimum validation Brier selects isotonic for all
+three models; for both neural models isotonic is the \emph{worst} arm
+on test (FedProx: 0.541 vs 0.264 raw, i.e.\ selecting on validation
+doubles the test error of the posterior). \textbf{(ii)~No arm rescues
+the neural posteriors.} Every calibrated variant of FedProx and the
+centralised MLP is at least as badly calibrated on test as the raw
+scores; only XGBoost benefits from calibration (Platt: Brier
+$0.063\to0.053$, ECE $0.116\to0.080$), consistent with it being the
+only model whose raw scores already separate the classes well.
+\textbf{(iii)~Isotonic damages ranking, not just probabilities.} Its
+step function ties large score ranges, collapsing PR-AUC from 0.307 to
+0.182 (FedProx), 0.153 to 0.099 (MLP), and 0.493 to 0.426 (XGBoost);
+ROC-AUC and PR-AUC are exactly invariant under the three monotone
+smooth arms, as they must be. \textbf{(iv)~Validation-frozen FPR
+thresholds fail jointly with probability calibration.} Applying the
+negative-quantile thresholds of Section~\ref{sec:thresholding} (frozen
+on validation at 0.5/1/2/5\% targets) to the test set realises
+28.2/37.0/50.4/72.1\% actual FPR for FedProx (25.5/40.7/51.6/63.6\% for
+the centralised MLP, 20.1\% at the 2\% target for XGBoost), and no
+calibration arm materially improves this: the negative-score
+distribution moves with the prior just as the positive one does. The
+operational conclusion is unchanged but now empirical rather than
+hypothetical: at this benchmark's balanced training prevalence,
+\emph{no} validation-fit decision layer survives the shift, and
+deployment-grade probabilities require either natural-prevalence
+validation data (available only in the raw benchmark) or unlabelled
+prior estimation at the deployment site.
 
 \subsection{Multi-seed statistical validation}
 \label{sec:res-multiseed}
@@ -317,11 +384,11 @@ was consequently not applicable.
         \includegraphics{figures/fig_clients.png}
     \end{adjustbox}
     \caption{Per-client PR-AUC of local-only models versus the federated
-    global models, evaluated on a held-out 20\% slice of each client's
-    shard (neutral client labels; no real institution participates).
-    Caveat: the federated models trained on the full shards, so their
-    holdout scores are within-distribution rather than clean
-    generalisation estimates (see Section~\ref{sec:limitations}).}
+    global models, evaluated on each client's \emph{untouched} 20\%
+    holdout (R14 protocol: holdouts carved before training; both global
+    models retrained on the 80\% federation-train portions only, so
+    local and global scores are clean generalisation estimates; neutral
+    client labels, no real institution participates).}
     \label{fig:clients}
 \end{figure}
 
@@ -329,24 +396,35 @@ The six simulated clients hold very different data: local flare rates
 span 28.6\% (Client~B, Europe) to 80.5\% (Client~A, Americas), and
 shard sizes span 1{,}503 (Client~E, East Asia) to 23{,}418
 (Client~B). Figure~\ref{fig:clients} quantifies what each client gets
-out of the federation. The FedProx global model matches local-only
-performance on every client (PR-AUC 0.982--0.998 vs local
-0.961--0.999)---no client is left worse off than training alone, the
-minimal condition for voluntary participation. The FedAvg global
-model, by contrast, degrades every client relative to local training
-(mean 0.562, e.g.\ Client~B: 0.393 vs 0.990 local): the diverged
-average is \emph{worse for everyone} than staying isolated. The
-summary statistic ``clients helped by federation'' counts 2 of 6
-clients under FedAvg. Under the evaluation caveat stated in the
-caption, the honest interpretation is directional rather than
-absolute: FedProx's advantage is uniform across the heterogeneity axis,
-which is precisely the property a cross-custodian deployment needs.
-The rigorous version of this comparison---an untouched holdout per
-client that no federated model ever trains on, so local versus global
-scores are both clean generalisation estimates---is implemented in the
-released evaluation mode and queued for the next training pass
-(Section~\ref{sec:experiments}); the absolute values reported here
-should be read with the stated optimism.
+out of the federation under the untouched-holdout protocol: a dedicated
+re-run in which every client's shard was split 80/20 \emph{before} any
+training, FedAvg and FedProx were retrained from scratch on the 80\%
+federation-train portions (same frozen configuration: 50 rounds, six
+clients, seed 42), per-client local models were trained on the same
+portions with a matched local budget, and both were evaluated once on
+the holdouts no model had ever seen. Three findings hold.
+\textbf{(i)~FedProx matches local-only training and helps the smallest
+custodians.} Mean PR-AUC is $0.988$ (FedProx global) versus $0.983$
+(local-only); on the four largest clients the two are within
+$0.001$--$0.010$ of each other, while the two smallest shards gain
+clearly (Client~E: $0.965\to0.993$, $+0.027$; Client~F:
+$0.961\to0.980$, $+0.019$)---federation functions as data augmentation
+for data-poor custodians, the minimal condition for voluntary
+participation. \textbf{(ii)~The diverged FedAvg average is worse for
+everyone.} Its global model scores $0.747$--$0.973$ per client (mean
+$0.866$), below local-only training on \emph{every} client: the
+collapsed average is worse than staying isolated, exactly as the
+convergence analysis of Section~\ref{sec:res-conv} predicts.
+\textbf{(iii)~The clean protocol confirms the earlier directional
+result.} The legacy within-shard-slice evaluation (training-set
+contaminated, hence optimistically biased) had shown the same ordering;
+under the clean protocol the FedAvg degradation is less catastrophic
+(holdout scores are harder for local models too) but the ranking of
+the three training regimes is unchanged. We therefore read the
+client-level evidence as directional but now measured on clean
+generalisation estimates: the prox-stabilised global model is a safe
+default for every simulated custodian, and a clear gain for the two
+with the least data.
 
 \subsection{Interpretability across models}
 \label{sec:res-shap}

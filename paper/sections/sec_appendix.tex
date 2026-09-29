@@ -87,6 +87,26 @@ validation with validation-frozen FPR operating points, untouched
 client holdouts, training-budget audit, event-level metrics,
 calibration-comparison harness; neutral client labels; threat-model
 table; documented literature-search protocol. \\
+\addlinespace[2pt]
+v3.2 & Second external review (25 findings): scope/title mismatch,
+premise overreach, stale v2.x text, claim taxonomy, budget confound,
+calibration honesty, communication-cadence ambiguity. & Data-locality
+scope title; claims taxonomy (verified / benchmark-only / not
+demonstrated); threat-model and budget tables; ECE column;
+literature-search protocol; lit-search artefacts; three regenerated
+neutral figures; response map \texttt{docs/REVIEW2\_RESPONSE.md}. \\
+\addlinespace[2pt]
+v3.3 & Reproducibility unproven end-to-end; calibration arms, frozen-FPR
+realisation, and untouched holdouts still unexecuted on real data. &
+Independent re-execution from the public Cleaned SWAN-SF release
+(SHA-256-verified against the data manifest): every headline test
+metric of all six models reproduced exactly (bit-stable CPU protocol);
+calibration-arm comparison executed on the trained models (negative
+result: no validation-fit arm survives the $26\times$ prior shift);
+untouched-holdout client evaluation executed (local 0.983 / FedAvg
+0.866 / FedProx 0.988 mean PR-AUC); frozen-FPR realised test FPR
+reported; fig:clients regenerated from the clean protocol; runners
+made cache-reusing and round-resumable. \\
 \bottomrule
 \end{tabularx}
 \end{table}
