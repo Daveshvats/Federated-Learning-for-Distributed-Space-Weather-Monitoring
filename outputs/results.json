@@ -1,6 +1,6 @@
 {
-  "run_id": "run_20260928_121649",
-  "version": "3.0.1-improvements",
+  "run_id": "run_20260929_105739",
+  "version": "3.1.0-improvements",
   "protocol": {
     "split": {
       "train": 82121,
@@ -17,6 +17,7 @@
       "centralized_mlp": 0.31999999999999984
     },
     "threshold_selected_on": "validation",
+    "fpr_thresholds_selected_on": "validation (negative quantile, R4)",
     "test_touched_once": true
   },
   "test_metrics": {
@@ -36,7 +37,37 @@
       "recall@1%FPR": 1.0,
       "recall@2%FPR": 1.0,
       "recall@5%FPR": 1.0,
-      "calibration": "prior_shift"
+      "calibration": "prior_shift",
+      "frozen_operating_points": {
+        "0.5%FPR": {
+          "frozen_threshold": 0.4886530776655639,
+          "realised_fpr": 1.0,
+          "recall": 1.0,
+          "precision": 0.018823316273381945,
+          "alert_rate": 1.0
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.4886530776655639,
+          "realised_fpr": 1.0,
+          "recall": 1.0,
+          "precision": 0.018823316273381945,
+          "alert_rate": 1.0
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.4886530776655639,
+          "realised_fpr": 1.0,
+          "recall": 1.0,
+          "precision": 0.018823316273381945,
+          "alert_rate": 1.0
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.4886530776655639,
+          "realised_fpr": 1.0,
+          "recall": 1.0,
+          "precision": 0.018823316273381945,
+          "alert_rate": 1.0
+        }
+      }
     },
     "logistic_regression": {
       "threshold": 0.22499999999999992,
@@ -54,7 +85,37 @@
       "recall@1%FPR": 0.28745588707090153,
       "recall@2%FPR": 0.41947385306384344,
       "recall@5%FPR": 0.568334937439846,
-      "calibration": "prior_shift"
+      "calibration": "prior_shift",
+      "frozen_operating_points": {
+        "0.5%FPR": {
+          "frozen_threshold": 0.9358671254417654,
+          "realised_fpr": 0.46744893845533636,
+          "recall": 0.8233878729547642,
+          "precision": 0.032687813234329524,
+          "alert_rate": 0.47414888959342966
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.8578817947022461,
+          "realised_fpr": 0.5975824047317904,
+          "recall": 0.8508180943214629,
+          "precision": 0.026587932166685882,
+          "alert_rate": 0.6023491402086447
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.6757046511831539,
+          "realised_fpr": 0.7287744921542018,
+          "recall": 0.8899582932306705,
+          "precision": 0.022891188460332394,
+          "alert_rate": 0.73180850582001
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.25523140834564406,
+          "realised_fpr": 0.85476271807134,
+          "recall": 0.96390760346487,
+          "precision": 0.021175973076313147,
+          "alert_rate": 0.8568171867687244
+        }
+      }
     },
     "xgboost": {
       "threshold": 0.36999999999999983,
@@ -72,7 +133,37 @@
       "recall@1%FPR": 0.4844401668270773,
       "recall@2%FPR": 0.6507860121912095,
       "recall@5%FPR": 0.8638113570741097,
-      "calibration": "prior_shift"
+      "calibration": "prior_shift",
+      "frozen_operating_points": {
+        "0.5%FPR": {
+          "frozen_threshold": 0.6762692696548486,
+          "realised_fpr": 0.05405430357192315,
+          "recall": 0.8787295476419634,
+          "precision": 0.2377294623095951,
+          "alert_rate": 0.06957742651388196
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.32367033460305805,
+          "realised_fpr": 0.12149524082092376,
+          "recall": 0.9765800449149824,
+          "precision": 0.13360252808988765,
+          "alert_rate": 0.13759077252894908
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.16061391887260146,
+          "realised_fpr": 0.20106723782970357,
+          "recall": 0.9951876804619827,
+          "precision": 0.08671950350148866,
+          "alert_rate": 0.216015218080529
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.03085415283056752,
+          "realised_fpr": 0.43144043255752407,
+          "recall": 1.0,
+          "precision": 0.042572952448593535,
+          "alert_rate": 0.44214260911575104
+        }
+      }
     },
     "fedavg_mlp": {
       "threshold": 0.3599999999999998,
@@ -90,7 +181,37 @@
       "recall@1%FPR": 0.2467115816490215,
       "recall@2%FPR": 0.3803336541546359,
       "recall@5%FPR": 0.4433750401026628,
-      "calibration": "prior_shift"
+      "calibration": "prior_shift",
+      "frozen_operating_points": {
+        "0.5%FPR": {
+          "frozen_threshold": 0.36182036824331054,
+          "realised_fpr": 0.14224298432686774,
+          "recall": 0.4433750401026628,
+          "precision": 0.05642428448944596,
+          "alert_rate": 0.14791128825278924
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.36182036824331054,
+          "realised_fpr": 0.14224298432686774,
+          "recall": 0.4433750401026628,
+          "precision": 0.05642428448944596,
+          "alert_rate": 0.14791128825278924
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.36182036824331054,
+          "realised_fpr": 0.14224298432686774,
+          "recall": 0.4433750401026628,
+          "precision": 0.05642428448944596,
+          "alert_rate": 0.14791128825278924
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.36182036824331054,
+          "realised_fpr": 0.14224298432686774,
+          "recall": 0.4433750401026628,
+          "precision": 0.05642428448944596,
+          "alert_rate": 0.14791128825278924
+        }
+      }
     },
     "fedprox_mlp": {
       "threshold": 0.5049999999999998,
@@ -108,7 +229,37 @@
       "recall@1%FPR": 0.3452037215271094,
       "recall@2%FPR": 0.505935194096888,
       "recall@5%FPR": 0.711581649021495,
-      "calibration": "prior_shift"
+      "calibration": "prior_shift",
+      "frozen_operating_points": {
+        "0.5%FPR": {
+          "frozen_threshold": 0.5194638708574714,
+          "realised_fpr": 0.2823687263618207,
+          "recall": 0.9886108437600256,
+          "precision": 0.06293977675425606,
+          "alert_rate": 0.29566254510319007
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.5170647229311822,
+          "realised_fpr": 0.3700373287049432,
+          "recall": 0.9931023419955085,
+          "precision": 0.0489658717918298,
+          "alert_rate": 0.38176547850899045
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.5139752338800025,
+          "realised_fpr": 0.5037190222525858,
+          "recall": 0.9983958934873276,
+          "precision": 0.03663158885985357,
+          "alert_rate": 0.5130304814529644
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.5094253116572488,
+          "realised_fpr": 0.7208686848170955,
+          "recall": 0.998716714789862,
+          "precision": 0.02589064052929019,
+          "alert_rate": 0.726098706161209
+        }
+      }
     },
     "centralized_mlp": {
       "threshold": 0.31999999999999984,
@@ -126,8 +277,60 @@
       "recall@1%FPR": 0.1472569778633301,
       "recall@2%FPR": 0.22008341353865896,
       "recall@5%FPR": 0.384343920436317,
-      "calibration": "prior_shift"
+      "calibration": "prior_shift",
+      "frozen_operating_points": {
+        "0.5%FPR": {
+          "frozen_threshold": 0.667895844919964,
+          "realised_fpr": 0.2552846429153934,
+          "recall": 0.8787295476419634,
+          "precision": 0.06194520145194667,
+          "alert_rate": 0.2670199435360901
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.527744213822405,
+          "realised_fpr": 0.4069782828795726,
+          "recall": 0.9783445620789221,
+          "precision": 0.04408480126059835,
+          "alert_rate": 0.4177332910608874
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.42309472063448667,
+          "realised_fpr": 0.5155023372754661,
+          "recall": 0.9980750721847931,
+          "precision": 0.035813163726364866,
+          "alert_rate": 0.5245859564895753
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.29531344465209514,
+          "realised_fpr": 0.6359666534339024,
+          "recall": 0.9988771254411293,
+          "precision": 0.02925053432604458,
+          "alert_rate": 0.6427978320274167
+        }
+      }
     }
+  },
+  "training_budget": {
+    "centralized_mlp": {
+      "max_epochs": 30,
+      "batch_size": 256,
+      "lr": 0.0005,
+      "effective_max_passes_over_pool": 30,
+      "early_stopping": "patience 5 on validation BCE loss",
+      "checkpoint_rule": "best validation BCE loss"
+    },
+    "federated": {
+      "rounds": 50,
+      "local_epochs_per_round": 10,
+      "batch_size": 256,
+      "lr": 0.0005,
+      "effective_passes_per_client_shard": 500,
+      "checkpoint_rule": "best validation F1 round"
+    },
+    "budgets_matched": false,
+    "note": "Optimisation budgets are NOT matched at the default settings; the centralized-vs-federated comparison confounds federation with budget. A budget-matched rerun is queued (review R15).",
+    "n_train": 82121,
+    "n_val": 15643
   },
   "fl_convergence_val": {
     "fedavg": [
@@ -265,10 +468,10 @@
         "recall": 0.0,
         "f1": 0.0,
         "f2": 0.0,
-        "roc_auc": 0.05394774294458183,
-        "pr_auc": 0.30378091461805784,
-        "brier": 0.3007211626683545,
-        "ece": 0.3887869436833237,
+        "roc_auc": 0.05427355388288004,
+        "pr_auc": 0.3038284790366927,
+        "brier": 0.3007247107191418,
+        "ece": 0.3875535214041792,
         "prevalence": 0.488653071661446,
         "recall@0.5%FPR": 0.0,
         "recall@1%FPR": 0.0,
@@ -283,10 +486,10 @@
         "recall": 0.0,
         "f1": 0.0,
         "f2": 0.0,
-        "roc_auc": 0.07955856138218219,
-        "pr_auc": 0.30703795337665046,
-        "brier": 0.3101229544116024,
-        "ece": 0.24309464896844718,
+        "roc_auc": 0.09022477888228964,
+        "pr_auc": 0.30880524115357816,
+        "brier": 0.3101008667128477,
+        "ece": 0.24326123111080972,
         "prevalence": 0.488653071661446,
         "recall@0.5%FPR": 0.0,
         "recall@1%FPR": 0.0,
@@ -301,10 +504,10 @@
         "recall": 0.0,
         "f1": 0.0,
         "f2": 0.0,
-        "roc_auc": 0.08213263379534164,
-        "pr_auc": 0.3068076293794865,
-        "brier": 0.31975578254849507,
-        "ece": 0.26182691908561684,
+        "roc_auc": 0.08259149871494273,
+        "pr_auc": 0.3069598160242398,
+        "brier": 0.31988497794581744,
+        "ece": 0.26188984962994355,
         "prevalence": 0.488653071661446,
         "recall@0.5%FPR": 0.0,
         "recall@1%FPR": 0.0,
@@ -499,27 +702,28 @@
   "client_level": {
     "per_client": [
       {
-        "client": "Americas (NASA/NOAA)",
-        "n_train": 13350,
-        "pos_rate_train": 0.8053183555603027,
+        "client": "Client A (Americas)",
+        "evaluation_protocol": "within_shard_slice",
+        "n_train": 16688,
+        "pos_rate_train": 0.8047698736190796,
         "n_eval": 3338,
         "pos_rate_eval": 0.8025764226913452,
         "local": {
           "threshold": 0.35,
-          "accuracy": 0.9844218094667465,
-          "precision": 0.9855822550831793,
+          "accuracy": 0.9859197124026363,
+          "precision": 0.9874074074074074,
           "recall": 0.9951474430757745,
-          "f1": 0.9903417533432393,
-          "f2": 0.9932195812532598,
-          "roc_auc": 0.9964632467100661,
-          "pr_auc": 0.9989962735117852,
-          "brier": 0.09176717150907589,
-          "ece": 0.26162754297448987,
+          "f1": 0.9912623164156906,
+          "f2": 0.9935897435897436,
+          "roc_auc": 0.9972987225432904,
+          "pr_auc": 0.9993066707508977,
+          "brier": 0.08297585680548654,
+          "ece": 0.2492497343668483,
           "prevalence": 0.8025763930497304,
-          "recall@0.5%FPR": 0.8637551325121314,
-          "recall@1%FPR": 0.9316909294512878,
-          "recall@2%FPR": 0.9742441209406495,
-          "recall@5%FPR": 0.9944008958566629,
+          "recall@0.5%FPR": 0.9059350503919373,
+          "recall@1%FPR": 0.9290780141843972,
+          "recall@2%FPR": 0.9757372153788727,
+          "recall@5%FPR": 0.9947741694662188,
           "preds": "[1 1 1 ... 0 1 1]"
         },
         "fedavg": {
@@ -558,33 +762,34 @@
           "recall@5%FPR": 0.9880552444942142,
           "preds": "[1 1 1 ... 1 1 1]"
         },
-        "delta_pr_auc_fedavg_vs_local": -0.17591339770557868,
+        "delta_pr_auc_fedavg_vs_local": -0.1762237949446912,
         "delta_recall_fedavg_vs_local": 0.004852556924225482,
-        "delta_pr_auc_fedprox_vs_local": -0.0007510910399057824,
+        "delta_pr_auc_fedprox_vs_local": -0.0010614882790183078,
         "delta_recall_fedprox_vs_local": 0.004852556924225482
       },
       {
-        "client": "Europe (ESA/PROBA-2)",
-        "n_train": 23418,
-        "pos_rate_train": 0.28631821274757385,
+        "client": "Client B (Europe)",
+        "evaluation_protocol": "within_shard_slice",
+        "n_train": 29273,
+        "pos_rate_train": 0.2860998213291168,
         "n_eval": 5855,
         "pos_rate_eval": 0.28522631525993347,
         "local": {
           "threshold": 0.35,
-          "accuracy": 0.9719897523484201,
-          "precision": 0.9211409395973155,
-          "recall": 0.9862275449101796,
-          "f1": 0.9525737420474263,
-          "f2": 0.9724846480869155,
-          "roc_auc": 0.9962213207992615,
-          "pr_auc": 0.9901622251390463,
-          "brier": 0.06057630800388183,
-          "ece": 0.20371470800024327,
+          "accuracy": 0.9788215200683177,
+          "precision": 0.9447640966628308,
+          "recall": 0.9832335329341317,
+          "f1": 0.9636150234741784,
+          "f2": 0.9752910430030887,
+          "roc_auc": 0.9972329176771905,
+          "pr_auc": 0.9925888107428629,
+          "brier": 0.05413782428939658,
+          "ece": 0.19141488436141854,
           "prevalence": 0.2852263023057216,
-          "recall@0.5%FPR": 0.8467065868263473,
-          "recall@1%FPR": 0.9161676646706587,
-          "recall@2%FPR": 0.9718562874251497,
-          "recall@5%FPR": 0.9898203592814371,
+          "recall@0.5%FPR": 0.9023952095808383,
+          "recall@1%FPR": 0.9389221556886228,
+          "recall@2%FPR": 0.9784431137724551,
+          "recall@5%FPR": 0.9916167664670659,
           "preds": "[1 0 0 ... 1 1 1]"
         },
         "fedavg": {
@@ -623,34 +828,35 @@
           "recall@5%FPR": 0.9778443113772455,
           "preds": "[1 1 1 ... 1 1 1]"
         },
-        "delta_pr_auc_fedavg_vs_local": -0.5974230109428038,
-        "delta_recall_fedavg_vs_local": 0.01377245508982039,
-        "delta_pr_auc_fedprox_vs_local": -0.006904874281432161,
-        "delta_recall_fedprox_vs_local": 0.01377245508982039
+        "delta_pr_auc_fedavg_vs_local": -0.5998495965466204,
+        "delta_recall_fedavg_vs_local": 0.016766467065868262,
+        "delta_pr_auc_fedprox_vs_local": -0.00933145988524875,
+        "delta_recall_fedprox_vs_local": 0.016766467065868262
       },
       {
-        "client": "Asia-Pacific (JAXA)",
-        "n_train": 11584,
-        "pos_rate_train": 0.3693888187408447,
+        "client": "Client C (Asia-Pacific)",
+        "evaluation_protocol": "within_shard_slice",
+        "n_train": 14480,
+        "pos_rate_train": 0.36864641308784485,
         "n_eval": 2896,
         "pos_rate_eval": 0.36567679047584534,
         "local": {
           "threshold": 0.35,
-          "accuracy": 0.9433701657458563,
-          "precision": 0.8695293146160198,
-          "recall": 0.9943342776203966,
-          "f1": 0.9277533039647577,
-          "f2": 0.9665871121718377,
-          "roc_auc": 0.9934830313619477,
-          "pr_auc": 0.9873397369485826,
-          "brier": 0.09005077190792732,
-          "ece": 0.24300216327200114,
+          "accuracy": 0.9564917127071824,
+          "precision": 0.8990590248075278,
+          "recall": 0.9924457034938622,
+          "f1": 0.9434470377019749,
+          "f2": 0.9722479185938946,
+          "roc_auc": 0.9947285444562843,
+          "pr_auc": 0.9899805029778754,
+          "brier": 0.08136527758418456,
+          "ece": 0.23418554066788422,
           "prevalence": 0.3656767955801105,
-          "recall@0.5%FPR": 0.6506137865911237,
-          "recall@1%FPR": 0.7762039660056658,
-          "recall@2%FPR": 0.9282341831916903,
-          "recall@5%FPR": 0.9830028328611898,
-          "preds": "[1 0 1 ... 1 0 1]"
+          "recall@0.5%FPR": 0.7072710103871577,
+          "recall@1%FPR": 0.817752596789424,
+          "recall@2%FPR": 0.9405099150141643,
+          "recall@5%FPR": 0.9905571293673276,
+          "preds": "[0 0 0 ... 1 0 1]"
         },
         "fedavg": {
           "threshold": 0.35,
@@ -688,33 +894,34 @@
           "recall@5%FPR": 0.9735599622285175,
           "preds": "[1 1 1 ... 1 1 1]"
         },
-        "delta_pr_auc_fedavg_vs_local": -0.5298305592409389,
-        "delta_recall_fedavg_vs_local": 0.005665722379603388,
-        "delta_pr_auc_fedprox_vs_local": -0.0009818589694895463,
-        "delta_recall_fedprox_vs_local": 0.005665722379603388
+        "delta_pr_auc_fedavg_vs_local": -0.5324713252702318,
+        "delta_recall_fedavg_vs_local": 0.007554296506137814,
+        "delta_pr_auc_fedprox_vs_local": -0.003622624998782409,
+        "delta_recall_fedprox_vs_local": 0.007554296506137814
       },
       {
-        "client": "South Asia (ISRO)",
-        "n_train": 14172,
-        "pos_rate_train": 0.6418995261192322,
+        "client": "Client D (South Asia)",
+        "evaluation_protocol": "within_shard_slice",
+        "n_train": 17716,
+        "pos_rate_train": 0.642244279384613,
         "n_eval": 3544,
         "pos_rate_eval": 0.6436230540275574,
         "local": {
           "threshold": 0.35,
-          "accuracy": 0.975451467268623,
-          "precision": 0.9728448275862069,
-          "recall": 0.9894782989916703,
-          "f1": 0.9810910671593132,
-          "f2": 0.9861062565536526,
-          "roc_auc": 0.9949578309300938,
-          "pr_auc": 0.9970358025637066,
-          "brier": 0.06866314817050283,
-          "ece": 0.19889877576267448,
+          "accuracy": 0.9762979683972912,
+          "precision": 0.9745140388768898,
+          "recall": 0.9890398947829899,
+          "f1": 0.9817232375979112,
+          "f2": 0.986100183582481,
+          "roc_auc": 0.9960130556287387,
+          "pr_auc": 0.9977219477523515,
+          "brier": 0.05792842764542845,
+          "ece": 0.1786317914103118,
           "prevalence": 0.6436230248306998,
-          "recall@0.5%FPR": 0.7487943884261289,
-          "recall@1%FPR": 0.8421744848750548,
-          "recall@2%FPR": 0.966242875931609,
-          "recall@5%FPR": 0.9894782989916703,
+          "recall@0.5%FPR": 0.841297676457694,
+          "recall@1%FPR": 0.8969750109601052,
+          "recall@2%FPR": 0.9701885138097326,
+          "recall@5%FPR": 0.9899167032003507,
           "preds": "[1 1 0 ... 1 0 1]"
         },
         "fedavg": {
@@ -753,15 +960,16 @@
           "recall@5%FPR": 0.9807102148180622,
           "preds": "[1 1 1 ... 1 1 1]"
         },
-        "delta_pr_auc_fedavg_vs_local": -0.32093831466500744,
-        "delta_recall_fedavg_vs_local": 0.01052170100832972,
-        "delta_pr_auc_fedprox_vs_local": -0.0007083253659252442,
-        "delta_recall_fedprox_vs_local": 0.01052170100832972
+        "delta_pr_auc_fedavg_vs_local": -0.3216244598536523,
+        "delta_recall_fedavg_vs_local": 0.010960105217010074,
+        "delta_pr_auc_fedprox_vs_local": -0.001394470554570093,
+        "delta_recall_fedprox_vs_local": 0.010960105217010074
       },
       {
-        "client": "East Asia (KASI)",
-        "n_train": 1503,
-        "pos_rate_train": 0.3699268102645874,
+        "client": "Client E (East Asia)",
+        "evaluation_protocol": "within_shard_slice",
+        "n_train": 1879,
+        "pos_rate_train": 0.37307077646255493,
         "n_eval": 376,
         "pos_rate_eval": 0.3856382966041565,
         "local": {
@@ -771,14 +979,14 @@
           "recall": 1.0,
           "f1": 0.5566218809980806,
           "f2": 0.7583682008368201,
-          "roc_auc": 0.9810120913569189,
-          "pr_auc": 0.9653651836472154,
-          "brier": 0.2264857043609325,
-          "ece": 0.34877595891977875,
+          "roc_auc": 0.9831616659202866,
+          "pr_auc": 0.9686156247918474,
+          "brier": 0.2137470362330311,
+          "ece": 0.3656515451346306,
           "prevalence": 0.38563829787234044,
-          "recall@0.5%FPR": 0.5103448275862069,
-          "recall@1%FPR": 0.7034482758620689,
-          "recall@2%FPR": 0.8068965517241379,
+          "recall@0.5%FPR": 0.6,
+          "recall@1%FPR": 0.6551724137931034,
+          "recall@2%FPR": 0.8,
           "recall@5%FPR": 0.8827586206896552,
           "preds": "[1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1\n 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1\n 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1\n 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1\n 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1\n 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1\n 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1\n 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1\n 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1\n 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1\n 1 1 1 1 1 1]"
         },
@@ -818,15 +1026,16 @@
           "recall@5%FPR": 0.993103448275862,
           "preds": "[1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1\n 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1\n 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1\n 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1\n 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1\n 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1\n 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1\n 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1\n 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1\n 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1\n 1 1 1 1 1 1]"
         },
-        "delta_pr_auc_fedavg_vs_local": -0.4776251802046245,
+        "delta_pr_auc_fedavg_vs_local": -0.48087562134925654,
         "delta_recall_fedavg_vs_local": 0.0,
-        "delta_pr_auc_fedprox_vs_local": 0.028052724714129118,
+        "delta_pr_auc_fedprox_vs_local": 0.024802283569497097,
         "delta_recall_fedprox_vs_local": 0.0
       },
       {
-        "client": "Oceania (BoM)",
-        "n_train": 1668,
-        "pos_rate_train": 0.4292565882205963,
+        "client": "Client F (Oceania)",
+        "evaluation_protocol": "within_shard_slice",
+        "n_train": 2085,
+        "pos_rate_train": 0.43501198291778564,
         "n_eval": 417,
         "pos_rate_eval": 0.45803356170654297,
         "local": {
@@ -836,15 +1045,15 @@
           "recall": 1.0,
           "f1": 0.6282894736842105,
           "f2": 0.8086367485182049,
-          "roc_auc": 0.9666172450539776,
-          "pr_auc": 0.9609490662035713,
-          "brier": 0.22497816806549326,
-          "ece": 0.3268927570155485,
+          "roc_auc": 0.9703701987675486,
+          "pr_auc": 0.9655091240901652,
+          "brier": 0.20965383627553538,
+          "ece": 0.3527181420108969,
           "prevalence": 0.4580335731414868,
-          "recall@0.5%FPR": 0.5759162303664922,
-          "recall@1%FPR": 0.6020942408376964,
-          "recall@2%FPR": 0.643979057591623,
-          "recall@5%FPR": 0.7958115183246073,
+          "recall@0.5%FPR": 0.5602094240837696,
+          "recall@1%FPR": 0.6387434554973822,
+          "recall@2%FPR": 0.7015706806282722,
+          "recall@5%FPR": 0.806282722513089,
           "preds": "[1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1\n 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1\n 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1\n 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1\n 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1\n 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1\n 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1\n 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1\n 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1\n 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1\n 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1\n 1 1 1 1 1 1 1 1 1 1]"
         },
         "fedavg": {
@@ -883,15 +1092,16 @@
           "recall@5%FPR": 0.9842931937172775,
           "preds": "[1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1\n 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1\n 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1\n 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1\n 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1\n 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1\n 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1\n 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1\n 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1\n 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1\n 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1\n 1 1 1 1 1 1 1 1 1 1]"
         },
-        "delta_pr_auc_fedavg_vs_local": -0.42865246663556456,
+        "delta_pr_auc_fedavg_vs_local": -0.4332125245221584,
         "delta_recall_fedavg_vs_local": 0.0,
-        "delta_pr_auc_fedprox_vs_local": 0.020757909160203925,
+        "delta_pr_auc_fedprox_vs_local": 0.016197851273610064,
         "delta_recall_fedprox_vs_local": 0.0
       }
     ],
     "summary": {
       "n_clients_evaluated": 6,
-      "mean_local_pr_auc": 0.9833080480023177,
+      "evaluation_protocol": "within_shard_slice",
+      "mean_local_pr_auc": 0.985620446851,
       "mean_fedavg_pr_auc": 0.5615775597698983,
       "mean_fedprox_pr_auc": 0.9898854620385813,
       "clients_helped_by_federation": 2

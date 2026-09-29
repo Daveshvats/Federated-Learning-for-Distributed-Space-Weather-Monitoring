@@ -1,0 +1,83 @@
+[Holdout] splits/shards reused from main.py phase cache
+[Holdout] carved 20% untouched holdouts from every client shard (seed 42)
+[Model] Creating SolarMLP (input_dim=144, seed=42)
+[Model] CUDA not available — using CPU. Install CUDA PyTorch build for GPU acceleration.
+[Model] Parameters: 29,377
+============================================================
+ FEDAVG [cpu] | MLP | agg=plain | pos_rate=0.489
+ monitoring: VALIDATION (15,643 samples)
+============================================================
+  Round   5 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.992
+  Round  10 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.987
+  Round  15 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.987
+  Round  20 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.973
+  Round  25 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.936
+  Round  30 | val F1: 0.727 | val Recall: 1.000 | val ROC-AUC: 0.926
+  Round  35 | val F1: 0.000 | val Recall: 0.000 | val ROC-AUC: 0.908
+  Round  40 | val F1: 0.000 | val Recall: 0.000 | val ROC-AUC: 0.896
+  Round  45 | val F1: 0.000 | val Recall: 0.000 | val ROC-AUC: 0.869
+  Round  50 | val F1: 0.000 | val Recall: 0.000 | val ROC-AUC: 0.668
+
+  [fedavg] Restored best VALIDATION checkpoint (val F1=0.727)
+[Model] Creating SolarMLP (input_dim=144, seed=42)
+[Model] CUDA not available — using CPU. Install CUDA PyTorch build for GPU acceleration.
+[Model] Parameters: 29,377
+============================================================
+ FedProx (mu=0.01) [cpu] | MLP | agg=plain | pos_rate=0.489
+ monitoring: VALIDATION (15,643 samples)
+============================================================
+  Round   5 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.993
+  Round  10 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.991
+  Round  15 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.989
+  Round  20 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.990
+[Holdout] splits/shards reused from main.py phase cache
+[Holdout] carved 20% untouched holdouts from every client shard (seed 42)
+[Model] Creating SolarMLP (input_dim=144, seed=42)
+[Model] CUDA not available — using CPU. Install CUDA PyTorch build for GPU acceleration.
+[Model] Parameters: 29,377
+  [fedavg] identical completed run found — reusing cached model
+[Model] Creating SolarMLP (input_dim=144, seed=42)
+[Model] CUDA not available — using CPU. Install CUDA PyTorch build for GPU acceleration.
+[Model] Parameters: 29,377
+  [fedprox] resuming from round 23 (crash recovery)
+============================================================
+ FedProx (mu=0.01) [cpu] | MLP | agg=plain | pos_rate=0.489
+ monitoring: VALIDATION (15,643 samples)
+============================================================
+  Round  25 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.990
+  Round  30 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.990
+  Round  35 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.987
+  Round  40 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.988
+  Round  45 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.986
+  Round  50 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.984
+
+  [fedprox] Restored best VALIDATION checkpoint (val F1=0.657)
+[Model] Creating SolarMLP (input_dim=144, seed=42)
+[Model] CUDA not available — using CPU. Install CUDA PyTorch build for GPU acceleration.
+[Model] Parameters: 29,377
+[Client Eval] Client A (Americas): n=13,350 (pos 80.5%) | local PR-AUC 0.999 | fed PR-AUC 0.973
+[Model] Creating SolarMLP (input_dim=144, seed=43)
+[Model] CUDA not available — using CPU. Install CUDA PyTorch build for GPU acceleration.
+[Model] Parameters: 29,377
+[Client Eval] Client B (Europe): n=23,418 (pos 28.6%) | local PR-AUC 0.990 | fed PR-AUC 0.747
+[Model] Creating SolarMLP (input_dim=144, seed=44)
+[Model] CUDA not available — using CPU. Install CUDA PyTorch build for GPU acceleration.
+[Model] Parameters: 29,377
+[Client Eval] Client C (Asia-Pacific): n=11,584 (pos 36.9%) | local PR-AUC 0.987 | fed PR-AUC 0.833
+[Model] Creating SolarMLP (input_dim=144, seed=45)
+[Model] CUDA not available — using CPU. Install CUDA PyTorch build for GPU acceleration.
+[Model] Parameters: 29,377
+[Client Eval] Client D (South Asia): n=14,172 (pos 64.2%) | local PR-AUC 0.997 | fed PR-AUC 0.933
+[Model] Creating SolarMLP (input_dim=144, seed=46)
+[Model] CUDA not available — using CPU. Install CUDA PyTorch build for GPU acceleration.
+[Model] Parameters: 29,377
+[Client Eval] Client E (East Asia): n=1,503 (pos 37.0%) | local PR-AUC 0.965 | fed PR-AUC 0.864
+[Model] Creating SolarMLP (input_dim=144, seed=47)
+[Model] CUDA not available — using CPU. Install CUDA PyTorch build for GPU acceleration.
+[Model] Parameters: 29,377
+[Client Eval] Client F (Oceania): n=1,668 (pos 42.9%) | local PR-AUC 0.961 | fed PR-AUC 0.846
+
+[Holdout] report -> outputs/client_holdout_eval.json
+[Holdout] protocol: untouched_holdout | clients evaluated: 6
+[Holdout] mean local PR-AUC 0.983 | mean FedAvg PR-AUC 0.866 | mean FedProx PR-AUC 0.988
+[Holdout] clients helped by FedProx: 2/6

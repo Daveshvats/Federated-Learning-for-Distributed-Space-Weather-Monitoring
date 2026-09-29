@@ -1,6 +1,6 @@
 {
-  "run_id": "run_20260928_121649",
-  "version": "3.0.1-improvements",
+  "run_id": "run_20260929_105739",
+  "version": "3.1.0-improvements",
   "seed": 42,
   "clients": 6,
   "rounds": 50,
@@ -164,5 +164,5 @@
     "slope_TOTFX"
   ],
   "python": "3.12.14",
-  "elapsed_s": 442.1
+  "elapsed_s": 527.0
 }

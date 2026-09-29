@@ -1,0 +1,126 @@
+
+==================================================================
+  SF-9 DATA LOADING PIPELINE
+==================================================================
+
+[Priority 1] Attempting to load CLEANED dataset...
+======================================================================
+  SF-9: Loading Cleaned SWAN-SF Dataset
+  Mode: Auto-detect 2D/3D + Convert to 2D
+======================================================================
+
+[Loading] Combining all 5 partitions...
+
+[1/4] Loading training data (preprocessed + balanced)...
+      ✓ Partition 1: X=(18773, 60, 24), y=(18773,)
+      ⚠ Detected 3D data! Applying 'concat_stats_enhanced' transformation...
+      [Transform] Converting 3D (18773, 60, 24) → 2D using 'concat_stats_enhanced' method
+      [Transform] Enhanced 6-stat features: (18773, 144) (144 features = 6 stats x 24 base features)
+      ✓ Partition 2: X=(19807, 60, 24), y=(19807,)
+      ⚠ Detected 3D data! Applying 'concat_stats_enhanced' transformation...
+      [Transform] Converting 3D (19807, 60, 24) → 2D using 'concat_stats_enhanced' method
+      [Transform] Enhanced 6-stat features: (19807, 144) (144 features = 6 stats x 24 base features)
+      ✓ Partition 3: X=(19965, 60, 24), y=(19965,)
+      ⚠ Detected 3D data! Applying 'concat_stats_enhanced' transformation...
+      [Transform] Converting 3D (19965, 60, 24) → 2D using 'concat_stats_enhanced' method
+      [Transform] Enhanced 6-stat features: (19965, 144) (144 features = 6 stats x 24 base features)
+      ✓ Partition 4: X=(19320, 60, 24), y=(19320,)
+      ⚠ Detected 3D data! Applying 'concat_stats_enhanced' transformation...
+      [Transform] Converting 3D (19320, 60, 24) → 2D using 'concat_stats_enhanced' method
+      [Transform] Enhanced 6-stat features: (19320, 144) (144 features = 6 stats x 24 base features)
+      ✓ Partition 5: X=(19899, 60, 24), y=(19899,)
+      ⚠ Detected 3D data! Applying 'concat_stats_enhanced' transformation...
+      [Transform] Converting 3D (19899, 60, 24) → 2D using 'concat_stats_enhanced' method
+      [Transform] Enhanced 6-stat features: (19899, 144) (144 features = 6 stats x 24 base features)
+      ✓ Total training: X=(97764, 144), y=(97764,)
+      ✓ Train flare rate: 48.87%
+
+[2/4] Loading test data (cleaned, not resampled)...
+      ✓ Partition 1: X=(73492, 60, 24), y=(73492,)
+      ⚠ Detected 3D data! Applying 'concat_stats_enhanced' transformation...
+      [Transform] Converting 3D (73492, 60, 24) → 2D using 'concat_stats_enhanced' method
+      [Transform] Enhanced 6-stat features: (73492, 144) (144 features = 6 stats x 24 base features)
+      ✓ Partition 2: X=(88557, 60, 24), y=(88557,)
+      ⚠ Detected 3D data! Applying 'concat_stats_enhanced' transformation...
+      [Transform] Converting 3D (88557, 60, 24) → 2D using 'concat_stats_enhanced' method
+      [Transform] Enhanced 6-stat features: (88557, 144) (144 features = 6 stats x 24 base features)
+      ✓ Partition 3: X=(42510, 60, 24), y=(42510,)
+      ⚠ Detected 3D data! Applying 'concat_stats_enhanced' transformation...
+      [Transform] Converting 3D (42510, 60, 24) → 2D using 'concat_stats_enhanced' method
+      [Transform] Enhanced 6-stat features: (42510, 144) (144 features = 6 stats x 24 base features)
+      ✓ Partition 4: X=(51261, 60, 24), y=(51261,)
+      ⚠ Detected 3D data! Applying 'concat_stats_enhanced' transformation...
+      [Transform] Converting 3D (51261, 60, 24) → 2D using 'concat_stats_enhanced' method
+      [Transform] Enhanced 6-stat features: (51261, 144) (144 features = 6 stats x 24 base features)
+      ✓ Partition 5: X=(75365, 60, 24), y=(75365,)
+      ⚠ Detected 3D data! Applying 'concat_stats_enhanced' transformation...
+      [Transform] Converting 3D (75365, 60, 24) → 2D using 'concat_stats_enhanced' method
+      [Transform] Enhanced 6-stat features: (75365, 144) (144 features = 6 stats x 24 base features)
+      ✓ Total test: X=(331185, 144), y=(331185,)
+      ✓ Test flare rate: 1.88% (real-world distribution)
+
+[3/4] Extracting feature information...
+      ✓ Generated 144 feature names (method: concat_stats_enhanced)
+
+[4/4] Summary:
+======================================================================
+  Training Set:
+    Samples:         97,764
+    Features:           144
+    Flares:        47,773.0 ( 48.9%)
+    Non-flares:    49,991.0 ( 51.1%)
+
+  Test Set:
+    Samples:        331,185
+    Features:           144
+    Flares:         6,234.0 (  1.9%)
+    Non-flares:   324,951.0 ( 98.1%)
+======================================================================
+
+  ✅ Data loaded successfully! Ready for federated learning.
+  ▶ Transformation applied: concat_stats_enhanced
+  ▶ Next step: python main.py --use-cleaned-data
+======================================================================
+
+[Data] Cleaned dataset loaded: 428,949 samples (144 features, names preserved for interpretability)
+
+==================================================================
+  PREPROCESSING PIPELINE (v3.0 immutable split contract)
+==================================================================
+
+[Preprocess] Selected 144 feature columns (mode: stat_prefixed)
+[Preprocess] Using pre-existing train/test boundary from cleaned dataset.
+[Preprocess] Cleaned data already LSBZM-normalized — StandardScaler fitted, NOT applied.
+[Preprocess] Train: 82,121 | flare rate: 48.87%
+[Preprocess] Val:   15,643 | flare rate: 48.87%  (selection-only)
+[Preprocess] Test:  331,185 | flare rate: 1.88%  (final evaluation ONLY)
+
+[Partition] Client A (Americas)            | n= 16,688 | flare rate:  80.5%
+[Partition] Client B (Europe)              | n= 29,273 | flare rate:  28.6%
+[Partition] Client C (Asia-Pacific)        | n= 14,480 | flare rate:  36.9%
+[Partition] Client D (South Asia)          | n= 17,716 | flare rate:  64.2%
+[Partition] Client E (East Asia)           | n=  1,879 | flare rate:  37.3%
+[Partition] Client F (Oceania)             | n=  2,085 | flare rate:  43.5%
+[Partition] coverage: 82,121/82,121 (100.0%) — disjoint by construction
+[Model] Creating SolarMLP (input_dim=144, seed=42)
+[Model] CUDA not available — using CPU. Install CUDA PyTorch build for GPU acceleration.
+[Model] Parameters: 29,377
+============================================================
+ FedProx (mu=0.01) [cpu] | MLP | agg=plain | pos_rate=0.489
+ monitoring: VALIDATION (15,643 samples)
+============================================================
+  Round   5 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.994
+  Round  10 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.992
+  Round  15 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.991
+  Round  20 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.991
+  Round  25 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.990
+  Round  30 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.990
+  Round  35 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.988
+  Round  40 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.988
+  Round  45 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.988
+  Round  50 | val F1: 0.657 | val Recall: 1.000 | val ROC-AUC: 0.988
+
+  [fedprox] Restored best VALIDATION checkpoint (val F1=0.657)
+[Centralised] Fitting climatology baseline (train prevalence) ...
+[Centralised] Training Logistic Regression ...
+[Centralised] Training centralized MLP (federation-cost reference) ...

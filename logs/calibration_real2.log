@@ -1,0 +1,4 @@
+[CalibComp] splits/shards reused from main.py phase cache
+[CalibComp] FedProx reused from main.py phase cache
+[CalibComp] centralized baselines reused from phase cache
+[CalibComp] report -> outputs/calibration_comparison.json

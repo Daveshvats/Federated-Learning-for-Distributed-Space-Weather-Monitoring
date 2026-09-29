@@ -128,46 +128,115 @@ def main():
     ap.add_argument("--synthetic", action="store_true")
     ap.add_argument("--rounds", type=int, default=cfg.N_ROUNDS)
     ap.add_argument("--output", default=None)
+    ap.add_argument("--fresh-model", action="store_true",
+                    help="ignore main.py's phase cache; retrain FedProx "
+                         "and the centralized baselines from scratch "
+                         "(round-resumable)")
     args = ap.parse_args()
 
     if args.synthetic:
         return _synthetic_mode()
 
-    # ── real-data path (owner; requires dataset + torch) ──────────────
+    # ── real-data path (requires dataset + torch) ─────────────────────
+    # Resumability: main.py's phase cache (data/cache/) is reused when the
+    # experiment identity matches the frozen protocol (seed 42, alpha 1.0,
+    # 6 clients, MLP). The cached models are bit-stable re-executions of
+    # the headline run, so the calibration arms below characterise exactly
+    # the published models. --fresh-model forces a from-scratch retrain
+    # (FedProx checkpoints round-by-round for crash recovery).
     t0 = time.time()
+    import torch
     from data_preparation import load_or_generate_data, preprocess
     from partition_clients import partition_data_dirichlet
-    from federated_learning import run_fedprox, run_fedavg, get_model_probs
+    from federated_learning import run_fedprox, get_model_probs
     from centralized_baseline import (train_centralized, mlp_probs,
                                       training_budget_report)
 
-    df = load_or_generate_data()
-    splits = preprocess(df, val_fraction=cfg.VAL_SPLIT)
-    X_train, y_train = splits.X_train, splits.y_train
-    X_val, y_val = splits.X_val, splits.y_val
-    X_test, y_test = splits.X_test, splits.y_test
+    report = {"mode": "real", "rounds": args.rounds, "seed": cfg.SEED,
+              "fpr_targets": list(FPR_TARGETS), "models": {},
+              "artefact_sources": {}}
+
+    cache_dir = os.path.join("data", "cache")
+    data_cache = os.path.join(cache_dir, "phase_data.npz")
+    assign_cache = os.path.join(cache_dir, "phase_assignment.npz")
+
+    if not args.fresh_model and os.path.exists(data_cache) \
+            and os.path.exists(assign_cache):
+        z = np.load(data_cache, allow_pickle=False)
+        X_train, y_train = z["X_train"], z["y_train"]
+        X_val, y_val = z["X_val"], z["y_val"]
+        X_test, y_test = z["X_test"], z["y_test"]
+        assignment = np.load(assign_cache)["assignment"]
+        X_arr, y_arr = np.asarray(X_train), np.asarray(y_train)
+        shards = []
+        for k in range(cfg.N_CLIENTS):
+            idx = np.where(assignment == k)[0]
+            rng = np.random.RandomState(cfg.SEED * 1000 + k)
+            idx = idx[rng.permutation(len(idx))]
+            shards.append((X_arr[idx], y_arr[idx]))
+        report["artefact_sources"]["splits_shards"] = (
+            "main.py phase cache (frozen protocol, identical identity key)")
+        print("[CalibComp] splits/shards reused from main.py phase cache")
+    else:
+        df = load_or_generate_data()
+        splits = preprocess(df, val_fraction=cfg.VAL_SPLIT)
+        X_train, y_train = splits.X_train, splits.y_train
+        X_val, y_val = splits.X_val, splits.y_val
+        X_test, y_test = splits.X_test, splits.y_test
+        shards = partition_data_dirichlet(
+            X_train, y_train, alpha=cfg.DIRICHLET_ALPHA,
+            n_clients=cfg.N_CLIENTS, seed=cfg.SEED,
+            min_samples=cfg.MIN_SAMPLES_PER_CLIENT)
+        report["artefact_sources"]["splits_shards"] = "recomputed"
     cfg.USE_LSTM = False
 
-    shards = partition_data_dirichlet(
-        X_train, y_train, alpha=cfg.DIRICHLET_ALPHA, n_clients=cfg.N_CLIENTS,
-        seed=cfg.SEED, min_samples=cfg.MIN_SAMPLES_PER_CLIENT)
+    # ── FedProx: reuse the completed frozen-protocol model when present ──
+    fedprox = None
+    fed_state = os.path.join(cache_dir, "phase_fedprox.pt")
+    if not args.fresh_model and os.path.exists(fed_state):
+        try:
+            d = torch.load(fed_state, weights_only=False)
+            if d.get("done"):
+                fedprox = d["model"]
+                report["artefact_sources"]["fedprox"] = (
+                    "main.py phase cache (frozen protocol: seed 42, "
+                    f"{args.rounds} rounds, mu={cfg.MU}, alpha={cfg.DIRICHLET_ALPHA})")
+                print("[CalibComp] FedProx reused from main.py phase cache")
+        except Exception:
+            pass
+    if fedprox is None:
+        fedprox, _ = run_fedprox(
+            shards, X_val, y_val, n_rounds=args.rounds, mu=cfg.MU,
+            seed=cfg.SEED,
+            resume_path=os.path.join(cfg.OUTPUT_DIR,
+                                     "calib_fedprox_state.pt"))
+        report["artefact_sources"]["fedprox"] = (
+            "retrained under frozen protocol (round-resumable)")
 
-    report = {"mode": "real", "rounds": args.rounds, "seed": cfg.SEED,
-              "fpr_targets": list(FPR_TARGETS), "models": {}}
-
-    # federated FedProx arm
-    fedprox, _ = run_fedprox(shards, X_val, y_val, rounds=args.rounds,
-                             mu=cfg.FEDPROX_MU)
+    device = next(fedprox.parameters()).device
     report["models"]["fedprox_mlp"] = compare_arms(
-        y_val, get_model_probs(fedprox, X_val), y_test,
-        get_model_probs(fedprox, X_test), "fedprox_mlp")
+        y_val, get_model_probs(fedprox, X_val, device), y_test,
+        get_model_probs(fedprox, X_test, device), "fedprox_mlp")
 
-    # centralized references
-    centr = train_centralized(X_train, y_train, X_val, y_val, seed=cfg.SEED)
-    if centr.get("mlp") is not None:
+    # ── centralized references (same reuse policy) ──
+    centr = None
+    baselines_cache = os.path.join(cache_dir, "phase_baselines.pt")
+    if not args.fresh_model and os.path.exists(baselines_cache):
+        try:
+            centr = torch.load(baselines_cache, weights_only=False)
+            report["artefact_sources"]["centralized"] = (
+                "main.py phase cache (frozen protocol)")
+            print("[CalibComp] centralized baselines reused from phase cache")
+        except Exception:
+            centr = None
+    if centr is None:
+        centr = train_centralized(X_train, y_train, X_val, y_val,
+                                  seed=cfg.SEED)
+        report["artefact_sources"]["centralized"] = "retrained"
+    if centr.get("centralized_mlp") is not None:
         report["models"]["centralized_mlp"] = compare_arms(
-            y_val, mlp_probs(centr["mlp"], X_val), y_test,
-            mlp_probs(centr["mlp"], X_test), "centralized_mlp")
+            y_val, mlp_probs(centr["centralized_mlp"], X_val), y_test,
+            mlp_probs(centr["centralized_mlp"], X_test), "centralized_mlp")
     if centr.get("xgboost") is not None:
         xgb_p_val = centr["xgboost"].predict_proba(X_val)[:, 1]
         xgb_p_test = centr["xgboost"].predict_proba(X_test)[:, 1]

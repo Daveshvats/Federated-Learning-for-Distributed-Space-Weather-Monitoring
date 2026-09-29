@@ -1,4 +1,12 @@
 data
-__pycache__outputs/ablation_state/
+__pycache__/
+outputs/ablation_state/
 outputs/sweep_state/
 outputs/multiseed_state/
+outputs/holdout_fedavg_state.pt
+outputs/holdout_fedprox_state.pt
+outputs/calib_fedprox_state.pt
+paper/main.log
+paper/main.blg
+paper/main.aux
+paper/main.bbl

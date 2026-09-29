@@ -3,8 +3,10 @@
 
 Run from anywhere: uses the repo root relative to this file.
 
-Regenerated for review-2 (R8): neutral client labels from config.CLIENT_NAMES,
-data from the frozen-protocol artefact outputs/results.json (client_level).
+Regenerated for review-2 (R8): neutral client labels from config.CLIENT_NAMES.
+Data source is selectable:
+    outputs/results.json                (legacy within-shard-slice protocol)
+    outputs/client_holdout_eval.json    (R14 untouched-holdout protocol)
 Grouped horizontal bars, same palette family as the other paper figures.
 """
 import json
@@ -14,6 +16,13 @@ import os
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, REPO)
 os.chdir(REPO)
+
+# --source selection (default: untouched-holdout artefact when present)
+source = "outputs/client_holdout_eval.json"
+for i, a in enumerate(sys.argv):
+    if a == "--source" and i + 1 < len(sys.argv):
+        source = sys.argv[i + 1]
+legacy = source.endswith("results.json")
 
 import numpy as np
 import matplotlib
@@ -27,8 +36,12 @@ plt.rcParams['axes.unicode_minus'] = False
 
 from config import CLIENT_NAMES  # neutral labels (R8)
 
-with open("outputs/results.json") as f:
-    cl = json.load(f)["client_level"]["per_client"]
+with open(source) as f:
+    cl = json.load(f)
+if legacy:
+    cl = cl["client_level"]["per_client"]
+else:
+    cl = cl["per_client"]
 
 names = [c.replace("\n", " ") for c in CLIENT_NAMES]
 local = [c["local"]["pr_auc"] for c in cl]
@@ -59,7 +72,9 @@ ax.set_yticks(y)
 ax.set_yticklabels(names, fontsize=9.5)
 ax.set_xlim(0, 1.14)
 ax.set_xticks([0, 0.2, 0.4, 0.6, 0.8, 1.0])
-ax.set_xlabel("PR-AUC on per-client 20% shard holdout (within-distribution; see paper caveat)",
+ax.set_xlabel("PR-AUC on each client's untouched 20% holdout (clean generalisation, R14 protocol)"
+              if not legacy else
+              "PR-AUC on per-client 20% shard holdout (within-distribution; see paper caveat)",
               fontsize=10)
 ax.set_title("Per-client discrimination: local-only vs federated global models",
              fontsize=11.5, fontweight="bold", loc="left", pad=8)
@@ -72,7 +87,7 @@ ax.set_axisbelow(True)
 
 out = os.path.join(REPO, "paper/figures/fig_clients.png")
 fig.savefig(out, dpi=220, facecolor="white")
-print("Saved", out)
+print("Saved", out, "| source:", source)
 print("mean local:", round(float(np.mean(local)), 3),
       "mean fedavg:", round(float(np.mean(fedavg)), 3),
       "mean fedprox:", round(float(np.mean(fedprox)), 3))
