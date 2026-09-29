@@ -87,22 +87,40 @@ mixup \cite{zhang2018} creates convex combinations of training pairs.
 Under federation, rebalancing must be applied locally per client, since
 the pooled distribution is precisely what no participant can inspect.
 
-\subsection{Positioning of this work}
+\subsection{Positioning of this work and search protocol}
+\label{sec:litsearch}
 
 Two research threads---physics-grounded flare prediction and
 heterogeneity-robust federated learning---have developed largely
 independently, and we are not aware of any prior work that joins them.
-Searches of the FL literature reveal applications spanning digital
-health \cite{rieke2020}, finance, and IoT sensing, but none addressing
-space-weather forecasting or solar flare prediction; conversely, the
-flare-forecasting literature, including its most recent deep-learning
-incarnations \cite{eskandari2024,hassani2025}, is entirely
-centralised. The present work is, to the best of our knowledge, the
-first federated treatment of solar flare prediction, the first
-FL framework evaluated on the SWAN-SF benchmark, and the first to
-quantify the privacy cost of federation---the gap between federated and
-centralised skill---specifically for a safety-critical smart-grid
-application. In doing so it also contributes a rarely documented
-artifact: an honest engineering log of the failure modes encountered
-when FL meets a severely imbalanced physical-science benchmark
-(Appendix~\ref{sec:appendix}).
+Because the first-FL-treatment claim is a factual statement about the
+literature, we document the search protocol behind it rather than
+relying on ``to the best of our knowledge''. The search was last
+repeated on 29~September 2026 across general web, arXiv, NASA ADS,
+and publisher indexes (ScienceDirect, IEEE) reached through a web
+search engine, using four query strings: (i)~\emph{federated learning
+solar flare prediction}; (ii)~\emph{federated learning space weather
+forecasting}; (iii)~\emph{federated learning SWAN-SF benchmark
+magnetogram}; (iv)~\emph{cross-silo federated learning geophysics
+heliophysics distributed observatories}. Records were included if
+they apply federated or distributed multi-client learning without raw
+data pooling to flare prediction or space-weather forecasting; records
+were excluded if they concern centralised machine learning for flares
+(the case for all entries of query~i), federated forecasting of
+\emph{solar power or irradiance}, federated \emph{terrestrial}
+weather forecasting, or federated computing on spacecraft without a
+scientific forecasting task (the categories returned by query~ii).
+Screening the 30 records returned by the four queries yielded
+\emph{zero} in-scope records; the raw result listings are committed
+with the repository (\texttt{docs/lit\_search/}). We note two
+limitations of this protocol: web-engine coverage of grey literature
+is incomplete, and the screening was single-reviewer, so a
+PRISMA-style dual-screened log remains queued repository work. Within
+those limits, the present work is the first federated treatment of
+solar flare prediction, the first FL framework evaluated on the
+SWAN-SF benchmark, and the first to quantify the cost of the
+data-locality constraint---the gap between federated and centralised
+skill---specifically for a safety-critical smart-grid application. In
+doing so it also contributes a rarely documented artifact: an honest
+engineering log of the failure modes encountered when FL meets a
+severely imbalanced physical-science benchmark (Appendix~\ref{sec:appendix}).

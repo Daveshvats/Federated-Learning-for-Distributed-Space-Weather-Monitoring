@@ -6,22 +6,26 @@
 \subsection{Architecture overview}
 
 \begin{sloppypar}
-Figure~\ref{fig:arch} shows the complete system. Six regional
-observatory clients---stand-ins for NASA/NOAA, ESA (PROBA-2), JAXA,
-ISRO, KASI, and BoM---each hold a private, non-IID shard of the
-benchmark. In every communication round, each selected client trains a
-local copy of the shared model on its shard (with local rebalancing and
-an imbalance-robust loss, described below), and returns only its weight
+Figure~\ref{fig:arch} shows the complete system. Six simulated
+regional clients---labelled neutrally A--F by region (Americas,
+Europe, Asia-Pacific, South Asia, East Asia, Oceania); no real
+institution participates in this study---each hold a private, non-IID
+shard of the benchmark. In every communication round, each selected
+client trains a local copy of the shared model on its shard (with an
+imbalance-robust loss, described below), and returns only its weight
 increment to the aggregation server. The server forms the next global
-model with distribution-aware weighted averaging, broadcasts it to all
-clients, and the cycle repeats for $T = 50$ rounds. Downstream of
-federation, the global model is calibrated for operations: its flare
-probabilities pass through the $F_\beta$-optimal threshold and become
-GIC early-warning decisions, which plug into existing SCADA workflows
-for grid management. The division of labour is
-deliberate: everything that touches raw magnetogram data (loading,
-rebalancing, local training) executes inside the client boundary;
-everything the server touches is a weight tensor.
+model by size-weighted averaging, broadcasts it to all clients, and
+the cycle repeats for $T = 50$ rounds. Downstream of federation, the
+global model emits flare probabilities and, at validation-frozen
+operating points, M/X flare-precursor alerts: an \emph{upstream}
+component that a future grid-resilience pipeline---CME propagation and
+storm forecasting, geomagnetic-hazard estimation, GIC and power-system
+response modelling, and SCADA integration---could consume. That
+downstream chain is outside the scope of this paper and is not
+evaluated here (Section~\ref{sec:limitations}). The division of labour
+is deliberate: everything that touches raw magnetogram data (loading,
+local training) executes inside the client boundary; everything the
+server touches is a weight tensor.
 \end{sloppypar}
 
 \begin{figure}[t]
@@ -30,13 +34,16 @@ everything the server touches is a weight tensor.
         \includegraphics{figures/fig_architecture.png}
     \end{adjustbox}
     \caption{Federated space-weather monitoring architecture for
-    smart-grid protection. Six regional observatory clients hold
+    grid-resilience pipelines. Six simulated regional clients
+    (neutral labels A--F; no real institution participates) hold
     private non-IID shards of the benchmark; only weight updates
-    $\Delta \w_k$ cross the agency boundary. The aggregation server
-    applies FedAvg/FedProx with distribution-aware weighting
-    ($\rho_k \propto n_k\sqrt{\phi_k}$, capped at $2/K$). The global
-    model feeds an $F_\beta$-optimal decision layer for GIC early
-    warning and SCADA integration.}
+    $\Delta \w_k$ cross the client boundary. The server applies
+    size-weighted FedAvg/FedProx aggregation by default (the
+    distribution-aware weighting $\rho_k \propto n_k\sqrt{\phi_k}$,
+    capped at $2/K$, is studied as an ablation arm). The global model
+    emits flare-probability precursor alerts at validation-frozen
+    operating points; the downstream GIC/SCADA pipeline is a future
+    integration interface and is not evaluated.}
     \label{fig:arch}
 \end{figure}
 
@@ -175,8 +182,10 @@ control-variate correction, but is disabled in the released
 configuration pending stability work, and we exclude it from the
 reported comparison (Section~\ref{sec:appendix}).
 
-Aggregation is \emph{distribution-aware} in both FedAvg and FedProx
-runs: the server weights client $k$'s update by
+Aggregation is \emph{plain size-weighted averaging} in the frozen
+headline configuration ($\rho_k = n_k/n$, the vanilla FedAvg
+choice); distribution-aware weighting (DA-FL), in which the server
+weights client $k$'s update by
 \begin{equation}\label{eq:dafl}
     \rho_k \;\propto\; n_k \sqrt{\phi_k},
     \qquad
@@ -184,19 +193,19 @@ runs: the server weights client $k$'s update by
     \qquad
     \rho_k \le \frac{2}{K},
 \end{equation}
-where $p_k$ is the client's local positive rate and $\bar{p}$ the
-pooled rate known to the server. The square-root damping and the
+with $p_k$ the client's local positive rate and $\bar{p}$ the pooled
+rate known to the server, is implemented as an \emph{ablation arm}
+(Section~\ref{sec:res-ablation}). The square-root damping and the
 $2/K$ cap prevent a flare-rich client from dominating the global
 model while still up-weighting the clients most likely to contain
 decision-relevant minority samples. Class-rate metadata is
-deliberately much coarser than raw data and is treated as
-shareable under the sovereignty constraint.
+deliberately much coarser than raw data and is treated as shareable
+under the data-locality constraint.
 
 \subsection{Fed-Focal loss and local rebalancing}
 
-Each client rebalances its shard locally with SMOTE
-\cite{chawla2002} to a minority fraction of $0.25$ and trains with a
-server-aware focal loss in the Fed-Focal family \cite{sarkar2020},
+Each client trains with a server-aware focal loss in the Fed-Focal
+family \cite{sarkar2020},
 \begin{equation}\label{eq:focal}
     \ell_{\mathrm{fedfocal}}
     \;=\; -\,\alpha_t\,\bigl(1 - p_t\bigr)^{\gamma}
@@ -215,36 +224,116 @@ flare-poor clients, producing degenerate always-flare classifiers with
 recall $\approx 1.0$ and precision $\approx 0.03$
 (Appendix~\ref{sec:appendix}). NaN-safe clamping of $p_t$ and of the
 loss itself guards the pipeline against logit explosions in early
-rounds.
+rounds. The framework additionally supports per-client SMOTE
+oversampling \cite{chawla2002} and mixup \cite{zhang2018}; both are
+\emph{disabled} in the frozen configuration because the cleaned
+benchmark's training partitions arrive pre-balanced (48.9\% positive),
+which renders SMOTE inert---the configured oversampling ratio produces
+zero synthetic samples. The balancing question is therefore
+inapplicable to this benchmark variant, and we report it as a null
+result rather than a contribution (Section~\ref{sec:res-ablation});
+SMOTE remains a live arm for the raw-benchmark evaluation queued in
+Section~\ref{sec:limitations}.
 
-\subsection{Threshold optimisation for safety-critical recall}
+\subsection{Threshold protocol for safety-critical recall}
 \label{sec:thresholding}
 
 Because federated training operates on rebalanced local data while
 deployment operates at the natural $1.9\%$ prior, the emitted
 probabilities are deliberately miscalibrated, and a fixed $0.5$
-threshold is meaningless. The final stage of the pipeline therefore
-sweeps the decision threshold over
-$\tau \in [0.10, 0.90]$ in steps of $0.01$ and selects, per model, the
-$\tau^\ast$ that maximises $\Fbeta$ with $\beta=2$
-(Eq.~\eqref{eq:fbeta}) on the held-out test set. All reported
-precision, recall, F1, and accuracy figures are taken at each model's
-$\Fbeta$-optimal threshold; ROC-AUC, being threshold-free, is reported
-independently. We follow the pipeline's evaluation code in treating
-threshold selection as part of the operational calibration rather than
-as test-set leakage; Section~\ref{sec:limitations} discusses the
-stricter alternative of selecting $\tau^\ast$ on a validation split.
+threshold is meaningless. The frozen protocol therefore performs all
+selection on validation data, in two stages. First, the decision
+threshold is selected by sweeping $\tau$ over $[0.05, 0.95]$ in steps
+of $0.005$ and choosing, per model, the $\tau^\ast$ that maximises
+$\Fbeta$ with $\beta=2$ (Eq.~\eqref{eq:fbeta}) on the validation set;
+$\tau^\ast$ is then frozen and applied to the test set exactly once.
+All reported precision, recall, F1, and accuracy figures are taken at
+each model's frozen threshold. Second---because balanced-prevalence
+validation turns out not to support threshold transfer at all
+(Section~\ref{sec:res-calib})---the framework additionally freezes
+\emph{fixed-FPR operating points}: for each target false-positive
+budget $f \in \{0.5\%, 1\%, 2\%, 5\%\}$, the threshold is set to the
+$(1-f)$-quantile of \emph{validation negative scores}, a quantity that
+uses no test information whatsoever; the realised test behaviour at
+each frozen threshold (achieved FPR, recall, precision, alert rate) is
+reported in the same single test pass. The negative-quantile rule is
+numerically validated in the released test suite, and a natural-
+prevalence validation split, the ideal substrate for this protocol, is
+part of the queued protocol re-run (Section~\ref{sec:experiments}).
+ROC-AUC and PR-AUC, being threshold-free, are reported independently.
+
+\subsection{Threat model and security posture}
+\label{sec:threatmodel}
+
+The verified property of this framework is data locality (raw data
+never leaves the client), not end-to-end security. To make that scope
+auditable, Table~\ref{tab:threat} states the threat model explicitly:
+which adversaries are considered, which defences the released code
+provides, and which are documented but unevaluated.
+
+\begin{table}[t]
+\centering
+\caption{Threat model of the released framework. ``Mitigated in code''
+means implemented and covered by the integrity test suite;
+``documented'' means design guidance exists but no quantitative
+evaluation has been performed on this benchmark.}
+\label{tab:threat}
+\small
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X@{}}
+\toprule
+\textbf{Adversary / attack} & \textbf{Defence} & \textbf{Status} \\
+\midrule
+Honest-but-curious aggregation server (observes all weight
+updates) & Secure-aggregation module (Bonawitz-style masks;
+round-trip verified by tests) & Implemented as verified module;
+not yet wired into the training loop; accuracy overhead not
+measured \\
+\addlinespace[2pt]
+Gradient inversion / reconstruction from the transcript
+$\mathcal{T}$ \cite{zhu2019} & Secure aggregation (masks updates);
+differential-privacy hooks & Documented; not evaluated \\
+\addlinespace[2pt]
+Membership inference against a specific client's training data &
+Differential-privacy hooks (noise on client updates) & Documented;
+not evaluated \\
+\addlinespace[2pt]
+Malicious client: model poisoning / backdoor insertion & None at
+present; Byzantine-robust aggregation is a design note & Not
+addressed \\
+\addlinespace[2pt]
+Client impersonation / spoofed updates & Transport security (TLS)
+and client authentication are deployment infrastructure outside the
+learning loop & Documented (deployment guidance) \\
+\addlinespace[2pt]
+Network interception of updates & TLS in transit & Documented
+(deployment guidance) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+For the benchmark study reported here---six simulated clients, public
+data, no real adversaries---none of these defences is enabled, so the
+reported accuracy numbers are those of the undefended pipeline. Any
+cross-agency deployment would need to re-measure accuracy under secure
+aggregation and differential privacy before the numbers in
+Section~\ref{sec:results} could be quoted as expected operational
+performance (Section~\ref{sec:limitations}).
 
 \subsection{Interpretability layer}
 
 To audit what the models learn, SHAP values \cite{lundberg2017} are
-computed for the centralised XGBoost surrogate over a 500-sample test
-subset with the TreeExplainer, yielding mean absolute SHAP
-attributions per feature. Because the statistical representation of
-Eq.~\eqref{eq:stats} names features generically
-(\texttt{feature\_0}, \dots, \texttt{feature\_143}) in the released
-pipeline, we decode the indices analytically: the concatenation order
-is $\mu$ (0--23), $\sigma$ (24--47), $\max$ (48--71), $\min$
-(72--95), $\delta$ (96--119), $s$ (120--143), each block ordered by the
-24 base parameters. Section~\ref{sec:results} presents both the raw
-ranking and its decoded physical reading.
+computed for the centralised XGBoost reference over a 500-sample test
+subset with the TreeExplainer and for the federated model with DeepSHAP
+(100-sample background), yielding mean absolute SHAP attributions per
+feature. The statistical representation of Eq.~\eqref{eq:stats}
+carries a 144-entry name contract---each feature is named
+\texttt{<statistic>\_<parameter>} (e.g.\ \texttt{mean\_TOTUSJH},
+\texttt{max\_R\_VALUE}), with the statistic blocks ordered $\mu$
+(0--23), $\sigma$ (24--47), $\max$ (48--71), $\min$ (72--95), $\delta$
+(96--119), $s$ (120--143) over the 24 base parameters---and the
+improved pipeline preserves these names end-to-end, so the SHAP layer
+reports physically meaningful attributions directly (the v2.x pipeline
+lost the mapping and required an analytical decoding pass;
+Appendix~\ref{sec:appendix}). Section~\ref{sec:results} presents the
+raw ranking, its statistic-level structure, and the physical grouping
+used for cross-model comparison.

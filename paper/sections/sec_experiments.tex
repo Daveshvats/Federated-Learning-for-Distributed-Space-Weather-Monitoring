@@ -18,10 +18,11 @@ once at the very end of the pipeline. A stratified validation set
 (16\%, $n{=}15{,}643$) is carved from the \emph{training} pool with the
 root seed (42) and is the only set used for any model selection.
 \item \textbf{Selection isolation.} Hyperparameter monitoring, the
-best-checkpoint rule, calibration fitting, and the $F_\beta$ threshold
-search all operate on validation. The test set participates in no
-selection of any kind (the v2.x pipeline selected thresholds directly
-on test; this revision removes that violation).
+best-checkpoint rule, calibration fitting, the $F_\beta$ threshold
+search, and the fixed-FPR operating-point thresholds all operate on
+validation. The test set participates in no selection of any kind
+(the v2.x pipeline selected thresholds directly on test; this
+revision removes that violation).
 \item \textbf{Leakage audit.} A runtime audit verifies
 sample-disjointness of train/validation/test, disjointness and coverage
 of the client shards, and flags the known limitation that
@@ -30,9 +31,29 @@ region-level separation across the train/validation boundary cannot be
 guaranteed (Section~\ref{sec:limitations}). The pipeline refuses to
 train if the audit fails.
 \item \textbf{Single-pass evaluation.} Each model's frozen pipeline
-(calibratore $+$ threshold) is applied to the test set once; all
+(calibrator $+$ threshold) is applied to the test set once; all
 reported test metrics are recomputed from those predictions (the v2.x
 code reported a stale accuracy for federated models).
+\item \textbf{Protocol extensions released with this revision.} The
+following components are implemented, unit-tested (78-check integrity
+suite), and smoke-validated, with their full quantitative execution
+queued for the next training pass on the complete corpus (owner-side
+generates the artefacts; the numbers in this paper predate them and
+are labelled accordingly): (i)~a region-disjoint train/validation split
+generator that partitions by active-region identifier when available
+(review context: the current cleaned export lacks HARP/AR identifiers,
+so the committed split remains the stratified carve-out); (ii)~a
+natural-prevalence validation mode plus the validation-frozen fixed-FPR
+operating-point protocol of Section~\ref{sec:thresholding};
+(iii)~an untouched-holdout client evaluation mode, in which every
+client reserves a fraction its models never train on, so local versus
+global comparisons are clean generalisation estimates; (iv)~an explicit
+training-budget audit (Section~\ref{sec:budget}); (v)~an event-level
+evaluation module (detection rate, missed events, duplicate alerts,
+warning lead time, alert rate per day); and (vi)~a calibration-comparison
+harness (raw, prior-shift, Platt, isotonic, temperature, and frozen-FPR
+thresholding arms, evaluated on balanced validation, natural validation,
+and the single test pass).
 \end{itemize}
 
 \subsection{Baselines}
@@ -55,24 +76,33 @@ validation-selected calibration and threshold treatment as the
 federated models, so the decision layer is uniform across all
 comparisons.
 
-\subsection{Federated configuration}
+\subsection{Federated configuration and preregistration}
 
-Table~\ref{tab:hyper} summarises the frozen configuration. The headline
-runs use plain size-weighted FedAvg aggregation (the DA-FL weighting of
-Eq.~\ref{eq:dafl} is studied as an ablation arm in
-Section~\ref{sec:res-ablation}); per-client SMOTE is disabled by
-default because the balanced benchmark renders it inert. The proximal
-coefficient is $\mu=0.01$; the $\mu/\alpha$ sensitivity sweep
-($\mu \in \{0.001, 0.01, 0.1\}$, Dirichlet $\alpha \in \{0.5, 1.0,
-5.0\}$, 15 rounds) selects on validation and evaluates the winning
-configuration once on test (winner: $\alpha=5.0$, $\mu=0.01$,
-validation PR-AUC 0.993; test PR-AUC 0.297, consistent with the
-headline FedProx result).
+Table~\ref{tab:hyper} summarises the frozen configuration. The
+headline runs use plain size-weighted FedAvg aggregation (the DA-FL
+weighting of Eq.~\ref{eq:dafl} is studied as an ablation arm in
+Section~\ref{sec:res-ablation}); per-client SMOTE is disabled because
+the balanced benchmark renders it inert. The proximal coefficient is
+$\mu=0.01$. Two facts govern the heterogeneity parameter: the headline
+run and \emph{all} statistical studies (multiseed, ablations,
+client-level evaluation) use the preregistered Dirichlet
+$\alpha=1.0$; separately, the $\mu/\alpha$ sensitivity sweep
+($\mu \in \{0.001, 0.01, 0.1\}$, $\alpha \in \{0.5, 1.0, 5.0\}$,
+15 rounds) selected $\alpha=5.0$, $\mu=0.01$ as the
+validation-optimal configuration (validation PR-AUC 0.993; its single
+test pass gave PR-AUC 0.297, consistent with the headline FedProx
+result). The two values answer different questions---$\alpha=1.0$ is
+the adversarially heterogeneous \emph{study regime}, $\alpha=5.0$ is
+the validation-selected \emph{tuning optimum}---and we do not silently
+substitute one for the other: promoting the sweep winner to the
+headline configuration requires re-running the multiseed and ablation
+studies under it, which is queued. Both values, and the provenance of
+each, are recorded in the run manifest.
 
 \begin{table}[t]
 \centering
 \caption{Frozen configuration of the improved framework
-(\texttt{improvements} branch, v3.0.1).}
+(\texttt{improvements} branch, v3.1).}
 \label{tab:hyper}
 \small
 \begin{tabularx}{\textwidth}{@{}l >{\raggedright\arraybackslash}X l@{}}
@@ -117,6 +147,48 @@ multi-seed study we report mean $\pm$ standard deviation with
 Student-$t$ 95\% confidence intervals and one-sided Wilcoxon
 signed-rank paired tests.
 
+\subsection{Optimisation budgets: centralized versus federated}
+\label{sec:budget}
+
+The centralised-MLP versus federated comparison is only interpretable
+if the optimisation budgets of the two arms are stated explicitly, so
+the pipeline now emits a machine-readable budget audit
+(\texttt{training\_budget} in \texttt{results.json}).
+Table~\ref{tab:budget} summarises it. The budgets are \emph{not}
+matched: the centralised reference executes at most 30 full passes over
+the pooled training set (with early stopping on validation loss),
+whereas each federated client's shard receives $50 \times 10 = 500$
+local passes over the 50 rounds (each pass covering only that client's
+fraction of the pool). The federated arm therefore consumed a larger
+optimisation budget, and the FedProx-versus-centralised-MLP comparison
+confounds federation with budget; a budget-matched re-run (centralised
+epochs raised to 500, or FL rounds reduced) is queued. The architecture
+comparison (identical 29{,}377-parameter MLP) remains matched by
+construction.
+
+\begin{table}[t]
+\centering
+\caption{Training-budget audit of the two architecture-matched arms
+(review finding: the comparison is confounded by optimisation budget;
+the table makes the confound auditable).}
+\label{tab:budget}
+\small
+\begin{tabularx}{0.94\textwidth}{@{}>{\raggedright\arraybackslash}X l l@{}}
+\toprule
+ & \textbf{Centralised MLP} & \textbf{Federated (FedProx)} \\
+\midrule
+Epochs / rounds & $\le$30 epochs & 50 rounds $\times$ 10 local epochs \\
+Batch size & 256 & 512 \\
+Learning rate (peak) & $5\times10^{-4}$ & $5\times10^{-4}$ \\
+LR schedule & cosine warm restarts & cosine warm restarts \\
+Effective passes over own data & $\le$30 (pooled set) & 500 (per client shard) \\
+Early stopping & patience 5 (validation BCE) & none (fixed rounds) \\
+Checkpoint rule & best validation BCE & best validation F1 round \\
+Budgets matched & \multicolumn{2}{l}{No---federated arm consumed the larger budget; matched re-run queued} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
 \subsection{Compute and reproducibility}
 
 The complete experimental programme of this revision (headline run,
@@ -130,6 +202,11 @@ machine-readable results artefact (\texttt{results.json},
 \texttt{smote\_validity.json}) plus a run manifest embedding the code
 version, seeds, configuration, and dataset manifest hash; all figures
 and tables are generated from these artefacts. The pipeline supports
-round-level crash recovery, and the 74-check integrity test suite
+round-level crash recovery, and the 78-check integrity test suite
 (partitioning disjointness, leakage audit, calibration, evaluation
-protocol, FL smoke tests) passes on every commit.
+protocol, threshold-freezing arithmetic, event-level metrics, FL smoke
+tests) passes on every commit. The v3.1 protocol extensions
+(Section~\ref{sec:protocol}) ship with their own smoke-mode artefacts
+(e.g.\ \texttt{calibration\_comparison.json}, produced on a synthetic
+probabilistic model that numerically validates the harness end-to-end)
+and await the owner-side full-data re-run.

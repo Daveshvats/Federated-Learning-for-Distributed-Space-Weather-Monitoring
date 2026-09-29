@@ -39,19 +39,23 @@ free energy, and flux-emergence proxies, all of which are computed
 routinely by solar observatories on every continent and in orbit.
 
 There is, however, a structural obstacle to training the strongest
-possible model: the data cannot be pooled. The highest-fidelity
-flare-forecasting observations are produced and curated by nationally
-mandated agencies---NASA and NOAA in the Americas, ESA in Europe, JAXA
-in the Asia-Pacific region, ISRO in South Asia, KASI in East Asia, and
-the Australian Bureau of Meteorology (BoM) in Oceania. Raw
+possible model: many institutions that could pool their data choose
+not to. The highest-fidelity flare-forecasting observations are
+produced and curated by nationally mandated agencies---NASA and NOAA
+in the Americas, ESA in Europe, JAXA in the Asia-Pacific region, ISRO
+in South Asia, KASI in East Asia, and the Australian Bureau of
+Meteorology (BoM) in Oceania---and in several jurisdictions the raw
 magnetogram-derived time series are treated as nationally sensitive
-assets in many jurisdictions, and inter-agency data-sharing agreements
-historically favour metadata exchange over bulk data transfer.
-Consequently, each agency trains (or could train) models on its own
-regional shard, and the global community inherits the fragmentation of
-six models each seeing a biased slice of the active-region population.
-A genuinely global model, trained on all regions' data without any
-region surrendering that data, has been out of reach.
+assets whose redistribution is restricted by data-locality policies,
+inter-agency agreements, or export controls. Whether these
+restrictions are legally binding or a matter of institutional policy,
+the practical effect is the same: if the custodians do not pool, each
+either trains on its own regional shard or forgoes machine learning
+altogether, and the community inherits models that each see a biased
+slice of the active-region population. The present study does not
+claim that any specific agency's flare data cannot be pooled; it takes
+data locality as a plausible deployment constraint and studies its
+consequences under a controlled simulation of that constraint.
 
 Federated learning (FL)~\cite{mcmahan2017,kairouz2021} is precisely the
 mechanism for this setting. In cross-silo FL, each data-holder trains a
@@ -59,50 +63,63 @@ shared model architecture locally and transmits only parameter updates
 to an aggregation server, which averages them into a new global model.
 Raw measurements never leave the custodian's infrastructure. FL has
 already proven transformative in medicine and digital health, where
-patient-privacy constraints are structurally identical to the
-data-sovereignty constraints of space-weather
-agencies~\cite{rieke2020}. What has not existed, prior to the present
-work, is a systematic treatment of FL for solar flare
-prediction---the solar-physics community's benchmark workflows
-\cite{leka2019,georgoulis2021,angryk2020} are all centrally pooled, and
-the FL literature contains, to the best of our knowledge, no
-application to photospheric flare forecasting.
+patient-privacy constraints are structurally similar to the
+data-locality constraints just described~\cite{rieke2020}. What has
+not existed, prior to the present work and per the documented search
+protocol of Section~\ref{sec:related}, is a systematic treatment of FL
+for solar flare prediction---the solar-physics community's benchmark
+workflows \cite{leka2019,georgoulis2021,angryk2020} are all centrally
+pooled, and we found no application of FL to photospheric flare
+forecasting in the FL literature.
 
 This paper closes that gap. We present a complete, reproducible
 federated framework---implemented, versioned, and released as open
-source---that simulates six geographically distributed regional
-observatories, each holding a non-IID shard of the SWAN-SF benchmark
-\cite{angryk2020} in its cleaned and rebalanced form, and evaluates
-whether federation can approach the centralised upper bound without
-any data movement. The specific contributions are:
+source---that \emph{simulates} six regional data custodians (labelled
+A--F by region; no real institution participates), each holding a
+non-IID shard of the SWAN-SF benchmark \cite{angryk2020} in its cleaned
+and rebalanced form, and evaluates whether federation can approach the
+centralised upper bound without any data movement. The framework is an
+upstream flare-probability component: it emits calibrated M/X flare
+probabilities and fixed-false-positive-rate alerting points that a
+future geomagnetic-hazard pipeline (CME/interplanetary propagation,
+storm forecasting, GIC and power-system response modelling) could
+consume; the downstream chain is not evaluated here. The specific
+contributions are:
 
 \begin{enumerate}[leftmargin=2em, itemsep=3pt]
   \item \textbf{A problem formulation and system architecture} that maps
-  smart-grid GIC early warning onto a cross-silo federated
+  grid-resilience precursor alerting onto a cross-silo federated
   classification problem with a safety-critical, recall-weighted
-  objective, and that abstracts the data-sovereignty constraint of
-  national space-weather agencies into a concrete, simulable protocol
-  (Section~\ref{sec:problem} and Section~\ref{sec:method}).
+  objective, and that operationalises the data-locality constraint as a
+  concrete, simulable protocol (Section~\ref{sec:problem} and
+  Section~\ref{sec:method}).
   \item \textbf{A non-IID federation protocol for SWAN-SF} that combines
-  Dirichlet label-skew partitioning across six regional clients,
-  per-client SMOTE oversampling, a server-aware Fed-Focal loss
-  \cite{sarkar2020} for extreme class imbalance, and
-  distribution-aware aggregation weighting, on top of both FedAvg
+  Dirichlet label-skew partitioning across six simulated regional
+  clients, a server-aware Fed-Focal loss \cite{sarkar2020} for extreme
+  class imbalance, and optional distribution-aware aggregation and
+  per-client SMOTE oversampling (both studied as ablation arms; the
+  SMOTE arm is inert on this benchmark variant), on top of both FedAvg
   \cite{mcmahan2017} and FedProx \cite{li2020} training loops
   (Section~\ref{sec:method}).
   \item \textbf{A frozen, leakage-audited evaluation protocol}: an
-  immutable train/validation/test contract, threshold and calibration
+  immutable train/validation/test contract, calibration and threshold
   selection on validation only, single-pass test evaluation, a
   centralised-MLP architecture control, five-seed statistics with
-  confidence intervals and paired significance tests, and a 24-cell
-  component-ablation grid (Section~\ref{sec:experiments}).
-  \item \textbf{An empirical privacy-cost quantification.} On the
-  held-out test partitions (331{,}185 windows, 1.88\% prevalence),
-  FedProx achieves a ROC-AUC of 0.954---97.7\% of the centralised
-  XGBoost reference (0.977) and \emph{above} the pooled centralised
-  MLP of identical architecture (0.888)---while plain FedAvg diverges
-  during training (validation AUC $0.99\to0.05$); FedProx beats
-  FedAvg on all five seeds (Wilcoxon $p=0.031$)
+  confidence intervals and paired significance tests, a 24-cell
+  component-ablation grid, and---as protocol extensions released with
+  this revision---region-disjoint splits, natural-prevalence validation
+  with frozen FPR operating points, untouched client holdouts, an
+  explicit training-budget audit, event-level alerting metrics, and a
+  calibration-comparison harness (Section~\ref{sec:experiments}).
+  \item \textbf{A data-locality cost study.} On the held-out test
+  partitions (331{,}185 windows, 1.88\% prevalence), FedProx attains a
+  ROC-AUC of 0.954---97.7\% of the centralised XGBoost reference
+  (0.977)---and did not underperform the pooled centralised MLP of
+  identical architecture (0.888) on this benchmark and configuration,
+  a comparison whose optimisation budgets are documented and not
+  matched, while plain FedAvg diverges during training (validation AUC
+  $0.99\to0.05$); FedProx exceeds FedAvg's PR-AUC on all five seeds
+  (one-sided Wilcoxon $p=0.031$)
   (Section~\ref{sec:results}).
   \item \textbf{A cross-model interpretability audit.} SHAP analysis
   of both the centralised XGBoost reference and the federated global
@@ -113,9 +130,17 @@ any data movement. The specific contributions are:
   (Section~\ref{sec:results}).
 \end{enumerate}
 
+We are explicit about what is \emph{not} claimed: per-client SMOTE
+contributes nothing on this benchmark variant (zero synthetic samples;
+reported as a null result, not a contribution); the verified property
+is data locality, not cryptographic privacy; the six clients are
+simulated, not real agencies; and the downstream
+flare$\to$CME$\to$storm$\to$GIC chain is discussed as future
+integration, not evaluated.
+
 In addition to these scientific contributions, the released framework
-embodies a documented engineering narrative: a six-version stability
-iteration (v2.1--v2.6) in which Dirichlet concentration, focal-loss
+embodies a documented engineering narrative: a multi-version stability
+iteration (v2.1--v3.1) in which Dirichlet concentration, focal-loss
 alpha clamping, optimiser choice for variance-reduced FL, and dataset
 auditing were each adjusted in response to diagnosed failure modes. We
 summarise this evolution in Appendix~\ref{sec:appendix} because it

@@ -4,7 +4,7 @@
 \section{Results and Analysis}\label{sec:results}
 
 All numbers in this section are produced by the improved pipeline
-(improvements branch, version 3.0.1) under the frozen evaluation
+(improvements branch, version 3.1) under the frozen evaluation
 protocol of Section~\ref{sec:experiments}: a single immutable
 train/validation/test split, thresholds and calibration selected on
 validation only, and the test set touched exactly once per model. Every
@@ -21,24 +21,27 @@ quantify seed sensitivity and component attribution.
 \caption{Single-pass test-set evaluation at natural prevalence
 ($n{=}331{,}185$, $1.88\%$ positives), at each model's
 $F_2$-optimal threshold $\tau^\ast$ selected on \emph{validation}.
-Calibration: prior-shift (fit on validation). Brier and ECE are computed
-on the calibrated probabilities. Best value per column in bold.}
+Calibration: prior-shift (fit on validation). Brier and ECE (15 bins)
+are computed on the calibrated probabilities. Best value per column in
+bold; note that the climatology's Brier (0.239) is better than every
+neural model's---see Section~\ref{sec:res-calib}.}
 \label{tab:main}
 \footnotesize
-\setlength{\tabcolsep}{3.5pt}
-\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}X c c c c c c c@{}}
+\setlength{\tabcolsep}{2.8pt}
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}X c c c c c c c c@{}}
 \toprule
 \textbf{Model} & $\boldsymbol{\tau^\ast}$ & \textbf{Prec.} &
 \textbf{Recall} & \textbf{F1} & \textbf{ROC-AUC} & \textbf{PR-AUC} &
-\textbf{Brier} \\
+\textbf{Brier} & \textbf{ECE} \\
 \midrule
-Climatology & 0.05 & 0.019 & 1.000 & 0.037 & 0.500 & 0.019 & 0.239 \\
-Logistic regression & 0.23 & 0.021 & 0.967 & 0.041 & 0.824 & 0.235 & 0.659 \\
-Centralised MLP & 0.32 & 0.030 & 0.999 & 0.059 & 0.888 & 0.153 & 0.277 \\
+Climatology & 0.05 & 0.019 & 1.000 & 0.037 & 0.500 & 0.019 & 0.239 & 0.470 \\
+Logistic regression & 0.23 & 0.021 & 0.967 & 0.041 & 0.824 & 0.235 & 0.659 & 0.732 \\
+Centralised MLP & 0.32 & 0.030 & 0.999 & 0.059 & 0.888 & 0.153 & 0.277 & 0.439 \\
 XGBoost (centralised ref.) & 0.37 & \textbf{0.146} & 0.968 &
-\textbf{0.254} & \textbf{0.977} & \textbf{0.493} & \textbf{0.063} \\
-FedAvg MLP (federated) & 0.36 & 0.020 & 0.997 & 0.038 & 0.575 & 0.199 & 0.136 \\
-FedProx MLP (federated) & 0.51 & 0.021 & 0.999 & 0.042 & 0.954 & 0.307 & 0.264 \\
+\textbf{0.254} & \textbf{0.977} & \textbf{0.493} & \textbf{0.063} &
+\textbf{0.115} \\
+FedAvg MLP (federated) & 0.36 & 0.020 & 0.997 & 0.038 & 0.575 & 0.199 & 0.136 & 0.342 \\
+FedProx MLP (federated) & 0.51 & 0.021 & 0.999 & 0.042 & 0.954 & 0.307 & 0.264 & 0.496 \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -47,24 +50,32 @@ Table~\ref{tab:main} contains four findings. \textbf{(i)~The
 architecture-controlled comparison now exists.} The v2.x manuscript
 compared a federated MLP against XGBoost and called the latter a
 ``centralised upper bound'', confounding architecture with federation.
-With the centralised MLP trained under identical hyperparameters, the
-\emph{federation cost} is measured cleanly: FedProx (ROC-AUC 0.954,
-PR-AUC 0.307) in fact \emph{exceeds} its pooled counterpart (0.888,
-0.153)---non-IID federated training with a proximal regulariser behaves
-like an implicit regulariser for this 29k-parameter MLP, rather than a
-handicap. \textbf{(ii)~FedAvg and FedProx are not interchangeable.}
-Plain FedAvg diverges during training (Section~\ref{sec:res-conv}) and
-its best-validation checkpoint reaches only 0.575 ROC-AUC; the proximal
-term is the difference between a usable and a degenerate global model.
-\textbf{(iii)~Against the strongest reference,} FedProx retains
-$97.7\%$ of XGBoost's ROC-AUC and $62\%$ of its PR-AUC. \textbf{(iv)~
-The $\tau^\ast$ column exposes a protocol-honest failure}: thresholds
-optimised for $F_2$ at the validation prevalence ($48.9\%$) transfer
-poorly to the $1.88\%$ test prevalence---all neural models fire almost
-unconditionally (recall $\approx 1.0$, precision $\approx$ the base
-rate). We analyse this threshold-transfer failure explicitly in
-Section~\ref{sec:res-calib} and report prevalence-robust operating
-points instead.
+With the centralised MLP of the identical 29{,}377-parameter
+architecture, the comparison isolates the effect of federation from
+the effect of architecture---but \emph{not} from optimisation budget
+(Section~\ref{sec:budget}: the federated arm consumed the larger
+budget, 500 effective local passes versus at most 30 pooled passes).
+Under that caveat, FedProx (ROC-AUC 0.954, PR-AUC 0.307) did not
+underperform its pooled counterpart (0.888, 0.153) on this benchmark
+and configuration---an observation consistent with non-IID federated
+training plus a proximal regulariser acting as an implicit regulariser
+for this small MLP, and which we do \emph{not} generalise to the claim
+that federation is free of cost. \textbf{(ii)~FedAvg and FedProx are
+not interchangeable.} Plain FedAvg diverges during training
+(Section~\ref{sec:res-conv}) and its best-validation checkpoint
+reaches only 0.575 ROC-AUC; the proximal term is the difference
+between a usable and a degenerate global model \emph{under the
+preregistered configuration}. \textbf{(iii)~Against the strongest
+reference,} FedProx retains $97.7\%$ of XGBoost's ROC-AUC and $62\%$
+of its PR-AUC. \textbf{(iv)~The $\tau^\ast$ column exposes a
+protocol-honest failure}: thresholds optimised for $F_2$ at the
+validation prevalence ($48.9\%$) transfer poorly to the $1.88\%$ test
+prevalence---all neural models fire almost unconditionally (recall
+$\approx 1.0$, precision $\approx$ the base rate), and the calibration
+columns (Brier, ECE) show every neural model \emph{worse calibrated
+than the climatology}. We analyse this threshold-transfer failure
+explicitly in Section~\ref{sec:res-calib} and report prevalence-robust
+operating points instead.
 
 \subsection{Prevalence-robust discrimination: ROC and PR analysis}
 
@@ -85,13 +96,17 @@ Because the $F_2$ threshold transfer is unreliable under a
 the threshold-independent ones. At fixed false-positive budgets---the
 regime a grid operations desk actually inhabits---recall on the test
 set is:
-
 \begin{table}[t]
 \centering
-\caption{Recall at fixed false-positive rates on the test set
-(threshold-independent operating points; higher is better). These do not
-depend on $\tau^\ast$ and are therefore robust to the prevalence shift
-between validation and deployment.}
+\caption{Recall at fixed false-positive rates on the test set. These
+are \emph{discrimination curve statistics}: for each budget, the recall
+at the point of the test ROC curve where FPR equals the target. They
+involve no threshold transfer from validation and are therefore robust
+to monotone miscalibration, but they are \emph{window-level}
+quantities: the 60-minute sliding windows of one active region are
+correlated, so a 2\% window-level FPR does not translate directly into
+an operational false-alarm rate per event or per day (event-level
+evaluation: Section~\ref{sec:limitations}).}
 \label{tab:recallfpr}
 \small
 \begin{tabularx}{0.9\textwidth}{@{}>{\raggedright\arraybackslash}X c c c c@{}}
@@ -167,33 +182,46 @@ ran.
 The validation prevalence ($48.9\%$) and the test prevalence ($1.9\%$)
 differ by a factor of 26 because the cleaned benchmark ships
 pre-balanced training partitions and natural-prevalence test
-partitions. The frozen protocol forbids using test labels---including
+partitions. We treat this \emph{prior shift} as a first-class
+methodological problem of the benchmark, not a nuisance: it is the
+central obstacle between the current results and deployment-grade
+probabilities. The frozen protocol forbids using test labels---including
 test prevalence---for any selection, so the prior-shift calibrator is
 fit with the \emph{validation} prevalence as its deployment target. The
 consequence is visible throughout Table~\ref{tab:main}: the
 validation-optimal thresholds sit far below the calibrated test
 probabilities of most samples, so every neural model operates in an
-almost-always-alert regime. The XGBoost reference suffers the least
-(its raw probabilities are well shaped, Brier 0.063, ECE 0.115),
-which is why it converts ranking into a meaningful $F_1$ of 0.254 while
-the neural models do not.
+almost-always-alert regime, and \emph{the calibration columns make the
+failure quantitative}: FedProx's calibrated Brier (0.264) and ECE
+(0.496) are \emph{worse than the climatology's} (0.239, 0.470), i.e.\ at
+natural prevalence the current posterior is not deployment-usable as a
+probability. The XGBoost reference suffers the least (Brier 0.063, ECE
+0.115), which is why it converts ranking into a meaningful $F_1$ of
+0.254 while the neural models do not.
 
-We treat this as a result, not a nuisance. First, it demonstrates
-concretely that \emph{rebalanced training data invalidates naive
-threshold transfer}: an $F_2$-optimal threshold at 49\% prevalence is
-semantically meaningless at 1.9\%. Second, it identifies the correct
-deployment instrument---the recall-at-fixed-FPR operating points of
-Table~\ref{tab:recallfpr}, which are invariant to monotone
-miscalibration and to prevalence. Third, it bounds what honest
-calibration can do: prior correction toward an \emph{estimated}
-deployment prevalence (e.g.\ from unlabelled deployment data, which
-leaks no labels) or isotonic/Platt fitting on a natural-prevalence
-validation carve-out are the legitimate remedies; using the test set's
-own statistics, as the v2.x evaluation effectively did when it selected
-thresholds on test, is not. Residual calibration quality on the
-calibrated probabilities (Brier/ECE, Table~\ref{tab:main}) confirms
-that the FedProx posterior is usable (Brier 0.264) though coarser than
-XGBoost's.
+Three readings follow. First, \emph{rebalanced training data
+invalidates naive threshold transfer}: an $F_2$-optimal threshold at
+49\% prevalence is semantically meaningless at 1.9\%. Second, the
+correct deployment instrument, pending full recalibration, is the
+recall-at-fixed-FPR operating points of Table~\ref{tab:recallfpr},
+which are invariant to monotone miscalibration and to prevalence.
+Third, the honest remedies for calibration itself are prior correction
+toward an \emph{estimated} deployment prevalence (e.g.\ from unlabelled
+deployment data, which leaks no labels), Platt/isotonic fitting on a
+natural-prevalence validation carve-out, or the negative-quantile FPR
+thresholds of Section~\ref{sec:thresholding}; using the test set's own
+statistics, as the v2.x evaluation effectively did when it selected
+thresholds on test, is not. To make that comparison systematic, the
+released code ships a calibration-comparison harness that evaluates
+raw, prior-shift, Platt, isotonic, and temperature calibrators plus
+frozen-FPR thresholding on balanced validation, natural-prevalence
+validation, and the single test pass; it is unit-tested and
+smoke-validated on a synthetic probabilistic model, and its execution
+against the trained FL models is queued with the protocol re-run
+(Section~\ref{sec:experiments}). Until that re-run lands, the
+calibration question on this benchmark is \emph{open}, and we state it
+as such rather than claiming any of the current numbers as
+deployment-grade.
 
 \subsection{Multi-seed statistical validation}
 \label{sec:res-multiseed}
@@ -221,11 +249,19 @@ Wilcoxon signed-rank $p = 0.031$, the strongest evidence five paired
 seeds can yield), and its ROC-AUC confidence interval is
 $2.7\times$ narrower. The $F_1$ difference is not significant
 ($p = 0.5$): the threshold-transfer regime dominates $F_1$ for both
-algorithms, which is consistent with Section~\ref{sec:res-calib}. The
-headline claim of this paper---FedProx is the load-bearing federated
-design choice on this benchmark---is therefore supported not by one
-fortunate seed but by a sign-consistent, statistically significant
-multi-seed comparison.
+algorithms, which is consistent with Section~\ref{sec:res-calib}.
+What the five-seed study supports is the \emph{stability} claim of
+this paper: FedProx's superiority over FedAvg under the preregistered
+configuration is sign-consistent across every seed and statistically
+significant. What it does not support is broad generalisation: five
+seeds is a small sample, the confidence intervals quantify
+\emph{seed-to-seed variability} of this fixed configuration, not the
+uncertainty of future observations or of other partitions, and
+Section~\ref{sec:res-ablation} shows the gap narrows when FedAvg is
+assisted by distribution-aware aggregation. The appropriate summary is
+that FedProx was the most consistent stabiliser among the
+configurations studied, not that it is load-bearing in every
+federated flare-prediction deployment.
 
 \subsection{Component attribution: the 24-cell ablation grid}
 \label{sec:res-ablation}
@@ -247,24 +283,30 @@ Because the v2.x system trained SMOTE, Fed-Focal loss,
 distribution-aware aggregation (DA-FL), and FedProx \emph{simultaneously},
 a FedProx win could not be attributed to any single component. The
 ablation grid isolates them (Fig.~\ref{fig:ablation}). Four patterns
-emerge. \textbf{(i)~Algorithm dominates:} every FedProx cell lands in a
-narrow ROC-AUC band (0.954--0.959) whereas the FedAvg cells range from
-0.880 (focal loss, plain aggregation---the collapsing configuration) to
-0.963. \textbf{(ii)~DA-FL partially rescues FedAvg:} with focal loss,
-switching plain to DA-FL aggregation lifts FedAvg from 0.880 to 0.950,
-suggesting distribution-aware weighting mitigates the same client-drift
-the proximal term suppresses. \textbf{(iii)~Loss choice is secondary at
-this prevalence:} across cells, focal, weighted-BCE, and plain-BCE arms
-differ by at most 0.05 PR-AUC, with weighted BCE marginally best for
-FedAvg-plain (0.308 vs 0.280). \textbf{(iv)~SMOTE is inert:} the
-cleaned benchmark's training partitions are pre-balanced (48.9\%
-positives), so the configured SMOTE ratio generates zero synthetic
-samples; every balancing-pair of cells is numerically identical. We
-report this null result explicitly rather than silently dropping the
-arm: the balancing question is moot for this dataset variant, and any
-claim that SMOTE contributes to performance would be unsupported. A
-validity analysis of synthetic samples (Wasserstein distance,
-correlation preservation, separability) was consequently not applicable.
+emerge. \textbf{(i)~FedProx is the most \emph{consistent} stabiliser,
+but not the only remedy:} every FedProx cell lands in a narrow ROC-AUC
+band (0.954--0.959) whereas the FedAvg cells range from 0.880 (focal
+loss, plain aggregation---the collapsing configuration) up to 0.963
+(focal loss with distribution-aware aggregation). That best FedAvg
+cell \emph{exceeds} the FedProx headline (0.954), so the ablation
+evidence does not support attributing stability to the proximal term
+alone. \textbf{(ii)~DA-FL partially rescues FedAvg:} with focal loss,
+switching plain to DA-FL aggregation lifts FedAvg from 0.880 to 0.950
+(and to 0.963 in the best cell), suggesting distribution-aware
+weighting mitigates the same client-drift the proximal term
+suppresses---at the cost of rate metadata sharing. \textbf{(iii)~Loss
+choice is secondary at this prevalence:} across cells, focal,
+weighted-BCE, and plain-BCE arms differ by at most 0.05 PR-AUC, with
+weighted BCE marginally best for FedAvg-plain (0.308 vs 0.280).
+\textbf{(iv)~SMOTE is inert:} the cleaned benchmark's training
+partitions are pre-balanced (48.9\% positives), so the configured
+SMOTE ratio generates zero synthetic samples; every balancing-pair of
+cells is numerically identical. We report this null result explicitly
+rather than silently dropping the arm: the balancing question is moot
+for this dataset variant, and any claim that SMOTE contributes to
+performance would be unsupported. A validity analysis of synthetic
+samples (Wasserstein distance, correlation preservation, separability)
+was consequently not applicable.
 
 \subsection{Client-level heterogeneity: who benefits from federation?}
 \label{sec:res-clients}
@@ -276,27 +318,35 @@ correlation preservation, separability) was consequently not applicable.
     \end{adjustbox}
     \caption{Per-client PR-AUC of local-only models versus the federated
     global models, evaluated on a held-out 20\% slice of each client's
-    shard. Caveat: the federated models trained on the full shards, so
-    their holdout scores are within-distribution rather than clean
+    shard (neutral client labels; no real institution participates).
+    Caveat: the federated models trained on the full shards, so their
+    holdout scores are within-distribution rather than clean
     generalisation estimates (see Section~\ref{sec:limitations}).}
     \label{fig:clients}
 \end{figure}
 
-The six simulated agencies hold very different data: local flare rates
-span 28.6\% (ESA) to 80.5\% (NASA), and shard sizes span 1{,}503 (KASI)
-to 23{,}418 (ESA). Figure~\ref{fig:clients} quantifies what each client
-gets out of the federation. The FedProx global model matches
-local-only performance on every client (PR-AUC 0.982--0.998 vs local
+The six simulated clients hold very different data: local flare rates
+span 28.6\% (Client~B, Europe) to 80.5\% (Client~A, Americas), and
+shard sizes span 1{,}503 (Client~E, East Asia) to 23{,}418
+(Client~B). Figure~\ref{fig:clients} quantifies what each client gets
+out of the federation. The FedProx global model matches local-only
+performance on every client (PR-AUC 0.982--0.998 vs local
 0.961--0.999)---no client is left worse off than training alone, the
-minimal condition for voluntary participation. The FedAvg global model,
-by contrast, degrades every client relative to local training (mean
-0.562, e.g.\ ESA 0.393 vs 0.990 local): the diverged average is
-\emph{worse for everyone} than staying isolated. The summary statistic
-``clients helped by federation'' counts 2 of 6 clients under FedAvg.
-Under the evaluation caveat stated in the caption, the honest
-interpretation is directional rather than absolute: FedProx's advantage
-is uniform across the heterogeneity axis, which is precisely the
-property a cross-agency deployment needs.
+minimal condition for voluntary participation. The FedAvg global
+model, by contrast, degrades every client relative to local training
+(mean 0.562, e.g.\ Client~B: 0.393 vs 0.990 local): the diverged
+average is \emph{worse for everyone} than staying isolated. The
+summary statistic ``clients helped by federation'' counts 2 of 6
+clients under FedAvg. Under the evaluation caveat stated in the
+caption, the honest interpretation is directional rather than
+absolute: FedProx's advantage is uniform across the heterogeneity axis,
+which is precisely the property a cross-custodian deployment needs.
+The rigorous version of this comparison---an untouched holdout per
+client that no federated model ever trains on, so local versus global
+scores are both clean generalisation estimates---is implemented in the
+released evaluation mode and queued for the next training pass
+(Section~\ref{sec:experiments}); the absolute values reported here
+should be read with the stated optimism.
 
 \subsection{Interpretability across models}
 \label{sec:res-shap}
@@ -341,30 +391,47 @@ The global model has 29{,}377 parameters (0.117~MB at 32-bit
 precision). Full-parameter exchange costs 117.5~KB per direction per
 client per round: 0.235~MB round-trip, 1.41~MB per round across the
 six-client cohort, and 70.5~MB aggregate over the 50-round run
-(11.75~MB per client). These are the costs of \emph{full-weight}
-FedAvg/FedProx exchange at the benchmark's scale; gradient compression,
-sparsification, or secure-aggregation overheads
-(Section~\ref{sec:privacy}) are not included and would add bounded
-multiplicative factors. At 12-minute cadence magnetogram windows, even
-the uncompressed exchange is negligible relative to the data volume of
-raw SHARP-era magnetograms (tens of MB per window), which is the
-quantitative sense in which federated learning is communication-cheap
-for this application.
+(11.75~MB per client). These are \emph{parameter-exchange arithmetic}
+from the frozen configuration---bytes counted, not measured on a live
+deployment---and they quantify the \emph{training cadence} (one
+round-trip per round) separately from the \emph{observation cadence}
+(magnetogram windows arrive roughly every 12 minutes; the global model
+is refreshed per training cycle, while alerts can be emitted per
+window). Wall-clock communication latency, aggregation compute,
+client training time, straggler recovery, and secure-aggregation
+bandwidth overhead were \emph{not} measured: the experiments ran
+in-process on a single CPU container, with no real network. Enabling
+secure aggregation would add a bounded multiplicative factor (mask
+material per client per round), quantified in the deployment notes but
+not evaluated here (Section~\ref{sec:threatmodel}). Even the
+uncompressed exchange is negligible relative to the data volume of raw
+SHARP-era magnetograms (tens of MB per window), which is the
+quantitative sense in which federated learning is
+communication-cheap \emph{in bandwidth} for this application; latency
+and availability engineering remain deployment work.
 
-\subsection{Privacy-cost analysis}
+\subsection{Data-locality cost analysis}
 
 With the architecture-controlled comparison in place, the
-privacy-cost question decomposes cleanly. Relative to the
-\emph{same-architecture} centralised MLP, federation costs nothing and
-indeed helps (ROC-AUC 0.954 vs 0.888; PR-AUC 0.307 vs 0.153)---at this
-benchmark's scale, six disjoint shards with 29k parameters and a proximal
-regulariser act as an ensemble-like regulariser. Relative to the
-\emph{strongest available} centralised reference (XGBoost, 300 trees),
-FedProx retains 97.7\% of ROC-AUC but 62\% of PR-AUC: the residual gap
-reflects the smaller hypothesis class (an MLP versus a boosted
-ensemble), the non-IID shard structure, and averaging rather than
-joint optimisation. The honest summary for a deployment decision:
-federation costs no ranking skill relative to a pooled MLP of the same
-class, no raw magnetogram leaves any agency, and the remaining gap to
-the tree-ensemble reference is an architecture budget question, not a
-privacy question.
+data-locality cost question decomposes cleanly. Relative to the
+\emph{same-architecture} centralised MLP, the federated model did not
+underperform and in fact scored higher (ROC-AUC 0.954 vs 0.888; PR-AUC
+0.307 vs 0.153) on this benchmark and configuration---an observation we
+report with its two caveats: the federated arm consumed the larger
+optimisation budget (Section~\ref{sec:budget}), and the mechanism is
+consistent with a regularisation-like effect rather than a benefit of
+federation as such. At this benchmark's scale, six disjoint shards with
+29k parameters and a proximal regulariser behave like an
+ensemble-like regulariser. Relative to the \emph{strongest available}
+centralised reference (XGBoost, 300 trees), FedProx retains 97.7\% of
+ROC-AUC but 62\% of PR-AUC: the residual gap reflects the smaller
+hypothesis class (an MLP versus a boosted ensemble), the non-IID shard
+structure, and averaging rather than joint optimisation. The honest
+summary for a deployment decision: federation under this protocol cost
+no ranking skill relative to a pooled MLP of the same class \emph{in
+this study}; no raw magnetogram left any simulated client; and the
+remaining gap to the tree-ensemble reference is an architecture-budget
+question, not a data-locality question. What the study does \emph{not}
+establish is that these numbers survive region-disjoint splits,
+natural-prevalence validation, or budget-matched training---each queued
+in Section~\ref{sec:limitations}.

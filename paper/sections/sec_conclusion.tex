@@ -3,46 +3,66 @@
 % ════════════════════════════════════════════════════════════════════
 \section{Conclusion}\label{sec:conclusion}
 
-We presented the first application of federated learning to solar
-flare prediction for smart-grid protection, motivated by a structural
-impasse in operational space weather: the high-fidelity observations
-needed to train strong flare-forecasting models are held by national
-agencies whose data-sovereignty commitments forbid pooling them. The
-proposed framework partitions the SWAN-SF benchmark into six
-simulated regional observatories under Dirichlet label skew, federates
-MLP clients with FedAvg and FedProx under distribution-aware
-aggregation, handles extreme class imbalance with per-client SMOTE and
-a clamped server-aware focal loss, and converts converged models into
-safety-critical detectors through recall-weighted $F_\beta$ threshold
-optimisation.
+We presented what the documented literature search of
+Section~\ref{sec:litsearch} indicates is the first application of
+federated learning to solar flare prediction, motivated by a plausible
+deployment constraint in operational space weather: several public
+data custodians restrict redistribution of raw magnetogram time
+series, so the strongest pooled models may not be trainable at all
+unless the custodians federate. The proposed framework simulates that
+constraint on the public SWAN-SF benchmark---six regional clients
+(neutral labels, no real institution) holding disjoint
+Dirichlet-skewed shards, MLP clients trained under FedAvg and FedProx
+with a clamped server-aware focal loss, and a frozen, leakage-audited
+evaluation protocol whose every selection decision is made on
+validation data. The study is an upstream flare-probability component
+for grid-resilience pipelines; the downstream flare$\to$CME$\to$storm
+$\to$GIC chain is discussed as future integration, not evaluated.
 
-The empirical outcome is two-sided and honest. On the side of promise:
-FedProx retains 97.7\% of the centralised XGBoost reference's ROC-AUC
-(0.954 against 0.977), \emph{exceeds} the pooled centralised MLP of
-identical architecture (0.888), beats FedAvg on all five seeds
-(Wilcoxon $p=0.031$) with $2.7\times$ narrower metric variance, and
-converges in 50 communication rounds on commodity CPU compute---with
-an attribution structure that concentrates on exactly the magnetic
-parameter groups (current helicity, flux-emergence proxies,
-Lorentz-force terms) that flare physics predicts. On the side of
-caution: plain FedAvg diverges under the same conditions, the
-$F_2$-optimal thresholds selected at the balanced validation
-prevalence do not transfer to the 1.9\% deployment prevalence (all
-neural models fire almost unconditionally; prevalence-robust
-recall-at-FPR operating points are the honest deployment instrument),
-SMOTE is inert on the pre-balanced benchmark, and the strongest claims
-(cryptographic privacy via secure aggregation, region-disjoint splits,
-LSTM and SCAFFOLD evaluation, a physical/instrument-informed
-federation rather than Dirichlet simulation) remain future work. The
-released framework---code, configuration history, and machine-readable
-artefact pipeline---is intended to make that follow-up work a matter
-of execution rather than re-engineering.
+To keep the summary honest, we classify the paper's claims into three
+levels. \textbf{Demonstrated} (multi-seed, single-pass, frozen
+protocol): FedProx with $\mu{=}0.01$ is the most \emph{consistent}
+stabiliser among the components studied---above FedAvg on PR-AUC on
+five of five seeds (one-sided Wilcoxon $p=0.031$) with $2.7\times$
+narrower ROC-AUC variance; the FedProx global model attains 97.7\% of
+the centralised XGBoost reference's ROC-AUC (0.954 vs 0.977) and did
+not underperform the same-architecture pooled MLP (0.888) on this
+benchmark and configuration; plain FedAvg diverges under the
+preregistered configuration; per-client SMOTE is inactive on this
+benchmark variant (zero synthetic samples); and both the centralised
+and federated models concentrate attribution on current helicity,
+flux-emergence proxies, and Lorentz-force terms.
+\textbf{Supported with caveats}: the FedProx-versus-centralised-MLP
+comparison is confounded by optimisation budget (the federated arm
+consumed more passes), one FedAvg cell with distribution-aware
+aggregation exceeds the FedProx headline ROC-AUC, the client-level
+comparison evaluates within-distribution holdouts, recall-at-FPR
+figures are window-level statistics over correlated windows, and
+five-seed confidence intervals quantify seed variability only.
+\textbf{Not demonstrated}: cryptographic privacy (secure aggregation
+and differential privacy are implemented but their accuracy cost is
+unmeasured; poisoning defence is absent), region-disjoint
+generalisation (the cleaned export lacks region identifiers;
+the split generator awaits raw metadata), deployment-grade
+calibration (under the $26\times$ prior shift the neural posteriors
+are worse than climatology on Brier and ECE), event-level operational
+performance, the downstream GIC/SCADA pipeline, federated LSTM and
+SCAFFOLD evaluation, and results on the raw, unbalanced benchmark.
+The queued re-run programme of Section~\ref{sec:limitations} lists,
+for each of these, the implemented-and-tested protocol that would
+upgrade the claim.
 
-For the smart-grid community the message is that resilience against
-geomagnetic threats does not require choosing between data
-sovereignty and forecast skill; for the machine-learning community it
-is a demonstration that the cross-silo regime of the physical sciences
-has failure modes---prior mismatch, layered imbalance handling,
-optimiser--variance-reduction interactions---that the medical and
-mobile FL literature does not fully anticipate, and that are worth
-studying in their own right.
+For the smart-grid community the message is correspondingly
+conditional: \emph{if} custodians of magnetogram data face
+data-locality constraints, then at benchmark scale a proximal-regularised
+federation retains the ranking skill of a same-architecture pooled
+model in this study, at negligible bandwidth, without any raw data
+movement---and the released framework, with its frozen protocol,
+machine-readable artefacts, and documented engineering history
+(v2.1--v3.1), is intended to make the follow-up work a matter of
+execution rather than re-engineering. For the machine-learning
+community it is a demonstration that the cross-silo regime of the
+physical sciences has failure modes---prior mismatch, layered
+imbalance handling, optimiser--variance-reduction interactions---that
+the medical and mobile FL literature does not fully anticipate, and
+that are worth studying in their own right.

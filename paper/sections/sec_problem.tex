@@ -32,7 +32,7 @@ with aggregation weights $\rho_k \ge 0$, $\sum_k \rho_k = 1$. The
 vanilla FedAvg choice is $\rho_k = n_k / n$; Section~\ref{sec:method}
 describes the distribution-aware weights used in this work.
 
-\subsection{The privacy constraint}
+\subsection{The data-locality constraint}
 
 The operational constraint that distinguishes cross-silo FL from
 distributed optimisation is not an algorithmic preference but an
@@ -45,15 +45,20 @@ $\mathcal{D}_k$. Formally, the communication transcript
     \mathcal{T} \;=\;
     \big\{\Delta \w_k^{(t)}\big\}_{k=1,\dots,K;\; t=1,\dots,T}
 \end{equation}
-is the only quantity that crosses the agency boundary. This matches the
-data-sovereignty position of national space-weather agencies, for which
-raw magnetogram time series are nationally held assets, and it is the
-property that the released framework enforces by construction: the
-client-side pipeline never serialises raw shards.
+is the only quantity that crosses the client boundary. This encodes
+the data-locality position that several public data custodians adopt
+for raw magnetogram time series, and it is the property that the
+released framework enforces by construction: the client-side pipeline
+never serialises raw shards. We stress the scope of this property: it
+is \emph{data locality}, not cryptographic privacy. The transcript
+$\mathcal{T}$ itself can leak information about training data
+(Section~\ref{sec:threatmodel}); defending against an adversary who
+observes it requires secure aggregation or differential privacy, which
+are implemented but not evaluated for accuracy cost here.
 
 \subsection{Statistical heterogeneity}
 
-Because different agencies monitor different populations of active
+Because different custodians monitor different populations of active
 regions---different longitudes, hemispheres, and instrument
 footprints---the local class priors $p_k = \Pr(y=1 \mid k)$ differ from
 the pooled prior $\bar{p}$. We simulate this label skew by partitioning

@@ -1,8 +1,9 @@
 \documentclass[11pt,a4paper]{article}
 
 % ════════════════════════════════════════════════════════════════════
-%  Federated Learning for Privacy-Preserving Distributed Space
-%  Weather Monitoring in Smart Grid Protection
+%  Federated Learning for Data-Locality-Preserving Distributed
+%  Space Weather Monitoring: A Solar-Flare Prediction Component
+%  for Grid-Resilience Pipelines (v3.2, review-2 revision)
 %  arXiv-preprint-style single-column manuscript
 % ════════════════════════════════════════════════════════════════════
 
@@ -40,13 +41,14 @@
     bookmarks=true,
     bookmarksnumbered=true,
     unicode=true,
-    pdftitle={Federated Learning for Privacy-Preserving Distributed Space
-              Weather Monitoring in Smart Grid Protection},
+    pdftitle={Federated Learning for Data-Locality-Preserving
+              Distributed Space Weather Monitoring: A Solar-Flare
+              Prediction Component for Grid-Resilience Pipelines},
     pdfauthor={Deepanshu Balhara, Davesh Vats},
     pdfsubject={Federated Learning, Solar Flare Prediction, Smart Grid
                 Protection, Space Weather},
     pdfkeywords={federated learning, solar flare prediction, smart grid,
-                 GIC, FedProx, SWAN-SF}
+                 GIC, FedProx, SWAN-SF, data locality}
 ]{hyperref}
 
 % Orphan/widow prevention
@@ -70,8 +72,9 @@
 \newcommand{\norm}[1]{\left\lVert #1 \right\rVert}
 \newcommand{\Fbeta}{F_{\beta}}
 
-\title{Federated Learning for Privacy-Preserving Distributed Space
-Weather Monitoring in Smart Grid Protection}
+\title{Federated Learning for Data-Locality-Preserving Distributed
+Space Weather Monitoring: A Solar-Flare Prediction Component for
+Grid-Resilience Pipelines}
 \author{Deepanshu Balhara \and Davesh Vats}
 \date{September 2026}
 
@@ -84,9 +87,10 @@ Weather Monitoring in Smart Grid Protection}
 
 \begin{center}
     {\color{black!85}\rule{\textwidth}{0.4pt}}\\[2.2em]
-    {\LARGE\bfseries Federated Learning for Privacy-Preserving\\[0.35em]
-     Distributed Space Weather Monitoring\\[0.35em]
-     in Smart Grid Protection\par}
+    {\LARGE\bfseries Federated Learning for Data-Locality-Preserving\\[0.35em]
+     Distributed Space Weather Monitoring:\\[0.35em]
+     A Solar-Flare Prediction Component\\[0.35em]
+     for Grid-Resilience Pipelines\par}
     \vspace{1.6em}
     {\large Deepanshu Balhara\textsuperscript{1} \quad and \quad
      Davesh Vats\textsuperscript{2}\par}
@@ -111,54 +115,58 @@ currents (GICs), triggered by M- and X-class solar flares, presents a
 critical and recurring threat to bulk electric infrastructure; the 1989
 Qu\'ebec system collapse remains the canonical demonstration of how a
 single geomagnetic storm can disable an entire provincial grid.
-Effective early-warning systems require predictive models trained on
-high-fidelity solar observations spanning multiple geographic regions,
-yet nationally sensitive space-weather data collected by agencies such
-as NASA, ESA, JAXA, ISRO, KASI, and the Australian Bureau of
-Meteorology cannot be centralised because of data-sovereignty
-constraints and inter-agency data-sharing agreements. This paper
-presents, to the best of our knowledge, the first application of
-federated learning (FL) to solar flare prediction for smart-grid
-protection, explicitly addressing this privacy barrier. The proposed
-framework partitions the SWAN-SF benchmark dataset into six
-geographically distributed regional-observatory clients using Dirichlet
-sampling, inducing realistic non-IID label skew. Each client trains a
-local neural model on 144 statistical features derived from 24
-photospheric magnetic-field parameters, and transmits only weight
-updates---never raw satellite measurements---to an aggregation server.
-All results are produced under a frozen evaluation protocol: an
-immutable train/validation/test contract, thresholds and calibration
-selected on validation only, a runtime leakage audit, and single-pass
+Effective early warning therefore requires predictive models trained
+on magnetogram-derived feature histories, and the framework developed
+here targets a deployment scenario in which participating institutions
+impose data-locality or data-sharing constraints that prevent pooling
+raw observations. The present study \emph{simulates} that constraint on
+the public SWAN-SF benchmark; it does not demonstrate that any specific
+agency's data cannot be pooled. We present, to the best of our
+knowledge and per a documented search protocol
+(Section~\ref{sec:related}), the first federated treatment of solar
+flare prediction: six \emph{simulated} regional clients---hypothetical
+custodians labelled by region, not participating institutions---hold
+disjoint, audited Dirichlet-skewed shards of the benchmark. Each client
+trains a local neural model on 144 statistical features derived from 24
+photospheric magnetic-field parameters and transmits only weight
+updates. All results are produced under a frozen evaluation protocol:
+an immutable train/validation/test contract, calibration and threshold
+selection on validation only, a runtime leakage audit, and single-pass
 test evaluation. On the held-out test set (331{,}185 windows at the
 natural 1.88\% flare prevalence), FedProx attains a ROC-AUC of 0.954
 (97.7\% of the centralised XGBoost reference's 0.977) and a PR-AUC of
-0.307, exceeding the pooled centralised MLP of identical architecture
-(0.888 / 0.153)---so federation costs no ranking skill relative to the
-same hypothesis class. Plain FedAvg diverges under the same partition
-(validation AUC $0.99\to0.05$ after round 20); the proximal term is
-the load-bearing design choice, beating FedAvg on all five seeds
-(Wilcoxon $p=0.031$) with $2.7\times$ narrower metric variance. A
-24-cell ablation grid isolates the contribution of each component
-(focal loss, DA-FL aggregation, SMOTE, proximal term); SMOTE is
-inert on the pre-balanced benchmark and we report that null
-explicitly. Cross-model SHAP analysis shows the federated model's
-decisions concentrate on the same physical drivers as the centralised
-surrogate---current helicity, the R-value flux-emergence proxy, and
-Lorentz-force terms. We further document a threshold-transfer failure
-under the $26\times$ validation-to-test prevalence shift and report
-prevalence-robust recall-at-FPR operating points (FedProx: 0.51 recall
-at 2\% FPR). These results demonstrate that distributed space-weather
-agencies can jointly train a usable flare-prediction model without
-pooling raw observations, establishing federated machine learning as a
-practical mechanism for smart-grid resilience against geomagnetic
-threats---with data-locality, not cryptographic privacy, as the
-verified property, and with the full flare-to-GIC chain remaining
-future work.
+0.307, and did not underperform the pooled centralised MLP of
+identical architecture (0.888 / 0.153) on this benchmark and
+configuration---an empirical observation we discuss as a
+regularisation-like effect, noting that the two arms received
+different optimisation budgets, rather than as evidence that
+federation is free of cost. Plain FedAvg diverges under the
+preregistered headline configuration (validation AUC $0.99\to0.05$
+after round 20). FedProx provided the most consistent stability under
+that configuration, exceeding FedAvg's PR-AUC on five of five seeds
+(one-sided Wilcoxon $p=0.031$) with $2.7\times$ narrower metric
+variance; however, the 24-cell ablation shows that distribution-aware
+aggregation also substantially mitigates FedAvg degradation, so
+stability is not attributable to the proximal term alone. The
+balancing arm (per-client SMOTE) is \emph{inactive} on the pre-balanced
+benchmark (zero synthetic samples; reported as a null). Cross-model
+SHAP analysis shows both the centralised and federated models
+concentrate decisions on current helicity, the R-value flux-emergence
+proxy, and Lorentz-force terms. We document a threshold-transfer
+failure under the $26\times$ validation-to-test prevalence shift and
+report prevalence-robust recall-at-FPR discrimination statistics
+(FedProx: 0.51 recall at 2\% FPR); deployment thresholds for fixed-FPR
+operation are selected on validation negatives and frozen before the
+single test pass. The verified property is data locality, not
+cryptographic privacy, and the model is an upstream flare-probability
+component: the flare$\to$CME$\to$storm$\to$GIC chain, SCADA
+integration, and event-level operational evaluation remain future
+work.
 
 \vspace{0.55em}
 \noindent\textbf{Keywords:} federated learning; solar flare prediction;
 smart grid; geomagnetically induced currents; FedProx; space weather;
-SWAN-SF; non-IID data; class imbalance; data privacy
+SWAN-SF; non-IID data; class imbalance; data locality
 
 \vspace{0.55em}
 \noindent\footnotesize Source code and all experimental artefacts:

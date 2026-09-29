@@ -3,7 +3,7 @@
 % ════════════════════════════════════════════════════════════════════
 \section{Discussion}\label{sec:discussion}
 
-\subsection{Why proximal regularisation carries the federation}
+\subsection{Why proximal regularisation stabilises the federation}
 
 The asymmetry between FedAvg and FedProx in
 Table~\ref{tab:main} deserves a mechanistic reading. Under the
@@ -30,32 +30,49 @@ ROC-AUC confidence interval, and the 24-cell ablation grid shows every
 FedProx cell stable (0.954--0.959) while the FedAvg cells range down
 to 0.880. The direction and magnitude of the gap are consistent with
 the mechanism that motivated FedProx's design \cite{li2020}, and with
-the broader non-IID FL evidence base \cite{zhao2018,kairouz2021}.
+the broader non-IID FL evidence base \cite{zhao2018,kairouz2021}. The
+scope of the claim is deliberately narrower than ``FedProx is
+load-bearing'': the ablation grid shows distribution-aware aggregation
+also stabilises FedAvg substantially (best FedAvg cell 0.963), so the
+defensible statement is that the proximal term was the \emph{most
+consistent} stabiliser among the components studied, under the
+preregistered configuration, on this benchmark.
 
-\subsection{Operational integration with grid management}
+\subsection{Operational positioning: an upstream precursor alert}
 
-The operational layer of Fig.~\ref{fig:arch} maps onto how GIC risk
-is actually managed. A flare-prediction service in the style we
-simulate does not replace NOAA/SWPC or other national warning centres;
-it adds a dedicated, sovereignty-respecting channel for asset-level
-early warning. In the CME transit window (roughly one to three days
-between an Earth-directed eruption and storm onset), a federated
-sentinel operating at a 2\% false-positive budget recovers 51\% of
-eventual M/X events (Table~\ref{tab:recallfpr})---buying utilities
-time for the effective, if unglamorous, mitigations: restoring
-reactive reserves, suspending non-critical transformer switching,
-pre-positioning replacement phase-shift equipment, and briefing
-control-room staff. Note that this operating point comes from the
-prevalence-robust recall-at-FPR curve rather than the transferred
-$F_2$ threshold, for the reasons documented in
-Section~\ref{sec:res-calib}. The framework's convergence within 50
-rounds at a CPU-only compute footprint also matters operationally:
-the global model can be refreshed nightly, and the entire training
-programme fits inside the compute budget of a single agency, let
-alone six. The SCADA integration point is deliberately drawn at the
-decision threshold rather than inside the learning loop, so that
-existing grid-management infrastructure consumes a calibrated
-probability, not a research artefact.
+The operational layer of Fig.~\ref{fig:arch} is deliberately drawn at
+the flare-probability boundary, and we are explicit about what that
+means: this framework does not replace NOAA/SWPC or other national
+warning centres, and it does not itself predict GICs. It is an
+upstream component that would emit calibrated M/X flare-probability
+alerts at fixed false-positive budgets; converting those alerts into
+geomagnetic-hazard and GIC guidance requires the downstream pipeline
+---CME detection and interplanetary propagation modelling, storm
+forecasting, and power-system response modelling---which is future
+integration, not evaluated here. Within that upstream role, the
+numbers of Table~\ref{tab:recallfpr} describe what a federated
+sentinel would contribute at the window level: at a 2\% window-level
+false-positive budget, FedProx's ranking recovers 51\% of positive
+windows (recall 0.506). Two cautions apply before reading that as an
+operational detection rate: the figure is a window-level curve
+statistic over correlated sliding windows, not an event-level
+detection rate (the event-level evaluation protocol is released and
+queued), and the decision threshold required to operate at that FPR
+budget must be calibrated on natural-prevalence data before
+deployment (Section~\ref{sec:res-calib}). If those conditions are
+met, the CME transit window (roughly one to three days between an
+Earth-directed eruption and storm onset) leaves time for the
+effective, if unglamorous, mitigations: restoring reactive reserves,
+suspending non-critical transformer switching, pre-positioning
+replacement phase-shift equipment, and briefing control-room staff.
+The framework's convergence within 50 rounds at a CPU-only compute
+footprint also matters operationally: the global model can be
+refreshed nightly, and the entire training programme fits inside the
+compute budget of a single agency, let alone six. The SCADA
+integration point is deliberately drawn at the decision threshold
+rather than inside the learning loop, so that existing grid-management
+infrastructure would consume a calibrated probability; that interface
+is specified as future work (Section~\ref{sec:limitations}).
 
 \subsection{Engineering lessons for first FL deployments in the
 physical sciences}
@@ -79,9 +96,9 @@ SCAFFOLD's control-variate update is derived for fixed-step SGD, and
 running it under AdamW's adaptive steps silently invalidates the
 correction terms (in our case, producing NaN weights for every round
 until diagnosed). Fourth, \emph{feature-name hygiene is part of
-scientific reproducibility}: the pipeline's generic
+scientific reproducibility}: the v2.x pipeline's generic
 \texttt{feature\_N} naming in the statistical representation is why
-the SHAP layer needed an analytical decoding pass
-(Table~\ref{tab:shap}); a deployment that preserves
-statistic-parameter names end-to-end preserves its own
-interpretability.
+its SHAP layer needed an analytical decoding pass
+(Fig.~\ref{fig:shap}); the improved pipeline preserves
+statistic-parameter names end-to-end, which is precisely what makes
+its interpretability auditable.

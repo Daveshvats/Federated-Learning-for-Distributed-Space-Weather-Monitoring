@@ -14,8 +14,8 @@ reimplementation would likely rediscover the hard way.
 
 \begin{table}[h]
 \centering
-\caption{Documented stability fixes across framework versions
-(v2.1--v2.6), as recorded in the released source.}
+\caption{Documented stability fixes and protocol revisions across
+framework versions (v2.1--v3.1), as recorded in the released source.}
 \label{tab:evolution}
 \small
 \begin{tabularx}{\textwidth}{@{}c >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X@{}}
@@ -58,6 +58,35 @@ temporal learning; mixup on 3D sequences created unrealistic
 interpolations. & Dirichlet $\alpha\!\to\!1.0$; local epochs
 $3\!\to\!10$; learning rate $10^{-3}\!\to\!5\times10^{-4}$; mixup and
 SCAFFOLD disabled pending rework. \\
+\addlinespace[2pt]
+v3.0 & Evaluation-protocol audit: thresholds selected on the test
+set; stale accuracy reported for federated models; non-disjoint
+Dirichlet shards; SMOTE dead code; DA-FL applied to both algorithm
+arms; one configuration constant scattered across modules. & Frozen
+protocol: validation-only selection, single-pass test, runtime
+leakage audit, disjoint-by-construction partitioning; explicit
+ablation switches (aggregation, SMOTE, loss, calibration); single
+\texttt{config.py} source of truth; centralised-MLP architecture
+control added. \\
+\addlinespace[2pt]
+v3.0.1 & Single-seed headline lacked statistical support; results
+not machine-readable end-to-end. & Frozen-protocol rerun on the full
+cleaned benchmark (seed 42, 50 rounds); five-seed study with Wilcoxon
+tests; 24-cell ablation grid; $\mu/\alpha$ sweep; SMOTE-validity,
+interpretability, and communication artefacts; SHA-256 data manifest;
+74-check integrity suite. \\
+\addlinespace[2pt]
+v3.1 & External review: region overlap across train/validation;
+balanced-prevalence validation cannot support threshold transfer or
+calibration; client-level evaluation optimistic; centralized-FL
+optimisation budgets unstated; window-level metrics read as event
+metrics; client labels implied institutional participation. &
+Protocol extensions, all unit-tested (78 checks) and queued for the
+full-data re-run: region-disjoint splits, natural-prevalence
+validation with validation-frozen FPR operating points, untouched
+client holdouts, training-budget audit, event-level metrics,
+calibration-comparison harness; neutral client labels; threat-model
+table; documented literature-search protocol. \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -77,6 +106,11 @@ others. The dataset audit (v2.5) is a reminder that in applied ML the
 schema \emph{is} the experiment: three phantom features had been
 silently participating in the pipeline until an attribute-by-attribute
 audit against the benchmark's actual storage order replaced them with
-the physically meaningful Lorentz-force components. The published
+the physically meaningful Lorentz-force components. The v3.x
+revisions add a fourth, blander lesson: protocol defects
+(test-set selection, optimistic client holdouts, unstated budgets)
+do not announce themselves in any loss curve---only an external audit
+found them---which is the argument for freezing the evaluation
+contract in code, as the released framework now does. The published
 artefacts, figures, and this paper's numbers all post-date these
 fixes.

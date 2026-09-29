@@ -3,21 +3,23 @@
 % ════════════════════════════════════════════════════════════════════
 \section{Limitations and Future Work}\label{sec:limitations}
 
-\paragraph{Privacy scope.}
-This work enforces the data-sovereignty constraint (raw data never
-leaves the agency), which is the binding constraint of the
-space-weather setting, but the stronger cryptographic notion of
-privacy is not yet evaluated end-to-end. The communication transcript
-of Eq.~\eqref{eq:privacy}---gradients or weight deltas---is known to
+\paragraph{Privacy and security scope.}
+This work enforces the data-locality constraint (raw data never
+leaves the client), which is the binding constraint of the simulated
+setting, but the stronger cryptographic notion of privacy is not yet
+evaluated end-to-end. The communication transcript of
+Eq.~\eqref{eq:privacy}---gradients or weight deltas---is known to
 leak training information under gradient-inversion attacks
 \cite{zhu2019}, particularly for over-parameterised models on
-low-entropy data. The improved framework ships a
-Bonawitz-style secure-aggregation module (verified by round-trip
-tests) and a documented threat model, but the accuracy cost of
-enabling secure aggregation and differential privacy on this benchmark
-has not been measured; before any cross-agency deployment handling
-genuinely sensitive observations, that budget must be re-measured.
-Until then, ``data-locality-preserving'', not
+low-entropy data. The full threat model (curious server, gradient
+inversion, membership inference, model poisoning, impersonation,
+interception) is stated in Table~\ref{tab:threat}: secure aggregation
+is implemented and round-trip tested, differential-privacy hooks are
+provided, and poisoning/backdoor defence is not addressed at all. The
+accuracy cost of enabling secure aggregation and differential privacy
+on this benchmark has not been measured; before any cross-custodian
+deployment handling genuinely sensitive observations, that budget must
+be re-measured. Until then, ``data-locality-preserving'', not
 ``cryptographically private'', is the correct description of the
 verified property.
 
@@ -30,24 +32,32 @@ metrics sit near ceiling (AUC $\approx 0.99$) while test metrics are
 materially lower---the validation set is optimistically biased by
 region overlap, though the dataset-level train/test boundary is
 time-based and respected. The leakage audit reports this explicitly
-rather than silently passing. The definitive fix is to re-partition by
-active region using raw SWAN-SF metadata; the partitioning module
-already accepts region identifiers when they are available.
+rather than silently passing. A region-disjoint split generator is now
+implemented and unit-tested (greedy region-to-fold assignment
+minimising class-rate drift), but it cannot execute on the cleaned
+export because region identifiers are absent; the definitive fix
+requires re-deriving splits from the raw SWAN-SF metadata, which is
+the first item of the queued re-run programme below.
 
 \paragraph{Threshold transfer under prevalence shift.}
 The frozen protocol selects $F_2$-optimal thresholds on validation
 (48.9\% prevalence, mirroring the balanced training partitions), but
 deployment prevalence is 1.9\%: the transferred thresholds put every
-neural model in an almost-always-alert regime
-(Section~\ref{sec:res-calib}). We deliberately did \emph{not} repair
-this by touching test statistics---the v2.x evaluation effectively
-did, and that is protocol leakage. The honest remedies are
-prevalence-robust operating points (recall at fixed FPR, reported
-here), prior correction using an \emph{estimated} deployment
-prevalence from unlabelled data, or a natural-prevalence validation
-carve-out. Until one of these is adopted, the threshold-conditional
-test metrics (precision, recall, F1) should be read as documenting the
-decision layer's failure mode, not as skill estimates.
+neural model in an almost-always-alert regime, and the calibration
+comparison (Section~\ref{sec:res-calib}) shows the neural posteriors
+are currently \emph{worse than climatology} on Brier and ECE at
+natural prevalence. We deliberately did \emph{not} repair this by
+touching test statistics---the v2.x evaluation effectively did, and
+that is protocol leakage. The remedies are the frozen-FPR
+operating-point protocol (implemented and unit-tested), prior
+correction using an \emph{estimated} deployment prevalence from
+unlabelled data, or a natural-prevalence validation carve-out (the
+harness for all of which is implemented and smoke-validated). Until
+the natural-prevalence re-run lands, the threshold-conditional test
+metrics (precision, recall, F1) should be read as documenting the
+decision layer's failure mode, not as skill estimates, and no
+probability from the neural models should be treated as
+deployment-grade.
 
 \paragraph{Client-level evaluation semantics.}
 The per-client comparison of Section~\ref{sec:res-clients} evaluates
@@ -55,11 +65,11 @@ each client's local model on a 20\% holdout of its own shard, but the
 federated global models were trained on the \emph{full} shards,
 including that holdout. The global models' per-client scores are
 therefore within-distribution rather than clean generalisation
-estimates. The comparison remains meaningful directionally (it
-measures each client's experience of the global model on
-client-distribution data), but absolute values are inflated for the
-federated side; a region-disjoint client holdout is the rigorous
-version.
+estimates, i.e.\ optimistic for the federated side. The comparison
+remains meaningful directionally, and the untouched-holdout evaluation
+mode---each client reserves a shard fraction that \emph{no} federated
+model ever trains on---is implemented and unit-tested; executing it
+requires retraining, which is queued below.
 
 \paragraph{Partition realism.}
 Shard disjointness is now guaranteed by construction (index-level
@@ -85,11 +95,51 @@ shared backbone) is a further direction: agencies may prefer a global
 model for situational awareness plus a locally adapted model for their
 own asset fleet.
 
-\paragraph{Benchmark-construction effects.}
+\paragraph{Event-level evaluation.}
+All headline metrics in this paper are \emph{window-level}: every
+60-minute sliding window is scored independently, yet windows
+overlapping the same active region are strongly correlated, and one
+physical flare event triggers many correlated decisions. A 2\%
+window-level FPR therefore does not mean 2\% of operational alerts
+are false, and a detected event can generate a burst of duplicate
+alerts. The event-level evaluation module (detection rate, missed
+events, alerts per detected event, duplicate-alert rate with cooldown
+deduplication, warning lead time, alert rate per day) is implemented,
+unit-tested, and documented for CLI use; executing it on the trained
+models requires event grouping keys and timestamps, which---like
+region identifiers---must be recovered from the raw SWAN-SF metadata.
+Until then, all recall and FPR figures in this paper carry the
+window-semantics caveat stated in Table~\ref{tab:recallfpr}'s caption.
+
+\paragraph{Benchmark-construction effects and the raw-benchmark experiment.}
 The cleaned variant's training partitions are pre-balanced (RUS,
 Tomek links, TimeGAN augmentation), which (i) renders the SMOTE
 balancing arm inert---reported as a null result---and (ii) creates
-the $26\times$ prevalence shift that drives the calibration story. A
-complementary evaluation on raw unbalanced SWAN-SF partitions would
-separate benchmark-construction effects from federation effects, and
-would allow the balancing ablation to actually engage.
+the $26\times$ prevalence shift that drives the calibration story.
+Because the cleaned variant bundles several interventions (imbalance
+handling, imputation, normalisation, synthetic augmentation), the
+current results answer the question ``can a federation learn the
+cleaned benchmark?'' rather than ``can a federation learn the
+underlying problem?''. The largest queued extension is therefore a
+complementary experiment programme on the raw, unbalanced SWAN-SF
+partitions: it would separate benchmark-construction effects from
+federation effects, allow the balancing ablation to actually engage
+(SMOTE would have work to do), and permit natural-prevalence
+validation splits by construction.
+
+\paragraph{Queued re-run programme.}
+For auditability we collect the pending experiments in one place.
+Each is implemented, unit-tested, and blocked only on compute and on
+raw-metadata access, not on further code: (1)~region-disjoint splits
+from raw SWAN-SF metadata (needs HARP/AR identifiers);
+(2)~natural-prevalence validation plus the full frozen-FPR operating
+point report; (3)~the calibration-comparison harness across raw /
+prior-shift / Platt / isotonic / temperature arms;
+(4)~event-level evaluation (needs event keys and timestamps);
+(5)~untouched-holdout client evaluation; (6)~budget-matched
+centralised-versus-federated training; (7)~promotion of the sweep
+winner ($\alpha{=}5.0$) through multiseed and ablation studies;
+(8)~federated LSTM and SCAFFOLD evaluation; and (9)~the raw-benchmark
+experiment programme of the previous paragraph. Items (1)--(5) are
+preconditions for quoting any number in this paper as an operational
+performance figure rather than a benchmark result.
