@@ -58,7 +58,8 @@ python experiments/run_sweep.py --rounds 15           # mu x alpha grid
 python experiments/run_multiseed.py --seeds 5         # mean/std/95% CI
 python experiments/analyze_smote_validity.py          # SMOTE plausibility
 python experiments/run_interpretability.py            # XGB + FL SHAP
-python experiments/run_calibration_comparison.py      # calibration arms (v3.1)
+python experiments/run_calibration_comparison.py      # calibration arms (v3.3: executed, real mode)
+python experiments/run_client_holdout.py              # untouched-holdout client eval (v3.3: executed)
 python experiments/run_event_level.py --input outputs/event_scores.json  # v3.1
 python secure_aggregation.py                          # secagg self-test
 ```
@@ -161,20 +162,48 @@ Additional guarantees, each with a test in `tests/`:
   SMOTE (Chawla et al., 2002), SHAP (Lundberg & Lee, 2017).
 - Manuscript and audit: see `paper/`.
 
-## Next actions (v3.1 queued re-run programme)
+## Next actions (v3.1 queued re-run programme — updated v3.3)
 
-Implemented, unit-tested, awaiting owner-side compute / raw metadata
-(full list with paper cross-references in `docs/REVIEW2_RESPONSE.md` §C):
+Implemented, unit-tested; items 2 (frozen-FPR report), 3 (calibration
+comparison), and 5 (untouched holdouts) were **executed** in the v3.3
+independent re-execution (see `docs/REVIEW2_RESPONSE.md` §D); the
+remaining items are:
 
 1. Region-disjoint splits from raw SWAN-SF metadata (needs HARP/AR IDs)
-2. Natural-prevalence validation + full frozen-FPR operating-point report
-3. Calibration comparison on the trained FL models (arms shipped)
+2. Natural-prevalence validation as default substrate (needs raw
+   benchmark partitions; the frozen-FPR *report* was executed — realised
+   test FPR now quantified)
+3. ~~Calibration comparison on the trained FL models~~ **EXECUTED**
 4. Event-level evaluation (needs event keys + timestamps)
-5. Untouched-holdout client evaluation
+5. ~~Untouched-holdout client evaluation~~ **EXECUTED**
 6. Budget-matched centralized-vs-federated training
 7. Sweep-winner promotion (alpha=5.0) through multiseed + ablation
 8. Federated LSTM and SCAFFOLD evaluation
 9. Raw unbalanced SWAN-SF experiment programme
 
-Items 1-5 are preconditions for quoting any number in the paper as
-operational performance rather than benchmark result.
+Items 1, 2, and 4 are preconditions for quoting any number in the paper
+as operational performance rather than benchmark result.
+
+## v3.3 independent re-execution (2026-09-29)
+
+The headline pipeline was re-executed from the public Cleaned SWAN-SF
+release (all 20 pkl partitions SHA-256-verified against
+`data_manifest/manifest.json`) on CPU only. **Every test-set metric of
+all six models reproduced exactly** (three-decimal match on all 48
+model-metric pairs; FedAvg divergence reproduces round-for-round) —
+the frozen protocol is bit-stable, so the published numbers are
+re-derivable from public inputs. The same session executed the
+calibration-arm comparison (negative result: no validation-fit arm
+survives the 26x prior shift), the untouched-holdout client
+evaluation (local 0.983 / FedAvg 0.866 / FedProx 0.988 mean PR-AUC),
+and the frozen-FPR operating-point report (realised test FPR
+28.2-72.1% against 0.5-5% targets for FedProx). Artefacts:
+`outputs/results.json`, `outputs/calibration_comparison.json`,
+`outputs/client_holdout_eval.json`; manuscript v3.3 (Sec. 5.6).
+
+Dataset acquisition: the Cleaned SWAN-SF partitions are distributed
+via the link in `download.txt` of the
+`samresume/Cleaned-SWANSF-Dataset` repository; place the 10 train and
+10 test `.pkl` files under `data/cleaned/train/` and
+`data/cleaned/test/` respectively, then verify with
+`python data_manifest/generate_manifest.py`.

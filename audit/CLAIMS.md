@@ -63,3 +63,18 @@ Terminology freeze (v3.2 paper): "data-locality-preserving" (never
 "privacy-preserving"), "simulated regional clients A-F" (never agency
 names), "flare-precursor alert component" (never "GIC early warning"),
 "M/X windows" for window-level statistics (never "events").
+
+---
+
+## v3.3 executed-claim updates (2026-09-29, independent re-execution)
+
+| # | Claim | Status | Evidence |
+|---|-------|--------|----------|
+| 21 | Headline numbers are reproducible from public inputs | DEMONSTRATED | Independent re-execution: dataset SHA-256-verified against frozen manifest, frozen protocol re-run on CPU (seed 42); all 8 metrics x 6 models match exactly at 3 decimals; FedAvg divergence signature reproduces round-for-round |
+| 22 | Calibration arms resolve the prior-shift problem | REFUTED (closed negative) | `outputs/calibration_comparison.json` (real mode): validation-Brier selection picks isotonic for all 3 models — the worst arm on test for both neural models (FedProx 0.541 vs 0.264 raw); no arm rescues neural posteriors; isotonic ties destroy ranking (PR-AUC 0.307 -> 0.182); only XGBoost benefits (Platt) |
+| 23 | Client-level Local-vs-Global on untouched holdouts | DEMONSTRATED | `outputs/client_holdout_eval.json`: mean PR-AUC local 0.983 / FedAvg 0.866 / FedProx 0.988; FedProx within 0.001-0.010 of local on 4 largest clients, +0.027/+0.019 on the two smallest; FedAvg below local on every client |
+| 24 | Validation-frozen FPR thresholds transfer to deployment | REFUTED (quantified) | Frozen at 0.5/1/2/5% targets -> realised test FPR 28.2/37.0/50.4/72.1% (FedProx), 20.1% at 2% target (XGBoost); no calibration arm materially improves; reported in paper Sec. 6.4 |
+
+Updates to earlier rows: row 13 -> EXECUTED (report; negative result
+above); row 16 -> REFUTED-at-balanced-validation (harness executed,
+natural-prevalence validation still queued); row 18 -> DEMONSTRATED.

@@ -1,4 +1,4 @@
-# SF-9 — Response to External Review #2 (v3.0.1 manuscript → v3.1 code / v3.2 paper)
+# SF-9 — Response to External Review #2 (v3.0.1 manuscript → v3.1 code / v3.2 paper → v3.3 executed edition)
 
 > This document maps every finding of the second external review to the
 > concrete fix shipped on the `improvements` branch. Status legend:
@@ -8,12 +8,19 @@
 >   smoke-validated, but its *full-quantitative* execution needs the complete
 >   SWAN-SF corpus and training re-run (owner-side compute); the manuscript
 >   reports this status explicitly and labels pre-existing numbers accordingly.
+> - **EXECUTED** — previously queued item has since been run end-to-end on
+>   the real Cleaned SWAN-SF corpus in an independent re-execution
+>   (2026-09-29, CPU-only, public dataset artefacts SHA-256-verified against
+>   the frozen data manifest); results are committed as artefacts and
+>   reported in the manuscript (v3.3).
 > - **PAPER-ONLY** — wording/scope fix in the manuscript.
 >
 > Test suite: **78/78 checks pass** (58 original + 20 new for the v3.1
-> protocol extensions). No headline number was changed: the seed-42
-> frozen-protocol artefacts are the single source of numeric truth; all
-> revisions are protocol hardening, claim correction, and scope honesty.
+> protocol extensions) plus 16/16 FL smoke checks. Independent
+> re-execution (v3.3): every headline test metric of all six models
+> reproduced **exactly** (bit-stable CPU protocol, seed 42) — see
+> `outputs/results.json` (re-executed), `outputs/calibration_comparison.json`
+> (real mode), `outputs/client_holdout_eval.json`.
 
 ---
 
@@ -36,7 +43,7 @@
 
 ### M2. Natural-prevalence validation + threshold-at-FPR protocol
 
-**Status: SHIPPED + QUEUED.**
+**Status: EXECUTED (threshold protocol) / SHIPPED + QUEUED (natural-prevalence validation).**
 
 - `evaluation.select_fpr_thresholds_on_validation()` — deployment
   thresholds for FPR budgets {0.5, 1, 2, 5}% frozen as the
@@ -47,10 +54,20 @@
   within 0.3% of target) — see tests/test_pipeline_integrity.py.
 - Wired into `main.py` (run point 5c); `results.json` schema extended
   with `fpr_thresholds_selected_on: "validation (negative quantile)"`.
+- **Executed in the independent re-execution on the real corpus:** the
+  frozen thresholds realise 28.2 / 37.0 / 50.4 / 72.1% test FPR for
+  FedProx against the 0.5 / 1 / 2 / 5% targets (XGBoost best at 5.4 /
+  12.1 / 20.1 / 43.1%). The negative-score distribution shifts with the
+  prior, so the (1−f)-quantile transfer fails jointly with probability
+  calibration — now reported quantitatively in the manuscript
+  (Sec. 6.4) and consistent with the paper's threshold-transfer-failure
+  narrative. The synthetic-test 0.3% result held because that test's
+  val/test score distributions were matched; the real corpus's 26×
+  prevalence shift moves the negative quantile as well.
 - The natural-prevalence validation *split* mode is implemented; using
-  it as the default substrate requires the full-data re-run, which is
-  queued (re-run item 2). Manuscript Sec. 4.7 describes the protocol
-  exactly as implemented, including its queued status.
+  it as the default substrate requires the raw benchmark's untouched
+  partition structure, which is queued (re-run item 2). Manuscript
+  Sec. 4.7 describes the protocol exactly as implemented.
 
 ### M3. Resolve α=1.0 vs α=5.0 contradiction; freeze the final experiment
 
@@ -110,21 +127,30 @@
 ## B. Point-by-point response (findings 6–25)
 
 ### #6. Prior shift as a named methodological problem + calibration comparison
-**SHIPPED + QUEUED.**
+**SHIPPED → EXECUTED (real-data arm comparison, v3.3).**
 - Manuscript Sec. 6.4 now opens by naming prior shift "a first-class
   methodological problem … the central obstacle between the current
   results and deployment-grade probabilities".
 - The honest numbers are in the paper: FedProx calibrated Brier 0.264 /
   ECE 0.496 — **worse than climatology** (0.239 / 0.470). The previous
   "posterior is usable" sentence is gone.
-- `evaluation.py` now ships `PriorShiftCorrection`, `PlattScaling`,
+- `evaluation.py` ships `PriorShiftCorrection`, `PlattScaling`,
   `IsotonicCalibration`, `TemperatureScaling`, `IdentityCalibration`,
   `select_calibration()`; `experiments/run_calibration_comparison.py`
-  evaluates all arms + frozen-FPR thresholding on balanced val, natural
-  val, and the single test pass. Smoke-mode artefact
-  `outputs/calibration_comparison.json` (synthetic probabilistic model)
-  numerically validates the harness end-to-end. Full FL-model execution
-  is queued (re-run item 3).
+  evaluates all arms on validation and the single test pass.
+- **Executed in the independent re-execution against the trained
+  frozen-protocol models** (v3.3, committed as
+  `outputs/calibration_comparison.json`, mode: real): selection by
+  minimum validation Brier picks **isotonic for all three models**, and
+  for both neural models that is the **worst arm on test** (FedProx
+  test Brier 0.541 vs 0.264 raw). No arm rescues the neural posteriors;
+  only XGBoost benefits (Platt 0.063→0.053 Brier). Isotonic's ties
+  destroy ranking resolution (PR-AUC 0.307→0.182 for FedProx). The
+  manuscript (v3.3) reports this as a closed negative finding
+  (Table 6) — the calibration question is no longer open, and the
+  answer is that no validation-fit decision layer survives the 26×
+  prior shift. Natural-prevalence validation (raw benchmark) remains
+  the queued remedy.
 
 ### #8. Figure 1 client labels + caption disclaimer
 **DONE.**
@@ -164,13 +190,23 @@ corrected to "51% of positive *windows* (recall 0.506)" with the
 event-level caveat attached.
 
 ### #14. Client-level evaluation on untouched holdouts
-**SHIPPED + QUEUED.**
-- `evaluate_clients.py` gains an untouched-holdout mode: each client
+**SHIPPED → EXECUTED (v3.3).**
+- `evaluate_clients.py` has an untouched-holdout mode: each client
   reserves a fraction that *no* federated model trains on, so
   Local-vs-Global become clean generalisation estimates.
-- Unit-tested; execution needs retraining — queued (re-run item 5).
-- Manuscript Sec. 6.7 + Sec. 8 keep the within-distribution caveat
-  ("optimistic for the federated side") and state the queued fix.
+- **Executed** as a dedicated re-run
+  (`experiments/run_client_holdout.py`, committed as
+  `outputs/client_holdout_eval.json`): every shard split 80/20 before
+  training, FedAvg + FedProx retrained on the 80% portions (frozen
+  config, 50 rounds), local models trained on the same portions, all
+  evaluated once on the untouched holdouts. Results: mean PR-AUC
+  **local 0.983 / FedAvg 0.866 / FedProx 0.988**; FedProx within
+  0.001–0.010 of local on the four largest clients and clearly better
+  on the two smallest (+0.027, +0.019); FedAvg below local on every
+  client. Figure 6 is regenerated from this artefact and Sec. 6.7
+  (v3.3) reports the clean-protocol numbers; the legacy
+  within-shard-slice values are kept in the text only as the
+  superseded, optimistically biased variant.
 
 ### #15. Centralized-MLP training-budget table
 **DONE.**
@@ -288,19 +324,45 @@ search protocol (Sec. 2.4); operational readiness is not claimed
 
 ---
 
-## C. Queued re-run programme (owner-side compute required)
+## C. Queued re-run programme (owner-side compute / raw metadata required)
 
-Implemented, unit-tested, blocked only on compute/raw metadata:
+Implemented, unit-tested. **Items 2, 3, and 5 were executed in the
+v3.3 independent re-execution** (see M2, #6, #14 above); the remaining
+items are:
 
 1. Region-disjoint splits from raw SWAN-SF metadata (needs HARP/AR IDs)
-2. Natural-prevalence validation + full frozen-FPR operating-point report
-3. Calibration-comparison harness (raw / prior-shift / Platt / isotonic / temperature)
+2. Natural-prevalence validation as default substrate (needs the raw
+   benchmark's untouched partition structure; frozen-FPR *report*
+   executed — see M2)
+3. ~~Calibration-comparison harness~~ **EXECUTED** (real mode, v3.3)
 4. Event-level evaluation (needs event keys + timestamps)
-5. Untouched-holdout client evaluation
+5. ~~Untouched-holdout client evaluation~~ **EXECUTED** (v3.3)
 6. Budget-matched centralized-vs-federated training
 7. Sweep-winner promotion (α=5.0) through multiseed + ablation
 8. Federated LSTM and SCAFFOLD evaluation
 9. Raw unbalanced SWAN-SF experiment programme
 
-Items 1–5 are preconditions for quoting any number as operational
-performance rather than benchmark result.
+Items 1, 2, and 4 are preconditions for quoting any number as
+operational performance rather than benchmark result.
+
+---
+
+## D. v3.3 addendum — independent re-execution (2026-09-29)
+
+The complete headline pipeline was re-executed from scratch in a clean
+CPU-only environment using only public artefacts: the Cleaned SWAN-SF
+release downloaded from the dataset repository's official distribution,
+all 20 partition files SHA-256-verified byte-identical to
+`data_manifest/manifest.json`, then the frozen protocol end-to-end
+(data load, immutable splits, Dirichlet partition, pooled baselines,
+FedAvg + FedProx to 50 rounds, validation-fit calibration/thresholds,
+single-pass test evaluation, figures, SHAP). Every test-set metric of
+all six models reproduced **exactly** (all 8 metrics × 6 models match
+the frozen artefacts at three decimals; the FedAvg divergence
+signature reproduces round-for-round). This upgrades the paper's
+reproducibility claim from “artefacts are available” to “numbers are
+re-derivable from public inputs”, reported in Sec. 5.6 and the v3.3
+abstract. The same session executed the previously queued calibration
+comparison (#6), untouched-holdout evaluation (#14), and frozen-FPR
+operating-point report (M2); the multiseed, sweep, and ablation studies
+were not re-executed and remain the owner-side committed artefacts.

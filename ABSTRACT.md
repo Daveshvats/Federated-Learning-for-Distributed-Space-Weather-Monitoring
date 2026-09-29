@@ -117,3 +117,25 @@ SWAN-SF, Class Imbalance, Probability Calibration, Space Weather*
 - client labels neutralised (A–F by region; no institution implied)
 - communication numbers marked as parameter-exchange arithmetic,
   latency/aggregation/straggler costs explicitly unmeasured
+
+## v3.3 addendum (2026-09-29, executed edition)
+
+Abstract-level updates from the independent re-execution:
+
+- new sentence: "An independent re-execution from the public dataset
+  artefacts (byte-verified against the SHA-256 data manifest)
+  reproduces every headline metric exactly; in the same session a
+  five-arm calibration comparison shows that no validation-fit
+  calibrator survives the prior shift, and an untouched-holdout study
+  confirms that the proximal-stabilised global model matches
+  local-only performance for every simulated client while clearly
+  aiding the two smallest."
+- the calibration question is no longer "declared open": it is
+  answered with a closed negative result (validation-Brier selection
+  picks isotonic, the worst arm on test for the neural models)
+- untouched-holdout numbers: local 0.983 / FedAvg 0.866 / FedProx
+  0.988 mean PR-AUC; FedProx +0.027 / +0.019 on the two smallest
+  clients
+- frozen-FPR realised test FPR quantified (FedProx 28.2-72.1%
+  against 0.5-5% targets), strengthening the threshold-transfer
+  honesty
