@@ -31,12 +31,14 @@ import numpy as np
 from collections import Counter
 
 CLIENT_NAMES = [
-    "Americas (NASA/NOAA)",
-    "Europe (ESA/PROBA-2)",
-    "Asia-Pacific (JAXA)",
-    "South Asia (ISRO)",
-    "East Asia (KASI)",
-    "Oceania (BoM)",
+    # Neutral labels (review R8): hypothetical regional custodians, not
+    # participating institutions (see paper figure captions).
+    "Client A (Americas)",
+    "Client B (Europe)",
+    "Client C (Asia-Pacific)",
+    "Client D (South Asia)",
+    "Client E (East Asia)",
+    "Client F (Oceania)",
 ]
 
 

@@ -44,11 +44,14 @@ from data_preparation import load_or_generate_data, preprocess, \
     load_and_scale_3d_data
 from partition_clients import partition_data_dirichlet
 from centralized_baseline import (train_centralized, evaluate_centralized,
-                                  model_probs, compute_shap)
+                                  model_probs, compute_shap,
+                                  training_budget_report)
 from federated_learning import (run_fedavg, run_fedprox, run_scaffold,
                                 get_model_probs)
 from evaluation import (make_calibrator, select_calibration,
-                        find_optimal_threshold_fbeta, compute_all_metrics)
+                        find_optimal_threshold_fbeta, compute_all_metrics,
+                        select_fpr_thresholds_on_validation,
+                        frozen_operating_point_metrics)
 from leakage_audit.audit_leakage import run_audit, _print_report
 from visualize_results import (plot_confusion_matrices, plot_roc_curves,
                                plot_fl_convergence, plot_shap_importance,
@@ -405,6 +408,18 @@ def main():
         thresholds[name] = t
         print(f"  [VAL] {name:<28} threshold={t:.3f}  F{cfg.FBETA_BETA:.0f}={fb:.3f}")
 
+    # ── 5c. deployment thresholds at fixed FPR budgets (review R4) ──
+    # FPR depends only on the NEGATIVE score distribution, so the
+    # (1-fpr) quantile of validation negatives is the frozen deployment
+    # threshold; the test set plays no role in the selection.
+    fpr_frozen = {}
+    for name, p in val_probs.items():
+        p_cal = calibrators[name].transform(p)
+        fpr_frozen[name] = select_fpr_thresholds_on_validation(
+            y_val, p_cal, cfg.OPERATING_FPR_TARGETS)
+    print(f"  [VAL] FPR-budget deployment thresholds frozen for "
+          f"{len(fpr_frozen)} models")
+
     print(f"\n  Frozen: calibration={method} | thresholds={thresholds}")
     print("  -> applying ONCE to the held-out TEST set ...\n")
 
@@ -432,6 +447,12 @@ def main():
                                   else y_test, p_cal, thresholds[name],
                                   beta=cfg.FBETA_BETA)
         res["calibration"] = method
+        # R4: realised deployment behaviour at the validation-frozen
+        # FPR thresholds (single application, distinct from the
+        # threshold-free recall@FPR discrimination statistics)
+        res["frozen_operating_points"] = frozen_operating_point_metrics(
+            y_test_fl if "fed" in name or "scaffold" in name else y_test,
+            p_cal, fpr_frozen[name])
         res["probs"] = p_cal
         res["preds"] = res.pop("preds", None)
         all_results[name] = res
@@ -507,9 +528,15 @@ def main():
             "calibration": method,
             "thresholds": thresholds,
             "threshold_selected_on": "validation",
+            "fpr_thresholds_selected_on": "validation (negative quantile, R4)",
             "test_touched_once": True,
         },
         "test_metrics": serialisable,
+        "training_budget": training_budget_report(
+            len(y_train), n_val=len(y_val), central_epochs=30,
+            central_batch=256, central_lr=cfg.LR,
+            fl_rounds=args.rounds, fl_local_epochs=cfg.LOCAL_EPOCHS,
+            fl_batch=cfg.BATCH_SIZE, fl_lr=cfg.LR),
         "fl_convergence_val": {
             "fedavg": fedavg_history,
             "fedprox": fedprox_history,

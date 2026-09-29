@@ -27,9 +27,33 @@ from federated_learning import (local_train_fedavg, get_model_probs,
 from evaluation import compute_all_metrics
 
 
+def split_shards_for_holdout(shards, holdout_fraction=0.2, seed=42):
+    """
+    Review R14 corrected experiment: partition each client shard into a
+    FEDERATION-TRAIN portion and a completely UNTOUCHED holdout BEFORE
+    any federated training happens. The global models must then be
+    trained only on the returned fed_shards, and evaluated on the
+    holdouts — giving clean per-client generalisation estimates rather
+    than the within-distribution scores of the v3.0 client evaluation.
+
+    Returns (fed_shards, holdouts) as lists of (X, y) tuples.
+    """
+    fed_shards, holdouts = [], []
+    for k, (X_c, y_c) in enumerate(shards):
+        n = len(y_c)
+        rng = np.random.RandomState(seed + k)
+        perm = rng.permutation(n)
+        cut = int((1.0 - holdout_fraction) * n)
+        tr, ev = perm[:cut], perm[cut:]
+        fed_shards.append((X_c[tr], y_c[tr]))
+        holdouts.append((X_c[ev], y_c[ev]))
+    return fed_shards, holdouts
+
+
 def evaluate_client_level(shards, global_models, X_val, y_val, model_name,
                           threshold=None, batch_size=2048, seed=None,
-                          local_epochs=None, n_local_runs=1):
+                          local_epochs=None, n_local_runs=1,
+                          holdouts=None):
     """
     Parameters
     ----------
@@ -37,6 +61,11 @@ def evaluate_client_level(shards, global_models, X_val, y_val, model_name,
     global_models : tuple of trained global models (fedavg, fedprox, ...)
     model_name : 'MLP' | 'LSTM' (display)
     threshold : frozen threshold from the main protocol (None -> 0.35)
+    holdouts : optional list of (X, y) untouched client holdouts
+        (from split_shards_for_holdout). When provided, global models
+        are evaluated on the untouched holdouts instead of the
+        within-shard 20% slices, and the shards argument must be the
+        FEDERATION-TRAIN portions (review R14 protocol).
 
     Returns a list of per-client dicts + a summary block.
     """
@@ -53,13 +82,23 @@ def evaluate_client_level(shards, global_models, X_val, y_val, model_name,
             print(f"[Client Eval] shard {k} too small ({len(y_c)}) — skipped")
             continue
 
-        # split the shard: train local model on 80%, evaluate on 20%
-        n = len(y_c)
-        rng = np.random.RandomState(seed + k)
-        perm = rng.permutation(n)
-        cut = int(0.8 * n)
-        tr, ev = perm[:cut], perm[cut:]
-        X_tr, y_tr, X_ev, y_ev = X_c[tr], y_c[tr], X_c[ev], y_c[ev]
+        # evaluation set: untouched holdout when provided (R14), else the
+        # legacy within-shard 20% slice (documented optimistic bias)
+        if holdouts is not None and k < len(holdouts):
+            X_ev, y_ev = holdouts[k]
+            ev_protocol = "untouched_holdout"
+        else:
+            # split the shard: train local model on 80%, evaluate on 20%
+            n = len(y_c)
+            rng = np.random.RandomState(seed + k)
+            perm = rng.permutation(n)
+            cut = int(0.8 * n)
+            tr, ev = perm[:cut], perm[cut:]
+            X_ev, y_ev = X_c[ev], y_c[ev]
+            ev_protocol = "within_shard_slice"
+
+        # local-only model trains on the (federation-train) shard
+        X_tr, y_tr = X_c, y_c
 
         if (y_ev == 1).sum() == 0 or (y_ev == 0).sum() == 0:
             # degenerate held-out split; evaluate on the full shard
@@ -76,6 +115,7 @@ def evaluate_client_level(shards, global_models, X_val, y_val, model_name,
 
         row = {
             "client": cfg.CLIENT_NAMES[k] if k < len(cfg.CLIENT_NAMES) else f"Client {k}",
+            "evaluation_protocol": ev_protocol,
             "n_train": int(len(y_tr)),
             "pos_rate_train": float(y_tr.mean()),
             "n_eval": int(len(y_ev)),
@@ -111,6 +151,7 @@ def evaluate_client_level(shards, global_models, X_val, y_val, model_name,
 
     summary = {
         "n_clients_evaluated": len(rows),
+        "evaluation_protocol": rows[0].get("evaluation_protocol") if rows else None,
         "mean_local_pr_auc": float(np.mean([r["local"]["pr_auc"] for r in rows])) if rows else None,
         "mean_fedavg_pr_auc": float(np.mean([r["fedavg"]["pr_auc"] for r in rows])) if rows and "fedavg" in rows[0] else None,
         "mean_fedprox_pr_auc": float(np.mean([r["fedprox"]["pr_auc"] for r in rows])) if rows and "fedprox" in rows[0] else None,

@@ -404,6 +404,125 @@ def test_fallback_partitions():
     check("geographic fallback returns 6 shards", len(shards) == 6)
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# 11b. Review-2 protocol hardening (R4 / R7 / R13 / R15)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def test_fpr_threshold_transfer():
+    """R4: validation-selected FPR thresholds transfer to deployment data
+    drawn from the same negative score distribution, across prevalence."""
+    print("\n[11b-1] Validation-frozen FPR thresholds (R4)")
+    from evaluation import (select_fpr_thresholds_on_validation,
+                            frozen_operating_point_metrics)
+    rng = np.random.RandomState(11)
+    n_val = 20000
+    y_val = rng.randint(0, 2, n_val)
+    p_val = np.where(y_val == 1, rng.beta(5, 1.5, n_val),
+                     rng.beta(2, 5, n_val))
+    frozen = select_fpr_thresholds_on_validation(y_val, p_val)
+    check("4 FPR budgets produced", len(frozen) == 4)
+
+    n_dep = 100000
+    y_dep = (rng.rand(n_dep) < 0.02).astype(int)
+    p_dep = np.where(y_dep == 1, rng.beta(5, 1.5, n_dep),
+                     rng.beta(2, 5, n_dep))
+    res = frozen_operating_point_metrics(y_dep, p_dep, frozen)
+    for key, v in res.items():
+        target = float(key.replace("%FPR", "")) / 100.0
+        check(f"realised {key} ~ target (got {v['realised_fpr']:.4f})",
+              abs(v["realised_fpr"] - target) <= 0.004)
+    # selection must not depend on validation prevalence: shuffling the
+    # positive scores leaves the negative quantile untouched
+    p_val2 = p_val.copy()
+    p_val2[y_val == 1] = rng.permutation(p_val2[y_val == 1])
+    frozen2 = select_fpr_thresholds_on_validation(y_val, p_val2)
+    same = all(abs(frozen[k]["threshold"] - frozen2[k]["threshold"]) < 1e-12
+               for k in frozen)
+    check("threshold invariant to positive-score permutation", same)
+
+
+def test_region_disjoint_split():
+    """R7: no region spans train/validation; coverage is exact."""
+    print("\n[11b-2] Region-disjoint validation split (R7)")
+    from data_preparation import region_disjoint_val_split
+    from leakage_audit.audit_leakage import check_region_leakage
+
+    rng = np.random.RandomState(5)
+    n_regions, windows_per_region = 120, 40
+    n = n_regions * windows_per_region
+    region_ids = np.repeat(np.arange(n_regions), windows_per_region)
+    # regions 0..59 flare-rich, 60..119 flare-poor -> pooled ~balanced
+    rates = np.where(np.arange(n_regions) < 60, 0.8, 0.2)
+    y = np.zeros(n, dtype=int)
+    for r in range(n_regions):
+        idx = np.arange(r * windows_per_region, (r + 1) * windows_per_region)
+        y[idx] = rng.binomial(1, rates[r], windows_per_region)
+
+    train_idx, val_idx, report = region_disjoint_val_split(
+        y, region_ids, val_fraction=0.16, seed=42)
+
+    check("coverage exact (train+val = pool)",
+          len(train_idx) + len(val_idx) == n)
+    check("no index in both splits",
+          len(np.intersect1d(train_idx, val_idx)) == 0)
+    r_leak = check_region_leakage(region_ids, train_idx, val_idx,
+                                  np.array([], int))
+    check("no region spans train/val", r_leak["pass"] is True)
+    check("val fraction within [10%, 25%]",
+          0.10 <= len(val_idx) / n <= 0.25,
+          f"got {len(val_idx)/n:.3f}")
+    check("val prevalence near pooled rate (region-stratified)",
+          abs(report["val_prevalence"] - y.mean()) <= 0.05,
+          f"got {report['val_prevalence']:.3f} vs {y.mean():.3f}")
+    check("report marks region_disjoint", report["region_disjoint"] is True)
+
+
+def test_event_level_metrics():
+    """R13/R19: event-level metrics on a deterministic fixture."""
+    print("\n[11b-3] Event-level evaluation (R13/R19)")
+    from experiments.run_event_level import (_synthetic_self_check,
+                                             event_level_metrics)
+    ok, r = _synthetic_self_check()
+    check("synthetic fixture: 2 events, 1 detected, 1 missed", ok)
+    # cooldown de-duplication suppresses duplicate alerts
+    y = np.ones(20, dtype=int)
+    p = np.where(np.arange(20) % 2 == 0, 0.9, 0.1)
+    ev = np.array(["X"] * 20)
+    r_nocd = event_level_metrics(y, p, ev, threshold=0.5)
+    r_cd = event_level_metrics(y, p, ev, threshold=0.5, cooldown_windows=3)
+    check("without cooldown: 10 alerts for one event",
+          r_nocd["total_alerts"] == 10)
+    check("with cooldown=3: duplicates suppressed",
+          r_cd["total_alerts"] < r_nocd["total_alerts"])
+
+
+def test_training_budget_report():
+    """R15: budget audit exposes the centralized-vs-FL confound."""
+    print("\n[11b-4] Training-budget audit (R15)")
+    from centralized_baseline import training_budget_report
+    rep = training_budget_report(82121, n_val=15643,
+                                 central_epochs=30, central_batch=256,
+                                 fl_rounds=50, fl_local_epochs=10,
+                                 fl_batch=512)
+    check("central epochs recorded", rep["centralized_mlp"]["max_epochs"] == 30)
+    check("FL effective passes recorded",
+          rep["federated"]["effective_passes_per_client_shard"] == 500)
+    check("budgets_matched is False at defaults (honest)",
+          rep["budgets_matched"] is False)
+    check("confound note present", "NOT matched" in rep["note"])
+
+
+def test_neutral_client_labels():
+    """R8: no institution names in the client labels."""
+    print("\n[11b-5] Neutral client labels (R8)")
+    import config as cfg
+    joined = " ".join(cfg.CLIENT_NAMES)
+    banned = ["NASA", "NOAA", "ESA", "JAXA", "ISRO", "KASI", "BoM",
+              "PROBA"]
+    check("no institution names in CLIENT_NAMES",
+          not any(b in joined for b in banned), joined)
+
+
 def main():
     print("=" * 64)
     print("  SF-9 PIPELINE INTEGRITY TESTS (fixes verification)")
@@ -419,6 +538,11 @@ def main():
     test_feature_names()
     test_multiseed_summary()
     test_fallback_partitions()
+    test_fpr_threshold_transfer()
+    test_region_disjoint_split()
+    test_event_level_metrics()
+    test_training_budget_report()
+    test_neutral_client_labels()
 
     print("\n" + "=" * 64)
     print(f"  RESULT: {PASS} passed, {FAIL} failed")

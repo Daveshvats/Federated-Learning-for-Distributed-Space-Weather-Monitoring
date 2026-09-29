@@ -342,6 +342,102 @@ def preprocess(df: pd.DataFrame, val_fraction=0.16) -> Splits:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# 3b.  REGION-DISJOINT VALIDATION SPLIT  (review R7 — hard-gate protocol)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def region_disjoint_val_split(y_train, region_ids, val_fraction=0.16,
+                              seed=42):
+    """
+    Carve a validation set from the training pool such that NO active
+    region contributes windows to both train and validation (review
+    finding R7: windows of one physical region must not straddle the
+    selection boundary, or validation metrics are optimistically biased
+    by region overlap).
+
+    Protocol
+    --------
+    1. Group window indices by region id.
+    2. Order regions by |region positivity - pooled positivity| (most
+       representative first), with a seeded tie-break shuffle, so the
+       validation set is approximately prevalence-stratified at REGION
+       granularity (not window granularity).
+    3. Greedily move whole regions into validation until it reaches
+       ~val_fraction of windows, choosing the region that keeps the
+       running validation prevalence closest to the pooled rate.
+
+    The test set keeps the dataset's own (time-based) boundary; when
+    region ids are available for BOTH pools, the runtime leakage audit
+    additionally reports train-vs-test region overlap
+    (leakage_audit.check_region_leakage).
+
+    Returns (train_idx, val_idx, report) where report documents region
+    counts and the realised validation prevalence.
+    """
+    y_train = np.asarray(y_train).astype(int)
+    region_ids = np.asarray(region_ids)
+    n = len(y_train)
+    if len(region_ids) != n:
+        raise ValueError("region_ids must align with the training pool")
+
+    rng = np.random.RandomState(seed)
+    unique_regions = np.unique(region_ids)
+    region_indices = {r: np.where(region_ids == r)[0] for r in unique_regions}
+    region_sizes = {r: int(len(region_indices[r])) for r in unique_regions}
+    region_pos = {r: int(y_train[region_indices[r]].sum()) for r in unique_regions}
+
+    pooled_rate = float(y_train.mean())
+    order = sorted(
+        unique_regions,
+        key=lambda r: (abs(region_pos[r] / region_sizes[r] - pooled_rate),
+                       rng.rand()))  # seeded tie-break
+
+    target_val_windows = int(round(val_fraction * n))
+    val_regions, n_val, pos_val = [], 0, 0
+    remaining = list(order)
+    while remaining and n_val < target_val_windows:
+        # pick the region whose addition keeps the running validation
+        # prevalence closest to the pooled rate (greedy whole-region
+        # stratification; running sums keep this O(R^2) arithmetic)
+        best_r, best_cost = None, np.inf
+        for r in remaining:
+            nn, pp = region_sizes[r], region_pos[r]
+            cand_rate = (pos_val + pp) / (n_val + nn)
+            cost = (abs(cand_rate - pooled_rate)
+                    + abs(n_val + nn - target_val_windows) / n * 0.25)
+            if cost < best_cost:
+                best_cost, best_r = cost, r
+        val_regions.append(best_r)
+        n_val += region_sizes[best_r]
+        pos_val += region_pos[best_r]
+        remaining.remove(best_r)
+
+    val_idx = (np.concatenate([region_indices[r] for r in val_regions])
+               if val_regions else np.array([], int))
+    val_mask = np.zeros(n, dtype=bool)
+    val_mask[val_idx] = True
+    train_idx = np.where(~val_mask)[0]
+
+    report = {
+        "n_regions_total": int(len(unique_regions)),
+        "n_regions_val": int(len(val_regions)),
+        "n_regions_train": int(len(unique_regions) - len(val_regions)),
+        "n_windows_train": int(len(train_idx)),
+        "n_windows_val": int(len(val_idx)),
+        "val_prevalence": float(y_train[val_idx].mean()) if len(val_idx) else None,
+        "train_prevalence": float(y_train[train_idx].mean()),
+        "region_disjoint": True,
+        "protocol": "greedy prevalence-matching whole-region allocation",
+        "seed": int(seed),
+    }
+    print(f"[RegionSplit] {report['n_regions_val']}/{report['n_regions_total']} "
+          f"regions -> validation ({report['n_windows_val']:,} windows, "
+          f"prevalence {report['val_prevalence']:.3f}); train "
+          f"{report['n_windows_train']:,} windows "
+          f"(prevalence {report['train_prevalence']:.3f})")
+    return train_idx, val_idx, report
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # 4.  3D DATA (LSTM path) — same immutable contract
 # ─────────────────────────────────────────────────────────────────────────────
 

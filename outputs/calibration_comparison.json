@@ -1,0 +1,199 @@
+{
+  "model": "synthetic-model",
+  "arms": {
+    "none": {
+      "validation_brier": 0.07962968785492806,
+      "test_brier": 0.1061396698885486,
+      "test_ece": 0.2767330996653349,
+      "test_roc_auc": 0.9869095393063011,
+      "test_pr_auc": 0.8092329116511365,
+      "frozen_operating_points": {
+        "0.5%FPR": {
+          "frozen_threshold": 0.7311353439018935,
+          "realised_fpr": 0.006221209906341895,
+          "recall": 0.7630453378956373,
+          "precision": 0.7090620031796503,
+          "alert_rate": 0.020966666666666668
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.6954001972970625,
+          "realised_fpr": 0.012102462987200625,
+          "recall": 0.8126603934987169,
+          "precision": 0.5716004813477737,
+          "alert_rate": 0.0277
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.6470494817618315,
+          "realised_fpr": 0.024357906545868675,
+          "recall": 0.8828058169375534,
+          "precision": 0.41866125760649087,
+          "alert_rate": 0.04108333333333333
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.5770618715459982,
+          "realised_fpr": 0.05376417195016233,
+          "recall": 0.9332763045337895,
+          "precision": 0.2564645039962388,
+          "alert_rate": 0.0709
+        }
+      },
+      "calibrator_class": "IdentityCalibration"
+    },
+    "prior_shift": {
+      "validation_brier": 0.07988818229491483,
+      "test_brier": 0.10733469769500108,
+      "test_ece": 0.2785703253502791,
+      "test_roc_auc": 0.9869095393063011,
+      "test_pr_auc": 0.8092329116511365,
+      "frozen_operating_points": {
+        "0.5%FPR": {
+          "frozen_threshold": 0.7331617939430177,
+          "realised_fpr": 0.006221209906341895,
+          "recall": 0.7630453378956373,
+          "precision": 0.7090620031796503,
+          "alert_rate": 0.020966666666666668
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.697584580613853,
+          "realised_fpr": 0.012102462987200625,
+          "recall": 0.8126603934987169,
+          "precision": 0.5716004813477737,
+          "alert_rate": 0.0277
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.6494057913043516,
+          "realised_fpr": 0.024357906545868675,
+          "recall": 0.8828058169375534,
+          "precision": 0.41866125760649087,
+          "alert_rate": 0.04108333333333333
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.579581833386459,
+          "realised_fpr": 0.05376417195016233,
+          "recall": 0.9332763045337895,
+          "precision": 0.2564645039962388,
+          "alert_rate": 0.0709
+        }
+      },
+      "calibrator_class": "PriorShiftCorrection"
+    },
+    "platt": {
+      "validation_brier": 0.04238977025121799,
+      "test_brier": 0.04503333753755442,
+      "test_ece": 0.08493351130859154,
+      "test_roc_auc": 0.9869095393063011,
+      "test_pr_auc": 0.8092329116511365,
+      "frozen_operating_points": {
+        "0.5%FPR": {
+          "frozen_threshold": 0.9482088252915465,
+          "realised_fpr": 0.006221209906341895,
+          "recall": 0.7630453378956373,
+          "precision": 0.7090620031796503,
+          "alert_rate": 0.020966666666666668
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.9020371053526287,
+          "realised_fpr": 0.012102462987200625,
+          "recall": 0.8126603934987169,
+          "precision": 0.5716004813477737,
+          "alert_rate": 0.0277
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.7954253887960189,
+          "realised_fpr": 0.024357906545868675,
+          "recall": 0.8828058169375534,
+          "precision": 0.41866125760649087,
+          "alert_rate": 0.04108333333333333
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.5491564760322593,
+          "realised_fpr": 0.05376417195016233,
+          "recall": 0.9332763045337895,
+          "precision": 0.2564645039962388,
+          "alert_rate": 0.0709
+        }
+      },
+      "calibrator_class": "PlattScaling"
+    },
+    "isotonic": {
+      "validation_brier": 0.04181710994352662,
+      "test_brier": 0.04566744126255625,
+      "test_ece": 0.08506658575628123,
+      "test_roc_auc": 0.9867538905535901,
+      "test_pr_auc": 0.7775862124228247,
+      "frozen_operating_points": {
+        "0.5%FPR": {
+          "frozen_threshold": 0.9295774647887324,
+          "realised_fpr": 0.00870289473236899,
+          "recall": 0.7904191616766467,
+          "precision": 0.6434540389972145,
+          "alert_rate": 0.023933333333333334
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.900990099009901,
+          "realised_fpr": 0.013700260066971495,
+          "recall": 0.8246364414029085,
+          "precision": 0.5446327683615819,
+          "alert_rate": 0.0295
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.7526881720430108,
+          "realised_fpr": 0.027757474800700312,
+          "recall": 0.894781864841745,
+          "precision": 0.3904441955953714,
+          "alert_rate": 0.04465
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.5632911392405063,
+          "realised_fpr": 0.06083527392021213,
+          "recall": 0.9366980325064157,
+          "precision": 0.2342747111681643,
+          "alert_rate": 0.0779
+        }
+      },
+      "calibrator_class": "IsotonicCalibration"
+    },
+    "temperature": {
+      "validation_brier": 0.048921118691347125,
+      "test_brier": 0.079078814016032,
+      "test_ece": 0.14235666585623136,
+      "test_roc_auc": 0.9869095393063011,
+      "test_pr_auc": 0.8092329116511365,
+      "frozen_operating_points": {
+        "0.5%FPR": {
+          "frozen_threshold": 0.9728255346970643,
+          "realised_fpr": 0.006221209906341895,
+          "recall": 0.7630453378956373,
+          "precision": 0.7090620031796503,
+          "alert_rate": 0.020966666666666668
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.9503761134157864,
+          "realised_fpr": 0.012102462987200625,
+          "recall": 0.8126603934987169,
+          "precision": 0.5716004813477737,
+          "alert_rate": 0.0277
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.8973127831061515,
+          "realised_fpr": 0.024357906545868675,
+          "recall": 0.8828058169375534,
+          "precision": 0.41866125760649087,
+          "alert_rate": 0.04108333333333333
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.7523736995072221,
+          "realised_fpr": 0.05376417195016233,
+          "recall": 0.9332763045337895,
+          "precision": 0.2564645039962388,
+          "alert_rate": 0.0709
+        }
+      },
+      "calibrator_class": "TemperatureScaling"
+    }
+  },
+  "validation_selected_arm": "isotonic",
+  "selection_rule": "min validation Brier (proper scoring rule)",
+  "mode": "synthetic",
+  "note": "plumbing check only \u2014 no scientific claim; real run requires the Cleaned SWAN-SF artefacts"
+}

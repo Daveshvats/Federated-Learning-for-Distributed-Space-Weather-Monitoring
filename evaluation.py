@@ -129,6 +129,82 @@ def select_operating_point(y_true, y_probs, beta=2.0, grid=(0.05, 0.95, 0.005)):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Deployment thresholds at fixed FPR budgets — VALIDATION-SELECTED (review R4)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def select_fpr_thresholds_on_validation(y_val, p_val,
+                                        fpr_targets=(0.005, 0.01, 0.02, 0.05)):
+    """
+    Select the DEPLOYMENT threshold for each target false-positive budget
+    from VALIDATION data only (review finding R4 protocol).
+
+    Rationale
+    ---------
+    FPR(t) = Pr(p >= t | y = 0) is a property of the NEGATIVE score
+    distribution alone and is invariant to class prevalence. The
+    empirical (1 - fpr) quantile of the validation NEGATIVES is therefore
+    the threshold whose realised false-positive rate on deployment data
+    matches the target, provided the negative score distribution
+    transfers between validation and deployment (a distributional
+    assumption, weaker and more defensible than touching test
+    statistics). No natural-prevalence validation set is required, and
+    the test set plays no role in the selection.
+
+    Returns
+    -------
+    dict keyed by f"{100*fpr:g}%FPR" with the frozen threshold, the
+    realised validation FPR at that threshold, and the count of
+    validation negatives used (report alongside results so the
+    quantile's statistical resolution is explicit).
+    """
+    y_val = np.asarray(y_val).astype(int)
+    p_val = np.asarray(p_val, dtype=float)
+    neg = p_val[y_val == 0]
+    if len(neg) == 0:
+        raise ValueError("no validation negatives: FPR thresholds undefined")
+    out = {}
+    for fpr in fpr_targets:
+        # 'higher' = conservative side: realised validation FPR <= target
+        t = float(np.quantile(neg, 1.0 - fpr, method="higher"))
+        realised = float((neg >= t).mean())
+        out[f"{100*fpr:g}%FPR"] = {
+            "threshold": t,
+            "target_fpr": float(fpr),
+            "validation_realised_fpr": realised,
+            "n_validation_negatives": int(len(neg)),
+            "selected_on": "validation",
+        }
+    return out
+
+
+def frozen_operating_point_metrics(y_true, y_probs, frozen_thresholds):
+    """
+    Apply validation-frozen FPR thresholds to (already final) test scores
+    exactly once and report the realised deployment behaviour:
+    realised FPR, recall, precision, and alert rate. This is the
+    operational instrument of Section 6.2 of the paper — distinct from
+    recall@FPR read off the test ROC, which is a threshold-free
+    discrimination statistic.
+    """
+    y_true = np.asarray(y_true).astype(int)
+    y_probs = np.asarray(y_probs, dtype=float)
+    out = {}
+    for key, spec in frozen_thresholds.items():
+        t = spec["threshold"] if isinstance(spec, dict) else float(spec)
+        preds = (y_probs >= t).astype(int)
+        fp = int(((preds == 1) & (y_true == 0)).sum())
+        n_neg = int((y_true == 0).sum())
+        out[key] = {
+            "frozen_threshold": float(t),
+            "realised_fpr": float(fp / max(n_neg, 1)),
+            "recall": float(recall_score(y_true, preds, zero_division=0)),
+            "precision": float(precision_score(y_true, preds, zero_division=0)),
+            "alert_rate": float(preds.mean()),
+        }
+    return out
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Calibration (fit on VALIDATION, apply to TEST)
 # ─────────────────────────────────────────────────────────────────────────────
 

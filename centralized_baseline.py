@@ -140,6 +140,64 @@ def mlp_probs(model, X, batch_size=4096):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Training-budget audit (review R15)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def training_budget_report(n_train, n_val=None, central_epochs=30,
+                           central_batch=256, central_lr=None,
+                           central_early_stopping="patience 5 on validation BCE loss",
+                           fl_rounds=50, fl_local_epochs=10, fl_batch=512,
+                           fl_lr=None):
+    """
+    Review finding R15: the centralized-MLP vs FedProx comparison is only
+    interpretable if the optimisation budgets are stated explicitly.
+    Effective passes over data:
+
+      centralized MLP : <= central_epochs full passes over the pooled
+                        training set (early stopping may reduce this;
+                        the restored checkpoint is the best-validation
+                        epoch, and the number of epochs actually executed
+                        is recorded in the run log)
+      federated model : fl_rounds x fl_local_epochs passes over EACH
+                        client's own shard (i.e. the same shard sees
+                        500 epochs at the default settings — but each
+                        pass covers only that client's ~1/6 of the pool)
+
+    Both are reported so the comparison direction is auditable; a
+    budget-matched rerun (centralized epochs set to fl_rounds *
+    fl_local_epochs, or FL rounds reduced) is a queued action.
+
+    Returns a dict meant to be embedded verbatim in results.json.
+    """
+    return {
+        "centralized_mlp": {
+            "max_epochs": int(central_epochs),
+            "batch_size": int(central_batch),
+            "lr": (float(central_lr) if central_lr is not None
+                    else (float(fl_lr) if fl_lr is not None else None)),
+            "effective_max_passes_over_pool": int(central_epochs),
+            "early_stopping": central_early_stopping,
+            "checkpoint_rule": "best validation BCE loss",
+        },
+        "federated": {
+            "rounds": int(fl_rounds),
+            "local_epochs_per_round": int(fl_local_epochs),
+            "batch_size": int(fl_batch),
+            "lr": float(fl_lr) if fl_lr is not None else None,
+            "effective_passes_per_client_shard": int(fl_rounds * fl_local_epochs),
+            "checkpoint_rule": "best validation F1 round",
+        },
+        "budgets_matched": bool(central_epochs == fl_rounds * fl_local_epochs),
+        "note": ("Optimisation budgets are NOT matched at the default "
+                 "settings; the centralized-vs-federated comparison "
+                 "confounds federation with budget. A budget-matched "
+                 "rerun is queued (review R15)."),
+        "n_train": int(n_train),
+        "n_val": None if n_val is None else int(n_val),
+    }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Train all centralized baselines
 # ─────────────────────────────────────────────────────────────────────────────
 

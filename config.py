@@ -25,10 +25,11 @@ still applies.
 """
 
 # ── Identity / provenance ─────────────────────────────────────────────────
-VERSION          = "3.0.1-improvements"   # v3.0.1: FastLoader (batch-sliced
-#   local training, ~27% faster rounds), B13 global_pos_rate passed into the
-#   focal losses instead of hardcoded 0.4887, round-level FL crash recovery,
-#   manifest prevalence aggregates all partitions (B26).
+VERSION          = "3.1.0-improvements"   # v3.1: review-2 protocol hardening
+#   (R4 validation-frozen FPR thresholds, R7 region-disjoint split code,
+#   R14 untouched client holdouts, R15 training-budget audit, R13/R19
+#   event-level metrics, R6 calibration-comparison runner, neutral client
+#   labels R8). Paper: v3.2 manuscript revision.
 PAPER_ID         = "SF-9"
 RUN_ID           = None        # None -> auto-generated timestamp at runtime
 SEED             = 42          # single root seed (multi-seed: SEED + k)
@@ -65,16 +66,27 @@ LOCAL_EPOCHS     = 10
 FRACTION_FIT     = 1.0
 MU               = 0.01
 DIRICHLET_ALPHA  = 1.0      # v2.6: 1.0 = moderate non-IID (20%-60% rates)
+#   CONFIGURATION PROVENANCE (review R3): the headline run and ALL
+#   statistical studies (multiseed, ablations, client eval) use this
+#   preregistered alpha=1.0. The mu/alpha sweep (experiments/run_sweep.py)
+#   selected alpha=5.0, mu=0.01 as the validation-optimal configuration;
+#   adopting it as the headline configuration requires the queued re-run.
+#   Both values are recorded in run_manifest.json.
+DIRICHLET_ALPHA_SWEEP_WINNER = 5.0   # validation-selected (sweep, 15 rounds)
+OPERATING_FPR_TARGETS = (0.005, 0.01, 0.02, 0.05)  # R4 deployment budgets
 FORCE_NON_IID    = True
 MIN_SAMPLES_PER_CLIENT = 100
 
 CLIENT_NAMES = [
-    "Americas (NASA/NOAA)",
-    "Europe (ESA/PROBA-2)",
-    "Asia-Pacific (JAXA)",
-    "South Asia (ISRO)",
-    "East Asia (KASI)",
-    "Oceania (BoM)"
+    # Neutral labels (review R8): clients are hypothetical regional
+    # custodians, NOT participating institutions. The paper figure
+    # captions state this explicitly.
+    "Client A (Americas)",
+    "Client B (Europe)",
+    "Client C (Asia-Pacific)",
+    "Client D (South Asia)",
+    "Client E (East Asia)",
+    "Client F (Oceania)",
 ]
 
 # ── Aggregation / loss ablation switches ──────────────────────────────────
