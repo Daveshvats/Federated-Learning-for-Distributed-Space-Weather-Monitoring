@@ -32,27 +32,38 @@ aggregation, relative to a centralized multi-layer perceptron of
 identical architecture that quantifies the accuracy cost of
 federation itself.
 
-Results (improvements branch v3.0.1, frozen protocol, single-pass test
+Results (improvements branch v3.1, frozen protocol, single-pass test
 evaluation, 331,185 windows at 1.88% prevalence): FedProx reaches
 ROC-AUC 0.954 (97.7% of the centralised XGBoost reference, 0.977) and
-PR-AUC 0.307, **exceeding** the pooled centralised MLP of identical
-architecture (0.888 / 0.153) — federation costs no ranking skill within
-the same hypothesis class. Plain FedAvg diverges during training
-(validation AUC 0.99 → 0.05 after round ~20); FedProx's proximal term
-is the load-bearing design choice, beating FedAvg on all five seeds
-(one-sided Wilcoxon p = 0.031) with 2.7× narrower ROC-AUC variance.
-The 24-cell ablation grid isolates each component: FedProx cells are
-uniformly stable (0.954–0.959 AUC), DA-FL aggregation partially
-rescues FedAvg (0.880 → 0.950), and the SMOTE arm is inert on the
-pre-balanced benchmark (a reported null). Cross-model SHAP analysis
-shows both the centralised and federated models concentrate decisions
-on current helicity, the R-value flux-emergence proxy, and Lorentz
-force — the parameters flare physics predicts. We also document an
-honest threshold-transfer failure under the 26× validation-to-test
-prevalence shift, and report prevalence-robust recall-at-FPR operating
-points instead (FedProx: 0.51 recall at 2% FPR). Full-weight
+PR-AUC 0.307, and **did not underperform** the pooled centralised MLP
+of identical architecture (0.888 / 0.153) on this benchmark and
+configuration — an observation reported with its caveat: the
+federated arm consumed the larger optimisation budget (500 effective
+local passes vs ≤30 pooled passes; the budget audit is now a shipped
+artefact), and a regularisation-like mechanism is the plausible
+reading, not "federation is free of cost". Plain FedAvg diverges
+during training (validation AUC 0.99 → 0.05 after round ~20);
+FedProx is the **most consistent stabiliser** among the components
+studied — exceeding FedAvg's PR-AUC on all five seeds (one-sided
+Wilcoxon p = 0.031) with 2.7× narrower ROC-AUC variance — while the
+24-cell ablation grid shows distribution-aware aggregation also
+rescues FedAvg substantially (best FedAvg cell 0.963 > FedProx's
+0.954), so stability is not attributable to the proximal term alone.
+The SMOTE arm is inert on the pre-balanced benchmark (a reported
+null). Cross-model SHAP analysis shows both the centralised and
+federated models concentrate decisions on current helicity, the
+R-value flux-emergence proxy, and Lorentz force — the parameters
+flare physics predicts. We also document an honest threshold-transfer
+failure under the 26× validation-to-test prevalence shift — at
+natural prevalence the neural posteriors are currently **worse than
+climatology** on Brier and ECE, which we state as an open calibration
+problem with a shipped comparison harness (raw / prior-shift /
+Platt / isotonic / temperature / frozen-FPR) — and report
+prevalence-robust recall-at-FPR operating points as window-level
+curve statistics (FedProx: 0.51 recall at 2% FPR). Full-weight
 communication costs 0.24 MB per client per round (70.5 MB over the
-complete 50-round run).
+complete 50-round run; parameter-exchange arithmetic, not measured
+latency).
 
 Results are reported as PR-AUC, Brier score, expected calibration
 error, and recall at fixed false-alarm budgets (0.5–5% FPR), reflecting
@@ -90,3 +101,19 @@ SWAN-SF, Class Imbalance, Probability Calibration, Space Weather*
   leakage audit) as explicit contributions
 - "integration with existing SCADA infrastructure" → explicitly
   out of scope (see docs/GIC_BOUNDARY.md)
+
+**Change log v3.2 (review-2 response, see docs/REVIEW2_RESPONSE.md):**
+- "exceeding the pooled centralised MLP / costs no ranking skill" →
+  "did not underperform … on this benchmark and configuration" + the
+  optimisation-budget confound is stated and audited
+- "load-bearing design choice" → "most consistent stabiliser among the
+  components studied"; the ablation contradiction (best FedAvg+DA-FL
+  cell 0.963 > FedProx 0.954) is stated in the abstract itself
+- calibration honesty: neural posteriors worse than climatology
+  (Brier/ECE) at natural prevalence; calibration question declared
+  open; comparison harness shipped
+- recall-at-FPR relabelled as a window-level curve statistic over
+  correlated windows
+- client labels neutralised (A–F by region; no institution implied)
+- communication numbers marked as parameter-exchange arithmetic,
+  latency/aggregation/straggler costs explicitly unmeasured

@@ -4,6 +4,13 @@
 > training pipeline.** Until secure aggregation and DP are wired into the
 > FL loops, the accurate terminology is **"data-locality-preserving"**, not
 > "privacy-preserving" (see `audit/CLAIMS.md`).
+>
+> **v3.1 note (review-2, finding #21):** this table now has a condensed,
+> citable counterpart in the manuscript — `paper/sections/sec_method.tex`
+> (Table `tab:threat`, "Threat model and security posture"). The two are
+> consistent: the benchmark study runs *undefended*; poisoning/backdoor
+> defence is not addressed; secure aggregation is implemented as a
+> round-trip-verified module but not wired into training.
 
 ## 1. System description
 

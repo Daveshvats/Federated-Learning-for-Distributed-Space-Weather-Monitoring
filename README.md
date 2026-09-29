@@ -4,10 +4,17 @@ Federated solar-flare prediction on the SWAN-SF benchmark under simulated
 cross-silo, non-IID partitioning — with a **leakage-audited, validation-only
 selection protocol**.
 
-> **Branch**: `improvements` (v3.0). The `main` branch preserves the
+> **Branch**: `improvements` (v3.1). The `main` branch preserves the
 > original v2.x pipeline and its committed figures. Every headline number
 > produced before v3.0 used a flawed protocol (see `audit/BUG_REGISTER.md`)
 > and must be regenerated with the code on this branch.
+>
+> **v3.1 (review-2 response)**: protocol hardening for the second external
+> review — see `docs/REVIEW2_RESPONSE.md` for the complete 25-finding
+> mapping. Headline numbers are unchanged (frozen seed-42 artefacts); the
+> revision ships new protocol code (all unit-tested, 78/78 checks), a
+> revised manuscript (v3.2, `paper/main.pdf`), neutral client labels, a
+> threat-model table, and a documented literature-search protocol.
 
 ## What this repo demonstrates
 
@@ -51,6 +58,8 @@ python experiments/run_sweep.py --rounds 15           # mu x alpha grid
 python experiments/run_multiseed.py --seeds 5         # mean/std/95% CI
 python experiments/analyze_smote_validity.py          # SMOTE plausibility
 python experiments/run_interpretability.py            # XGB + FL SHAP
+python experiments/run_calibration_comparison.py      # calibration arms (v3.1)
+python experiments/run_event_level.py --input outputs/event_scores.json  # v3.1
 python secure_aggregation.py                          # secagg self-test
 ```
 
@@ -58,7 +67,7 @@ Every run writes `outputs/results.json` + `outputs/run_manifest.json`
 (machine-readable, timestamped) — **figures and paper tables must be
 generated from these files, never typed by hand**.
 
-## Completed experiment programme (this branch, v3.0.1)
+## Completed experiment programme (this branch, v3.0.1 — numbers unchanged in v3.1)
 
 All experiments below have been executed on the real Cleaned SWAN-SF
 data (train 97,764 @ 48.87% / test 331,185 @ 1.88%) with artefacts
@@ -96,8 +105,8 @@ SF9/
 ├── experiments/                # ablations, sweep, multiseed, SMOTE
 ├── privacy_analysis/           # threat model
 ├── limitations/                # honest limitations
-├── docs/                       # GIC boundary, etc.
-├── tests/                      # integrity + smoke tests (74 checks)
+├── docs/                       # GIC boundary, lit-search, review-2 response
+├── tests/                      # integrity + smoke tests (78 checks)
 ├── logs/                       # execution logs
 ├── paper/                      # manuscript (LaTeX + PDF) + review
 └── outputs/                    # results.json, figures (regenerated)
@@ -151,3 +160,21 @@ Additional guarantees, each with a test in `tests/`:
   SCAFFOLD (Karimireddy et al., 2020), Focal loss (Lin et al., 2017),
   SMOTE (Chawla et al., 2002), SHAP (Lundberg & Lee, 2017).
 - Manuscript and audit: see `paper/`.
+
+## Next actions (v3.1 queued re-run programme)
+
+Implemented, unit-tested, awaiting owner-side compute / raw metadata
+(full list with paper cross-references in `docs/REVIEW2_RESPONSE.md` §C):
+
+1. Region-disjoint splits from raw SWAN-SF metadata (needs HARP/AR IDs)
+2. Natural-prevalence validation + full frozen-FPR operating-point report
+3. Calibration comparison on the trained FL models (arms shipped)
+4. Event-level evaluation (needs event keys + timestamps)
+5. Untouched-holdout client evaluation
+6. Budget-matched centralized-vs-federated training
+7. Sweep-winner promotion (alpha=5.0) through multiseed + ablation
+8. Federated LSTM and SCAFFOLD evaluation
+9. Raw unbalanced SWAN-SF experiment programme
+
+Items 1-5 are preconditions for quoting any number in the paper as
+operational performance rather than benchmark result.
