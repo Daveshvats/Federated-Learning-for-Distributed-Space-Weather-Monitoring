@@ -60,6 +60,8 @@ python experiments/analyze_smote_validity.py          # SMOTE plausibility
 python experiments/run_interpretability.py            # XGB + FL SHAP
 python experiments/run_calibration_comparison.py      # calibration arms (v3.3: executed, real mode)
 python experiments/run_client_holdout.py              # untouched-holdout client eval (v3.3: executed)
+python experiments/run_budget_matched.py              # 500-epoch budget-matched centralised (v3.3: executed)
+python experiments/run_alpha_promotion.py             # alpha=5.0 promotion run (v3.3: executed, negative)
 python experiments/run_event_level.py --input outputs/event_scores.json  # v3.1
 python secure_aggregation.py                          # secagg self-test
 ```
@@ -165,8 +167,9 @@ Additional guarantees, each with a test in `tests/`:
 ## Next actions (v3.1 queued re-run programme — updated v3.3)
 
 Implemented, unit-tested; items 2 (frozen-FPR report), 3 (calibration
-comparison), and 5 (untouched holdouts) were **executed** in the v3.3
-independent re-execution (see `docs/REVIEW2_RESPONSE.md` §D); the
+comparison), 5 (untouched holdouts), 6 (budget-matched training), and
+7 (alpha=5.0 promotion — negative) were **executed** in the v3.3
+independent re-executions (see `docs/REVIEW2_RESPONSE.md` §D-E); the
 remaining items are:
 
 1. Region-disjoint splits from raw SWAN-SF metadata (needs HARP/AR IDs)
@@ -176,8 +179,14 @@ remaining items are:
 3. ~~Calibration comparison on the trained FL models~~ **EXECUTED**
 4. Event-level evaluation (needs event keys + timestamps)
 5. ~~Untouched-holdout client evaluation~~ **EXECUTED**
-6. Budget-matched centralized-vs-federated training
-7. Sweep-winner promotion (alpha=5.0) through multiseed + ablation
+6. ~~Budget-matched centralized-vs-federated training~~ **EXECUTED**
+   (`outputs/budget_matched.json`: shipped reference undertrained —
+   early stop at epoch 13; FL-style 500-epoch budget 0.917/0.219 vs
+   FedProx 0.954/0.307 — gap survives parity)
+7. ~~Sweep-winner promotion (alpha=5.0)~~ **EXECUTED — REFUTED**
+   (`outputs/alpha5_promotion.json`: 0.955/0.296 vs headline
+   0.954/0.307; alpha=1.0 retained; FedAvg non-collapse at alpha=5.0
+   shows the headline divergence is a heterogeneity-severity effect)
 8. Federated LSTM and SCAFFOLD evaluation
 9. Raw unbalanced SWAN-SF experiment programme
 

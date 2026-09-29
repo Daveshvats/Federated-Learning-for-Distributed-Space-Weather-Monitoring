@@ -78,3 +78,12 @@ names), "flare-precursor alert component" (never "GIC early warning"),
 Updates to earlier rows: row 13 -> EXECUTED (report; negative result
 above); row 16 -> REFUTED-at-balanced-validation (harness executed,
 natural-prevalence validation still queued); row 18 -> DEMONSTRATED.
+
+---
+
+## v3.3 second-execution claim updates (2026-09-30)
+
+| # | Claim | Status | Evidence |
+|---|-------|--------|----------|
+| 25 | FedProx-vs-centralised gap is not a budget artifact | DEMONSTRATED | `outputs/budget_matched.json` (runner `experiments/run_budget_matched.py`): shipped reference early-stops at epoch 13 (undertrained — confound ran against the federated arm); FL-style fixed 500-epoch budget reaches 0.917/0.219 vs FedProx 0.954/0.307 — gap survives budget parity |
+| 26 | Sweep winner (alpha=5.0) should be promoted to headline | REFUTED (negative result) | `outputs/alpha5_promotion.json` (runner `experiments/run_alpha_promotion.py`): full 50-round protocol at alpha=5.0 gives 0.955/0.296 vs headline 0.954/0.307 — no transfer; alpha=1.0 retained. FedAvg non-collapse at alpha=5.0 (0.915) shows headline divergence is a heterogeneity-severity effect |

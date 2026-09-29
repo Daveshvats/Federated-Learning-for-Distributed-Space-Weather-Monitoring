@@ -105,7 +105,11 @@ calibration-arm comparison executed on the trained models (negative
 result: no validation-fit arm survives the $26\times$ prior shift);
 untouched-holdout client evaluation executed (local 0.983 / FedAvg
 0.866 / FedProx 0.988 mean PR-AUC); frozen-FPR realised test FPR
-reported; fig:clients regenerated from the clean protocol; runners
+reported; budget-matched 500-epoch centralised re-run executed (the
+shipped reference was undertrained; at parity 0.917/0.219 vs FedProx
+0.954/0.307---gap survives); $\alpha{=}5.0$ promotion executed
+(negative; $\alpha{=}1.0$ retained); fig:clients regenerated from the
+clean protocol; runners
 made cache-reusing and round-resumable. \\
 \bottomrule
 \end{tabularx}

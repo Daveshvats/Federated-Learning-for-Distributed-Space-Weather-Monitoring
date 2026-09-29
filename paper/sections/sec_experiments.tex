@@ -36,7 +36,7 @@ reported test metrics are recomputed from those predictions (the v2.x
 code reported a stale accuracy for federated models).
 \item \textbf{Protocol extensions released with this revision.} The
 following components are implemented, unit-tested (78-check integrity
-suite), and smoke-validated. Three of them were additionally
+suite), and smoke-validated. Five of them were additionally
 \emph{executed} end-to-end in the independent re-execution of
 Section~\ref{sec:repro} and their results are reported in
 Section~\ref{sec:results}: (ii)\ the validation-frozen fixed-FPR
@@ -45,20 +45,22 @@ test behaviour in Section~\ref{sec:res-calib}); (iii)\ the
 untouched-holdout client evaluation mode, in which every client
 reserves a fraction its models never train on, so local versus
 global comparisons are clean generalisation estimates
-(Section~\ref{sec:res-clients}); and (vi)\ the calibration-comparison
-harness (raw, prior-shift, Platt, isotonic, and temperature arms,
+(Section~\ref{sec:res-clients}); (iv)\ the budget-matched centralised
+retraining (epoch cap raised to 500 in two early-stopping variants;
+Section~\ref{sec:budget}); (vi)\ the calibration-comparison harness
+(raw, prior-shift, Platt, isotonic, and temperature arms,
 validation-fit and single-pass test evaluation;
-Section~\ref{sec:res-calib}). The remaining extensions are released
-and awaiting full-data execution, blocked on data that the cleaned
-export does not carry: (i)\ a region-disjoint train/validation split
-generator that partitions by active-region identifier when available
-(the cleaned export lacks HARP/AR identifiers, so the committed split
-remains the stratified carve-out); (iv)\ an explicit training-budget
-audit (Section~\ref{sec:budget}; the audit artefact is emitted by the
-re-executed pipeline, the budget-matched \emph{retraining} is queued);
-and (v)\ an event-level evaluation module (detection rate, missed
-events, duplicate alerts, warning lead time, alert rate per day;
-requires event keys absent from the cleaned export).
+Section~\ref{sec:res-calib}); and the $\alpha{=}5.0$ promotion run at
+the full 50-round protocol (negative result; retained
+$\alpha{=}1.0$; Section~\ref{sec:fedconfig}). The remaining extensions
+are released and awaiting full-data execution, blocked on data that
+the cleaned export does not carry: (i)\ a region-disjoint
+train/validation split generator that partitions by active-region
+identifier when available (the cleaned export lacks HARP/AR
+identifiers, so the committed split remains the stratified
+carve-out); and (v)\ an event-level evaluation module (detection
+rate, missed events, duplicate alerts, warning lead time, alert rate
+per day; requires event keys absent from the cleaned export).
 \end{itemize}
 
 \subsection{Baselines}
@@ -82,6 +84,7 @@ federated models, so the decision layer is uniform across all
 comparisons.
 
 \subsection{Federated configuration and preregistration}
+\label{sec:fedconfig}
 
 Table~\ref{tab:hyper} summarises the frozen configuration. The
 headline runs use plain size-weighted FedAvg aggregation (the DA-FL
@@ -99,10 +102,19 @@ test pass gave PR-AUC 0.297, consistent with the headline FedProx
 result). The two values answer different questions---$\alpha=1.0$ is
 the adversarially heterogeneous \emph{study regime}, $\alpha=5.0$ is
 the validation-selected \emph{tuning optimum}---and we do not silently
-substitute one for the other: promoting the sweep winner to the
-headline configuration requires re-running the multiseed and ablation
-studies under it, which is queued. Both values, and the provenance of
-each, are recorded in the run manifest.
+substitute one for the other. The promotion experiment was executed
+in this revision at the full 50-round frozen protocol
+(\texttt{outputs/alpha5\_promotion.json}): FedProx at $\alpha=5.0$
+reaches test ROC-AUC $0.955$ / PR-AUC $0.296$, statistically
+indistinguishable from the $\alpha=1.0$ headline ($0.954$/$0.307$),
+so the sweep optimum does not transfer to the study regime and
+$\alpha=1.0$ is retained as the preregistered headline configuration.
+The same run isolates \emph{why} plain FedAvg diverges at $\alpha=1.0$:
+at $\alpha=5.0$ the identical FedAvg arm completes all 50 rounds
+without collapsing (test ROC-AUC $0.915$, PR-AUC $0.201$), i.e.\ the
+divergence is a heterogeneity-severity effect rather than an intrinsic
+failure of plain averaging on this task. Both values, and the
+provenance of each, are recorded in the run manifest.
 
 \begin{table}[t]
 \centering
@@ -159,17 +171,29 @@ The centralised-MLP versus federated comparison is only interpretable
 if the optimisation budgets of the two arms are stated explicitly, so
 the pipeline now emits a machine-readable budget audit
 (\texttt{training\_budget} in \texttt{results.json}).
-Table~\ref{tab:budget} summarises it. The budgets are \emph{not}
-matched: the centralised reference executes at most 30 full passes over
-the pooled training set (with early stopping on validation loss),
-whereas each federated client's shard receives $50 \times 10 = 500$
-local passes over the 50 rounds (each pass covering only that client's
-fraction of the pool). The federated arm therefore consumed a larger
-optimisation budget, and the FedProx-versus-centralised-MLP comparison
-confounds federation with budget; a budget-matched re-run (centralised
-epochs raised to 500, or FL rounds reduced) is queued. The architecture
-comparison (identical 29{,}377-parameter MLP) remains matched by
-construction.
+Table~\ref{tab:budget} summarises it. The shipped budgets are
+\emph{not} matched: the centralised reference executes at most 30
+full passes over the pooled training set (with early stopping on
+validation loss), whereas each federated client's shard receives
+$50 \times 10 = 500$ local passes over the 50 rounds. The
+budget-matched re-run was executed in this revision
+(\texttt{outputs/budget\_matched.json}): the centralised MLP was
+retrained on the same pooled data with the epoch cap raised to 500,
+in two variants---(a)~early stopping retained, which fires at epoch
+13 and reproduces the headline numbers exactly, and (b)~the FL-style
+fixed-budget protocol (no early stop, best-validation-loss checkpoint
+retained), which reaches test ROC-AUC $0.917$ / PR-AUC $0.219$. Two
+conclusions follow. First, the confound ran \emph{against} the
+federated arm: the shipped centralised reference was \emph{undertrained}
+(early stopping fires long before the budget binds), and the pooled
+model improves when granted the federated arm's budget. Second, the
+improvement is not sufficient---at full budget parity the centralised
+MLP ($0.917$/$0.219$) remains below FedProx ($0.954$/$0.307$) on the
+threshold-free metrics, so the headline gap is a genuine federation
+effect on this benchmark rather than a budget artifact (its $F_1$ of
+$0.135$ versus FedProx's $0.042$ reflects threshold-transfer behaviour
+under prior shift, not ranking skill). The architecture comparison
+(identical 29{,}377-parameter MLP) remains matched by construction.
 
 \begin{table}[t]
 \centering
@@ -189,7 +213,7 @@ LR schedule & cosine warm restarts & cosine warm restarts \\
 Effective passes over own data & $\le$30 (pooled set) & 500 (per client shard) \\
 Early stopping & patience 5 (validation BCE) & none (fixed rounds) \\
 Checkpoint rule & best validation BCE & best validation F1 round \\
-Budgets matched & \multicolumn{2}{l}{No---federated arm consumed the larger budget; matched re-run queued} \\
+Budgets matched & \multicolumn{2}{l}{Shipped: no; matched 500-epoch re-run executed---see text} \\
 \bottomrule
 \end{tabularx}
 \end{table}

@@ -1,0 +1,131 @@
+{
+  "purpose": "budget-matched centralised reference (review R15): same pooled data, same SolarMLP, optimisation budget raised to the federated arm's 500 effective passes",
+  "seed": 42,
+  "epochs_cap": 500,
+  "batch_size": 256,
+  "calibration": "prior_shift",
+  "variants": {
+    "a_cap500_early_stop": {
+      "stopped_early_at": 13,
+      "threshold": 0.31999999999999984,
+      "val_fbeta": 0.9879283489096573,
+      "test": {
+        "threshold": 0.31999999999999984,
+        "accuracy": 0.3994323414405846,
+        "precision": 0.03034882870584794,
+        "recall": 0.9985563041385948,
+        "f1": 0.058907304978968435,
+        "f2": 0.13529608651994557,
+        "roc_auc": 0.8876854930711614,
+        "pr_auc": 0.15278863365568351,
+        "brier": 0.2768092894174408,
+        "ece": 0.43947637636647247,
+        "prevalence": 0.018823316273381945,
+        "recall@0.5%FPR": 0.10057747834456209,
+        "recall@1%FPR": 0.1472569778633301,
+        "recall@2%FPR": 0.22008341353865896,
+        "recall@5%FPR": 0.384343920436317,
+        "preds": "[0 1 1 ... 1 1 0]"
+      },
+      "frozen_operating_points": {
+        "0.5%FPR": {
+          "frozen_threshold": 0.667895844919964,
+          "realised_fpr": 0.2552846429153934,
+          "recall": 0.8787295476419634,
+          "precision": 0.06194520145194667,
+          "alert_rate": 0.2670199435360901
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.527744213822405,
+          "realised_fpr": 0.4069782828795726,
+          "recall": 0.9783445620789221,
+          "precision": 0.04408480126059835,
+          "alert_rate": 0.4177332910608874
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.42309472063448667,
+          "realised_fpr": 0.5155023372754661,
+          "recall": 0.9980750721847931,
+          "precision": 0.035813163726364866,
+          "alert_rate": 0.5245859564895753
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.29531344465209514,
+          "realised_fpr": 0.6359666534339024,
+          "recall": 0.9988771254411293,
+          "precision": 0.02925053432604458,
+          "alert_rate": 0.6427978320274167
+        }
+      }
+    },
+    "b_cap500_no_early_stop": {
+      "stopped_early_at": false,
+      "threshold": 0.4349999999999998,
+      "val_fbeta": 0.998849342294516,
+      "test": {
+        "threshold": 0.4349999999999998,
+        "accuracy": 0.7649652007186316,
+        "precision": 0.07229721658105363,
+        "recall": 0.9708052614693615,
+        "f1": 0.1345726229654007,
+        "f2": 0.27851922758316,
+        "roc_auc": 0.9165894984959638,
+        "pr_auc": 0.21879334470470663,
+        "brier": 0.16761729706431416,
+        "ece": 0.2219089184286469,
+        "prevalence": 0.018823316273381945,
+        "recall@0.5%FPR": 0.18735964068014116,
+        "recall@1%FPR": 0.23933269169072827,
+        "recall@2%FPR": 0.2837664420917549,
+        "recall@5%FPR": 0.4011870388193776,
+        "preds": "[0 1 0 ... 0 0 0]"
+      },
+      "frozen_operating_points": {
+        "0.5%FPR": {
+          "frozen_threshold": 0.3648242208943249,
+          "realised_fpr": 0.2611316783145767,
+          "recall": 0.9818735964068014,
+          "precision": 0.06728148083010904,
+          "alert_rate": 0.2746984313903105
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.21663481082895994,
+          "realised_fpr": 0.3064554348194035,
+          "recall": 0.9903753609239654,
+          "precision": 0.058379114384863415,
+          "alert_rate": 0.3193290758941377
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.11496918363975812,
+          "realised_fpr": 0.35362254616849925,
+          "recall": 0.9951876804619827,
+          "precision": 0.05122446620539327,
+          "alert_rate": 0.36569892960128025
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.03938103963823655,
+          "realised_fpr": 0.43575800659176306,
+          "recall": 0.9985563041385948,
+          "precision": 0.04211060375443937,
+          "alert_rate": 0.446351736944608
+        }
+      }
+    }
+  },
+  "references": {
+    "headline_centralized_mlp": {
+      "epochs": "<=30 (early stop patience 5)",
+      "roc_auc": 0.888,
+      "pr_auc": 0.153,
+      "f1": 0.059
+    },
+    "fedprox_mlp": {
+      "budget": "50 rounds x 10 local epochs per client shard",
+      "roc_auc": 0.954,
+      "pr_auc": 0.307,
+      "f1": 0.042
+    },
+    "source": "outputs/results.json (reproduced frozen protocol)"
+  },
+  "elapsed_s": 7.5
+}

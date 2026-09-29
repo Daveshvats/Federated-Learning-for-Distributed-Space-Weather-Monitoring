@@ -28,17 +28,23 @@ narrower ROC-AUC variance; the FedProx global model attains 97.7\% of
 the centralised XGBoost reference's ROC-AUC (0.954 vs 0.977) and did
 not underperform the same-architecture pooled MLP (0.888) on this
 benchmark and configuration; plain FedAvg diverges under the
-preregistered configuration; per-client SMOTE is inactive on this
+preregistered configuration (and completes without collapse at
+$\alpha{=}5.0$, so the divergence is a heterogeneity-severity effect);
+per-client SMOTE is inactive on this
 benchmark variant (zero synthetic samples); and both the centralised
 and federated models concentrate attribution on current helicity,
 flux-emergence proxies, and Lorentz-force terms.
-\textbf{Supported with caveats}: the FedProx-versus-centralised-MLP
-comparison is confounded by optimisation budget (the federated arm
-consumed more passes), one FedAvg cell with distribution-aware
-aggregation exceeds the FedProx headline ROC-AUC, the client-level
-comparison evaluates within-distribution holdouts, recall-at-FPR
+\textbf{Supported with caveats}: one FedAvg cell with
+distribution-aware
+aggregation exceeds the FedProx headline ROC-AUC, recall-at-FPR
 figures are window-level statistics over correlated windows, and
-five-seed confidence intervals quantify seed variability only.
+five-seed confidence intervals quantify seed variability only. Two
+formerly listed caveats were resolved by executed re-runs: the
+optimisation-budget confound (the budget-matched 500-epoch re-run of
+Section~\ref{sec:budget} shows the FedProx gap survives parity) and
+the within-distribution client holdouts (the untouched-holdout
+evaluation of Section~\ref{sec:res-clients} shows the federation
+benefit is larger under clean estimates).
 \textbf{Not demonstrated}: cryptographic privacy (secure aggregation
 and differential privacy are implemented but their accuracy cost is
 unmeasured; poisoning defence is absent), region-disjoint

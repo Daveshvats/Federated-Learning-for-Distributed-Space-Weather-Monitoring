@@ -324,11 +324,11 @@ search protocol (Sec. 2.4); operational readiness is not claimed
 
 ---
 
-## C. Queued re-run programme (owner-side compute / raw metadata required)
+## C. Re-run programme — status after the v3.3 executions
 
-Implemented, unit-tested. **Items 2, 3, and 5 were executed in the
-v3.3 independent re-execution** (see M2, #6, #14 above); the remaining
-items are:
+Implemented, unit-tested. **Items 2, 3, 5, 6, and 7 were executed in
+the v3.3 independent re-executions** (see M2, #6, #14, #15, M3
+above); the remaining items are:
 
 1. Region-disjoint splits from raw SWAN-SF metadata (needs HARP/AR IDs)
 2. Natural-prevalence validation as default substrate (needs the raw
@@ -337,8 +337,21 @@ items are:
 3. ~~Calibration-comparison harness~~ **EXECUTED** (real mode, v3.3)
 4. Event-level evaluation (needs event keys + timestamps)
 5. ~~Untouched-holdout client evaluation~~ **EXECUTED** (v3.3)
-6. Budget-matched centralized-vs-federated training
-7. Sweep-winner promotion (α=5.0) through multiseed + ablation
+6. ~~Budget-matched centralized-vs-federated training~~ **EXECUTED**
+   (v3.3 second execution; `outputs/budget_matched.json` + runner
+   `experiments/run_budget_matched.py`: 500-epoch cap, two early-stop
+   variants — (a) fires at epoch 13 and reproduces the headline
+   0.888/0.153 exactly, (b) FL-style fixed budget reaches 0.917/0.219
+   vs FedProx 0.954/0.307; the gap survives budget parity and the
+   shipped reference was undertrained, so the confound ran *against*
+   the federated arm)
+7. ~~Sweep-winner promotion (α=5.0)~~ **EXECUTED** (v3.3 second
+   execution; `outputs/alpha5_promotion.json` + runner
+   `experiments/run_alpha_promotion.py`: full 50-round frozen protocol
+   — FedProx 0.955/0.296 ≈ headline 0.954/0.307, promotion REFUTED,
+   α=1.0 retained; FedAvg completes without collapse at α=5.0
+   (0.915/0.201), isolating the headline divergence as a
+   heterogeneity-severity effect)
 8. Federated LSTM and SCAFFOLD evaluation
 9. Raw unbalanced SWAN-SF experiment programme
 
@@ -366,3 +379,40 @@ abstract. The same session executed the previously queued calibration
 comparison (#6), untouched-holdout evaluation (#14), and frozen-FPR
 operating-point report (M2); the multiseed, sweep, and ablation studies
 were not re-executed and remain the owner-side committed artefacts.
+
+---
+
+## E. Second-execution addendum (2026-09-30)
+
+A second independent CPU-only session re-verified the pipeline
+reproduction (headline metrics again identical to three decimals,
+figures byte-identical) and completed the two re-run items the first
+execution left queued:
+
+- **Budget-matched training (#15 / item 6) — EXECUTED.**
+  `outputs/budget_matched.json`, runner
+  `experiments/run_budget_matched.py` (epoch-level resumable, phase
+  -cache reusing). Variant (a): 500-epoch cap with the shipped early
+  stopping — fires at **epoch 13**, reproducing the headline numbers
+  exactly (0.888/0.153): the shipped centralised reference was
+  *undertrained*, i.e. the budget confound ran against the federated
+  arm. Variant (b): FL-style fixed 500-epoch budget (no early stop,
+  best-validation checkpoint) — reaches **0.917/0.219**, still below
+  FedProx's 0.954/0.307 on threshold-free metrics: **the headline gap
+  survives budget parity** and is a genuine federation effect, not a
+  budget artifact.
+- **Sweep-winner promotion (M3 / item 7) — EXECUTED, REFUTED.**
+  `outputs/alpha5_promotion.json`, runner
+  `experiments/run_alpha_promotion.py` (round-resumable). Full
+  50-round frozen protocol at α=5.0: FedProx **0.955/0.296**,
+  indistinguishable from the α=1.0 headline (0.954/0.307) — the
+  15-round sweep optimum does not transfer to the study regime, and
+  **α=1.0 is retained**. Incidental finding: plain FedAvg completes
+  all 50 rounds without collapsing at α=5.0 (0.915/0.201), isolating
+  the headline FedAvg divergence as a heterogeneity-severity effect
+  rather than an intrinsic failure of plain averaging.
+
+Both runners are committed and deterministic; the manuscript (Secs.
+5.3, 5.5, 8) folds these results in, the conclusion's claims taxonomy
+upgrades the budget confound from "supported with caveats" to
+resolved, and the appendix v3.3 row is extended accordingly.
