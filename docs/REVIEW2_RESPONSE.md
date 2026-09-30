@@ -416,3 +416,99 @@ Both runners are committed and deterministic; the manuscript (Secs.
 5.3, 5.5, 8) folds these results in, the conclusion's claims taxonomy
 upgrades the budget confound from "supported with caveats" to
 resolved, and the appendix v3.3 row is extended accordingly.
+
+---
+
+## F. Third-execution addendum: raw-metadata provenance audit and the leakage-free fold (2026-09-30, v3.4)
+
+The dependency that blocked queued items 1, 2, and 4 (raw SWAN-SF
+HARP/event metadata) was resolved by downloading the raw benchmark
+itself (Harvard Dataverse, doi:10.7910/DVN/EBCFKM, 6.5 GB + 34 MB
+addenda with the GOES flare lists) and aligning every cleaned window
+to its raw instance (provenance/ scripts; matcher: argmax/argmin
+position invariance, 48 normalization-invariant keys per window; test
+verification 98.7-100.0% with 100.00% label agreement). The alignment
+produced an audit finding that supersedes the framing of several
+review items:
+
+**Finding 1 — the cleaned export's train/test pairing shares instances.**
+The test export of partition p contains ALL raw instances of p; the
+training export of p is a RUS-Tomek-TimeGAN rebalanced subset of the
+same instances. 56,005/56,006 verified training windows are also test
+windows, and **100% of the flaring test instances (6,234) are in the
+training pool**. The cleaned release's own paper
+(10.3847/1538-4365/ad7c4a) prescribes temporally-preceding
+train/test partition combinations; the shipped pipeline paired all
+five training exports with the same five test exports. The published
+in-partition headline numbers therefore partially measure memorised
+data — most severely the minority class. This is the answer the
+review's insistence on raw metadata was asking for, and it was not
+detectable by the pipeline-level runtime leakage audit.
+
+**Finding 2 — TimeGAN synthetic share.** 85.7-90.0% of training
+positive windows have no raw counterpart (TimeGAN-generated); ~0% of
+negatives. The balanced substrate the field trains on is majority
+synthetic in its positive class.
+
+**Item-by-item status after this execution:**
+
+1. **Region-disjoint splits (R7) — RESOLVED BY A STRONGER RESULT.**
+   No HARP/region id spans two partitions, so the
+   temporally-preceding fold executed below is automatically
+   region-disjoint at the train/test boundary. The
+   region-disjoint *validation* generator remains implemented and
+   unit-tested for within-fold studies; the metadata to drive it
+   (per-window region ids) is now committed
+   (provenance/train_meta_slim.csv.gz).
+2. **Natural-prevalence validation (R4/M2) — EXECUTED at the test
+   boundary.** The leakage-free fold evaluates at the natural 1.31%
+   prevalence of partition 5 with the frozen-FPR operating points
+   (realised FPRs 5.5-49.4% at the 2% target — the threshold-transfer
+   failure persists leakage-free). Natural-prevalence *training*
+   substrate (item 9) remains queued.
+3. ~~Calibration comparison~~ (executed v3.3) — unchanged; the fold
+   confirms no calibrator rescues the neural arms.
+4. **Event-level evaluation (R13/R19) — EXECUTED.** 65 physical M/X
+   events on the fold's test partition, event keys from the raw
+   filenames + addenda GOES peak list (65/65 matched); detection
+   98.5-100%; median lead-to-peak 23.4 h; XGBoost's false-alarm
+   burden 1.7 windows/day vs 8.6-12.7 for the neural arms; ~70%
+   duplicate alerts after 1-h cooldown. `outputs/event_level_p5.json`.
+5. ~~Untouched holdouts~~ (executed v3.3) — unchanged.
+6. ~~Budget-matched training~~ (executed, second addendum) — note the
+   in-partition framing: the parity result stands as protocol-stability
+   evidence; the gap it preserved is an in-partition artifact (see the
+   fold).
+7. ~~α=5.0 promotion~~ (executed, refuted) — unchanged.
+8. Federated LSTM/SCAFFOLD — remains queued (compute).
+9. Raw unbalanced programme — now PARTIALLY superseded: the
+   temporally-preceding fold re-evaluates the frozen protocol on the
+   benchmark's intended substrate split; full raw-substrate retraining
+   (FPCKNN/LSBZM reproduction, no synthetic oversampling) remains
+   queued and is now unblocked by the committed metadata.
+
+**The leakage-free fold (runner
+`experiments/run_partition_disjoint.py`, artefacts
+`outputs/partition_disjoint_eval.json` + `event_level_p5.json`):**
+train P1-4 (65,406/12,459 train/val) -> single-pass test P5 (75,365
+windows, 1.31% prevalence), everything else frozen (α=1.0, 6 clients,
+50 rounds, seed 42, Fed-Focal, prior-shift calibration, val-frozen
+thresholds).
+
+| Model | in-partition ROC/PR | leakage-free ROC/PR |
+|---|---|---|
+| Logistic regression | 0.818 / 0.114 | 0.978 / 0.455 |
+| XGBoost | 0.977 / 0.493 | 0.971 / 0.457 |
+| Centralised MLP | 0.888 / 0.153 | 0.973 / 0.382 |
+| FedAvg | 0.575 / 0.199 | 0.906 / 0.370 |
+| FedProx | 0.954 / 0.307 | 0.976 / 0.308 |
+
+Reading: all arms generalise (the task is easier than the
+in-partition protocol suggested); the central-vs-federated gap
+disappears; FedProx retains checkpoint-independent ROC stabilisation
+over FedAvg (0.976 vs 0.906 — FedAvg survives only via its round-35
+validation checkpoint); the PR ordering between the FL arms reverses;
+the calibration/threshold-transfer failures persist; only XGBoost's
+posteriors are deployment-usable. The manuscript (v3.4) re-tiers all
+claims accordingly and discloses the in-partition results as
+protocol-stability evidence.

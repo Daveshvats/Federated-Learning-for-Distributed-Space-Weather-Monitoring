@@ -23,21 +23,25 @@ be re-measured. Until then, ``data-locality-preserving'', not
 ``cryptographically private'', is the correct description of the
 verified property.
 
-\paragraph{Region-identity and validation inflation.}
-The cleaned benchmark export does not carry active-region (HARP)
-identifiers, so the stratified validation carve-out cannot enforce
-region-level disjointness: the same active region may contribute
-windows to both training and validation. This is why validation
-metrics sit near ceiling (AUC $\approx 0.99$) while test metrics are
-materially lower---the validation set is optimistically biased by
-region overlap, though the dataset-level train/test boundary is
-time-based and respected. The leakage audit reports this explicitly
-rather than silently passing. A region-disjoint split generator is now
-implemented and unit-tested (greedy region-to-fold assignment
-minimising class-rate drift), but it cannot execute on the cleaned
-export because region identifiers are absent; the definitive fix
-requires re-deriving splits from the raw SWAN-SF metadata, which is
-the first item of the queued re-run programme below.
+\paragraph{Region-identity, validation inflation, and the resolved
+provenance question.}
+The v3.3 text of this paragraph stated that the cleaned export lacks
+HARP identifiers and that the definitive split fix awaited the raw
+benchmark. That dependency is now resolved: every cleaned window has
+been aligned to its raw instance (Section~\ref{sec:provenance}), and
+the audit inverted the concern---the material leakage is not
+validation-region overlap but instance sharing between the same
+partitions' train and test exports, now quantified (100\% of flaring
+test windows; 56{,}005 of 56{,}006 verified train windows) and
+removed by the temporally-preceding fold executed in this revision.
+The region-disjoint split generator remains available for
+within-fold validation studies, and no region spans partitions, so
+every temporally-preceding fold is automatically region-disjoint.
+What remains open: the remaining three folds, leakage-free multi-seed
+and ablation replication, and the synthetic-share question---85.7--90\%
+of training positives are TimeGAN-generated windows, a substrate
+property that all published results on this export inherit and that
+raw-benchmark retraining would have to revisit.
 
 \paragraph{Threshold transfer under prevalence shift.}
 The frozen protocol selects $F_2$-optimal thresholds on validation

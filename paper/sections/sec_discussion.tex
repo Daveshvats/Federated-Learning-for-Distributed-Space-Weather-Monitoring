@@ -3,6 +3,32 @@
 % ════════════════════════════════════════════════════════════════════
 \section{Discussion}\label{sec:discussion}
 
+\subsection{What the provenance audit changes, and what it leaves intact}
+
+The data-provenance audit of Section~\ref{sec:provenance} is, in
+retrospect, the single most consequential methodological step of this
+study: the in-partition numbers that dominate the literature's usage
+of the cleaned benchmark---including this study's own headline until
+this revision---evaluate on windows that the training pool already
+contains, most completely for the minority class. Two lessons follow.
+First, \emph{pipeline-level leakage auditing is not enough}: the
+runtime audit of this framework verified disjoint shards, immutable
+splits, and single-pass test evaluation, yet could not see that the
+dataset's own train/test exports share instances; only raw-metadata
+alignment exposed it. Benchmark consumers who cannot verify provenance
+at the instance level should treat same-partition numbers as upper
+bounds. Second, \emph{the honest comparison is less flattering but
+more informative}: on the leakage-free fold the
+federated-versus-centralised gap vanishes, and what separates the arms
+is no longer discrimination (everyone exceeds 0.906) but calibration
+and false-alarm burden---dimensions on which the neural arms,
+federated or not, lose to the gradient-boosted reference. The
+federated story that survives is the narrower one this section has
+always argued: under adversarial heterogeneity, proximal
+regularisation keeps the federation converging where plain averaging
+collapses (0.976 vs 0.906, with checkpoint-independent dynamics), and
+it does so without data movement.
+
 \subsection{Why proximal regularisation stabilises the federation}
 
 The asymmetry between FedAvg and FedProx in
@@ -16,8 +42,13 @@ optima is not aligned with any global descent direction. Averaging
 such updates---FedAvg---produces a model that satisfies no client's
 problem, and the damage compounds round over round until the ranking
 signal degrades below chance (test AUC 0.575 for the best-validation
-checkpoint; the diverged checkpoints reach validation AUC 0.05).
-FedProx's proximal term (Eq.~\eqref{eq:fedprox}) changes the local
+checkpoint; the diverged checkpoints reach validation AUC 0.05). These
+in-partition dynamics reproduce leakage-free in direction if not in
+magnitude: on the temporally-preceding fold FedAvg's ranking survives
+only via its round-35 validation checkpoint (0.906) while its
+final-round state has collapsed, whereas FedProx is checkpoint-independent
+(Section~\ref{sec:res-leakfree}). FedProx's proximal
+term (Eq.~\eqref{eq:fedprox}) changes the local
 problem: each client optimises within a trust region around the
 broadcast model, so updates from heterogeneous clients remain
 geometrically comparable and their average retains a meaningful

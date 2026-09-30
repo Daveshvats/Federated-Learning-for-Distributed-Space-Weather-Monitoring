@@ -1,0 +1,211 @@
+{
+  "cooldown_windows": 5,
+  "n_windows": 75365,
+  "n_event_groups": 4410,
+  "n_true_events": 65,
+  "flare_peak_match_rate": 1.0,
+  "models": {
+    "logistic_regression": {
+      "threshold": 0.4199999999999998,
+      "cooldown_windows": 5,
+      "n_windows": 75365,
+      "n_event_groups": 4410,
+      "n_true_events": 65,
+      "n_detected_events": 65,
+      "event_detection_rate": 1.0,
+      "n_missed_events": 0,
+      "missed_events": [],
+      "alerts_per_detected_event_mean": 3.3692307692307693,
+      "duplicate_alert_rate": 0.7031963470319635,
+      "false_alarm_windows": 10879,
+      "background_groups_with_alerts": 3512,
+      "total_alerts": 11098,
+      "alert_rate_per_window": 0.14725668413719897,
+      "lead_time_minutes": {
+        "median": 120.0,
+        "min": 0.0,
+        "max": 1320.0,
+        "n_events_with_lead_time": 65
+      },
+      "observation_days": 1258.325,
+      "alerts_per_day": 8.819661057357996,
+      "false_alarm_windows_per_day": 8.645620169669998,
+      "caveats": [
+        "window-level FPR != operational false-alarm rate: overlapping windows of one active region are correlated decisions",
+        "event grouping quality bounds all event-level statistics; region-id-only grouping is an approximation",
+        "lead time requires the event start time; without raw SWAN-SF metadata it is reported as null"
+      ],
+      "lead_to_flare_peak_minutes": {
+        "median": 1401.0,
+        "p10": 515.2,
+        "p90": 1442.2,
+        "min": 12.0,
+        "max": 1451.0,
+        "n": 65,
+        "negative_means_alert_after_peak": true
+      }
+    },
+    "xgboost": {
+      "threshold": 0.3499999999999998,
+      "cooldown_windows": 5,
+      "n_windows": 75365,
+      "n_event_groups": 4410,
+      "n_true_events": 65,
+      "n_detected_events": 64,
+      "event_detection_rate": 0.9846153846153847,
+      "n_missed_events": 1,
+      "missed_events": [
+        "M1.2@10285.0:ar5456"
+      ],
+      "alerts_per_detected_event_mean": 3.246153846153846,
+      "duplicate_alert_rate": 0.6966824644549763,
+      "false_alarm_windows": 2144,
+      "background_groups_with_alerts": 868,
+      "total_alerts": 2355,
+      "alert_rate_per_window": 0.031247926756451935,
+      "lead_time_minutes": {
+        "median": 120.0,
+        "min": 0.0,
+        "max": 1320.0,
+        "n_events_with_lead_time": 64
+      },
+      "observation_days": 1258.325,
+      "alerts_per_day": 1.8715355730832655,
+      "false_alarm_windows_per_day": 1.7038523433930026,
+      "caveats": [
+        "window-level FPR != operational false-alarm rate: overlapping windows of one active region are correlated decisions",
+        "event grouping quality bounds all event-level statistics; region-id-only grouping is an approximation",
+        "lead time requires the event start time; without raw SWAN-SF metadata it is reported as null"
+      ],
+      "lead_to_flare_peak_minutes": {
+        "median": 1397.0,
+        "p10": 505.4000000000001,
+        "p90": 1441.0,
+        "min": 12.0,
+        "max": 1451.0,
+        "n": 64,
+        "negative_means_alert_after_peak": true
+      }
+    },
+    "centralized_mlp": {
+      "threshold": 0.23999999999999988,
+      "cooldown_windows": 5,
+      "n_windows": 75365,
+      "n_event_groups": 4410,
+      "n_true_events": 65,
+      "n_detected_events": 65,
+      "event_detection_rate": 1.0,
+      "n_missed_events": 0,
+      "missed_events": [],
+      "alerts_per_detected_event_mean": 3.3692307692307693,
+      "duplicate_alert_rate": 0.7031963470319635,
+      "false_alarm_windows": 15947,
+      "background_groups_with_alerts": 4295,
+      "total_alerts": 16166,
+      "alert_rate_per_window": 0.21450275326743184,
+      "lead_time_minutes": {
+        "median": 120.0,
+        "min": 0.0,
+        "max": 1320.0,
+        "n_events_with_lead_time": 65
+      },
+      "observation_days": 1258.325,
+      "alerts_per_day": 12.847237398923172,
+      "false_alarm_windows_per_day": 12.673196511235174,
+      "caveats": [
+        "window-level FPR != operational false-alarm rate: overlapping windows of one active region are correlated decisions",
+        "event grouping quality bounds all event-level statistics; region-id-only grouping is an approximation",
+        "lead time requires the event start time; without raw SWAN-SF metadata it is reported as null"
+      ],
+      "lead_to_flare_peak_minutes": {
+        "median": 1401.0,
+        "p10": 515.2,
+        "p90": 1442.2,
+        "min": 12.0,
+        "max": 1451.0,
+        "n": 65,
+        "negative_means_alert_after_peak": true
+      }
+    },
+    "fedavg_mlp": {
+      "threshold": 0.3499999999999998,
+      "cooldown_windows": 5,
+      "n_windows": 75365,
+      "n_event_groups": 4410,
+      "n_true_events": 65,
+      "n_detected_events": 65,
+      "event_detection_rate": 1.0,
+      "n_missed_events": 0,
+      "missed_events": [],
+      "alerts_per_detected_event_mean": 3.3692307692307693,
+      "duplicate_alert_rate": 0.7031963470319635,
+      "false_alarm_windows": 14628,
+      "background_groups_with_alerts": 4047,
+      "total_alerts": 14847,
+      "alert_rate_per_window": 0.19700126053207723,
+      "lead_time_minutes": {
+        "median": 120.0,
+        "min": 0.0,
+        "max": 1320.0,
+        "n_events_with_lead_time": 65
+      },
+      "observation_days": 1258.325,
+      "alerts_per_day": 11.7990185365466,
+      "false_alarm_windows_per_day": 11.624977648858602,
+      "caveats": [
+        "window-level FPR != operational false-alarm rate: overlapping windows of one active region are correlated decisions",
+        "event grouping quality bounds all event-level statistics; region-id-only grouping is an approximation",
+        "lead time requires the event start time; without raw SWAN-SF metadata it is reported as null"
+      ],
+      "lead_to_flare_peak_minutes": {
+        "median": 1401.0,
+        "p10": 515.2,
+        "p90": 1442.2,
+        "min": 12.0,
+        "max": 1451.0,
+        "n": 65,
+        "negative_means_alert_after_peak": true
+      }
+    },
+    "fedprox_mlp": {
+      "threshold": 0.5149999999999998,
+      "cooldown_windows": 5,
+      "n_windows": 75365,
+      "n_event_groups": 4410,
+      "n_true_events": 65,
+      "n_detected_events": 65,
+      "event_detection_rate": 1.0,
+      "n_missed_events": 0,
+      "missed_events": [],
+      "alerts_per_detected_event_mean": 3.3692307692307693,
+      "duplicate_alert_rate": 0.7031963470319635,
+      "false_alarm_windows": 14960,
+      "background_groups_with_alerts": 4194,
+      "total_alerts": 15179,
+      "alert_rate_per_window": 0.20140648842300804,
+      "lead_time_minutes": {
+        "median": 120.0,
+        "min": 0.0,
+        "max": 1320.0,
+        "n_events_with_lead_time": 65
+      },
+      "observation_days": 1258.325,
+      "alerts_per_day": 12.062861343452605,
+      "false_alarm_windows_per_day": 11.888820455764607,
+      "caveats": [
+        "window-level FPR != operational false-alarm rate: overlapping windows of one active region are correlated decisions",
+        "event grouping quality bounds all event-level statistics; region-id-only grouping is an approximation",
+        "lead time requires the event start time; without raw SWAN-SF metadata it is reported as null"
+      ],
+      "lead_to_flare_peak_minutes": {
+        "median": 1401.0,
+        "p10": 515.2,
+        "p90": 1442.2,
+        "min": 12.0,
+        "max": 1451.0,
+        "n": 65,
+        "negative_means_alert_after_peak": true
+      }
+    }
+  }
+}

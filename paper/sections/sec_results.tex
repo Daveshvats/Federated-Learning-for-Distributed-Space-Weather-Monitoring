@@ -4,8 +4,8 @@
 \section{Results and Analysis}\label{sec:results}
 
 All numbers in this section are produced by the improved pipeline
-(improvements branch, version 3.1) under the frozen evaluation
-protocol of Section~\ref{sec:experiments}: a single immutable
+(improvements branch) under the frozen evaluation protocol of
+Section~\ref{sec:experiments}: a single immutable
 train/validation/test split, thresholds and calibration selected on
 validation only, and the test set touched exactly once per model. Every
 table and figure is generated from the machine-readable
@@ -19,7 +19,144 @@ dataset artefacts reproduces every test metric of every model exactly
 client-holdout results below were produced in that re-execution
 session.
 
-\subsection{Headline comparison on the held-out test set}
+\textbf{Protocol disclosure (v3.4).} The data-provenance audit of
+Section~\ref{sec:provenance} established that the in-partition
+train/test pairing used by the shipped headline protocol shares
+instances between the training pool and the test set---including
+100\% of the flaring test instances. The subsections that follow the
+present one therefore report \emph{in-partition} results: they remain
+valid as evidence of protocol stability, seed sensitivity, component
+attribution, and calibration behaviour under the frozen pipeline, but
+they are not estimates of generalisation to unseen data. The
+leakage-free evaluation under the benchmark's intended
+temporally-preceding protocol is reported first, and the claims of
+this study are tiered against it in
+Section~\ref{sec:res-leakfree-discussion}.
+
+\subsection{Leakage-free evaluation on the temporally-preceding fold}
+\label{sec:res-leakfree}
+
+Table~\ref{tab:leakfree} compares the five headline arms under the
+leakage-free fold (training partitions 1--4, single-pass test on
+partition 5) against the shipped in-partition numbers. Three
+observations follow. First, \emph{discrimination generalises}: every
+arm attains a ROC-AUC of at least 0.906 on the unseen partition, and
+the task is evidently easier than the in-partition protocol suggested
+(logistic regression reaches 0.978 / PR-AUC 0.455, the best PR ranking
+of all arms together with XGBoost's 0.457). Second, the
+centralised-versus-federated gap of the in-partition protocol
+\emph{disappears}: the pooled centralised MLP of identical architecture
+reaches 0.973 / 0.382 against FedProx's 0.976 / 0.308---a ROC
+difference of 0.003 and a reversed PR ordering. The in-partition gap
+(0.888 vs 0.954) was an artifact of the protocol pairing, not a
+federation effect; the budget-parity re-run of
+Section~\ref{sec:budget}, which controls optimisation budget but not
+instance overlap, must be read in the same light. Third, the
+FedProx-versus-FedAvg contrast partially survives: FedProx's ROC-AUC
+(0.976) exceeds FedAvg's (0.906) by 0.070, but FedAvg's PR-AUC (0.370)
+is \emph{higher} than FedProx's (0.308). The nuance is in the
+checkpoint dynamics: plain FedAvg's validation F1 collapsed to zero by
+round 40 and the protocol restored its round-35 checkpoint (validation
+F1 0.915), so its leakage-free outcome depends on which round the
+validation monitor happened to freeze; FedProx's validation F1 never
+collapsed (0.654 at every logged round of the same run), so its
+outcome is checkpoint-independent. Stability,
+not peak discrimination, remains the differentiator between the two
+federated algorithms.
+
+\begin{table}[t]
+\centering
+\caption{Leakage-free fold (train partitions 1--4, single-pass test on
+partition 5, natural 1.31\% prevalence) against the shipped
+in-partition numbers. Threshold-conditional calibration metrics
+(Brier, ECE) use the validation-frozen prior-shift pipeline; ROC/PR
+are threshold-free.}
+\label{tab:leakfree}
+\small
+\begin{tabular}{@{}l c c c c c c c@{}}
+\toprule
+ & \multicolumn{2}{c}{\textbf{In-partition (shipped)}} &
+ \multicolumn{5}{c}{\textbf{Leakage-free fold}} \\
+\cmidrule(r){2-3} \cmidrule(l){4-8}
+\textbf{Model} & ROC & PR & ROC & PR & Brier & ECE & R@2\%FPR \\
+\midrule
+Logistic regression & 0.818 & 0.114 & 0.978 & 0.455 & 0.375 & 0.477 & 0.695 \\
+XGBoost (centralised) & 0.977 & 0.493 & 0.971 & 0.457 & 0.055 & 0.101 & 0.692 \\
+Centralised MLP & 0.888 & 0.153 & 0.973 & 0.382 & 0.544 & 0.687 & 0.555 \\
+FedAvg MLP & 0.575 & 0.199 & 0.906 & 0.370 & 0.127 & 0.337 & 0.652 \\
+FedProx MLP & 0.954 & 0.307 & 0.976 & 0.308 & 0.271 & 0.508 & 0.631 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The calibration and threshold-transfer failures documented
+in-partition (Section~\ref{sec:res-calib}) persist leakage-free and
+are therefore genuine properties of the balanced-training /
+natural-test interface rather than overlap artifacts: the
+validation-frozen FPR operating points are violated by every arm
+(e.g.\ XGBoost realises 15.3\% FPR at the frozen 2\% target; FedProx
+49.4\%), and only XGBoost's posteriors remain usable (Brier 0.055,
+ECE 0.101 versus 0.271--0.544 for the neural arms). The
+prior-shift-corrected neural posteriors are not repairable by
+threshold re-freezing on this fold either.
+
+\paragraph{Event-level evaluation.}
+Table~\ref{tab:eventlevel} regroups the partition-5 test decisions
+into physical flare events using the raw-benchmark event keys (65
+M/X-class events; background windows grouped by region and day;
+1-hour alert cooldown). All five arms detect effectively every event
+(64--65 of 65) with a median first-alert lead time of 23.4\,h before
+flare peak---consistent with the 24-hour prediction horizon---but
+their false-alarm burdens separate them sharply: XGBoost emits 1.7
+false-alarm windows per day versus 8.6--12.7 for the neural arms, a
+7$\times$ difference that mirrors the window-level calibration gap
+and confirms that the deployability boundary on this benchmark is
+calibration, not detection. After the 1-hour cooldown, roughly 70\%
+of retained alerts are within-event duplicates, quantifying the
+persistence behaviour an operations desk would face.
+
+\begin{table}[t]
+\centering
+\caption{Event-level metrics on the leakage-free fold (65 true
+M/X-class events, validation-frozen $F_2$ thresholds, 1-hour alert
+cooldown). FA = false alarm.}
+\label{tab:eventlevel}
+\small
+\begin{tabular}{@{}l c c c c@{}}
+\toprule
+\textbf{Model} & \textbf{Events detected} & \textbf{FA windows/day} &
+\textbf{Alerts/day} & \textbf{Lead to peak (h)} \\
+\midrule
+Logistic regression & 65/65 (100\%) & 8.6 & 8.8 & 23.4 \\
+XGBoost (centralised) & 64/65 (98.5\%) & 1.7 & 1.9 & 23.3 \\
+Centralised MLP & 65/65 (100\%) & 12.7 & 12.8 & 23.4 \\
+FedAvg MLP & 65/65 (100\%) & 11.6 & 11.8 & 23.4 \\
+FedProx MLP & 65/65 (100\%) & 11.9 & 12.1 & 23.4 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{What survives the leakage-free protocol}
+\label{sec:res-leakfree-discussion}
+
+Three claims transfer to the temporally-preceding fold unchanged:
+FedProx's \emph{ROC stabilisation} over plain FedAvg under adversarial
+heterogeneity (0.976 vs 0.906, with checkpoint-independent versus
+checkpoint-lottery dynamics); the \emph{deployability boundary} (only
+XGBoost's posteriors survive the prevalence shift; no neural arm is
+calibration-usable); and the \emph{threshold-transfer failure} at
+fixed-FPR operating points. Three claims do not transfer: the
+federated-versus-centralised ROC gap (0.003, within noise), FedProx's
+in-partition PR-AUC edge over every arm (its leakage-free PR-AUC of
+0.308 is the lowest of the five), and the absolute discrimination
+levels themselves (the task is easier on the unseen partition than
+the in-partition numbers implied). The multi-seed, sweep, ablation,
+and client-level studies of the following subsections were executed
+under the in-partition protocol and are retained as protocol-stability
+evidence; their leakage-free counterparts remain queued (one fold is
+reported here; fold- and seed-replication is owner-side compute).
+
+\subsection{Headline comparison on the held-out test set (in-partition protocol)}
 
 \begin{table}[t]
 \centering

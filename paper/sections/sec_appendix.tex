@@ -111,6 +111,27 @@ shipped reference was undertrained; at parity 0.917/0.219 vs FedProx
 (negative; $\alpha{=}1.0$ retained); fig:clients regenerated from the
 clean protocol; runners
 made cache-reusing and round-resumable. \\
+\addlinespace[2pt]
+v3.4 & Same-partition protocol: train/test instance overlap unknown
+and assumed absent; event-level and leakage-free evaluation impossible
+without raw metadata; four re-run items queued on that dependency. &
+Raw SWAN-SF benchmark obtained (Harvard Dataverse) and every cleaned
+window aligned to its raw instance via normalization-invariant
+matching (98.7--100\% verification, 100\% label agreement):
+instance-sharing quantified (test exports contain all raw instances;
+100\% of flaring test windows are training windows; 85.7--90\% of
+training positives TimeGAN-synthetic); leakage-free fold executed
+under the benchmark's intended temporally-preceding protocol
+(train P1--4 $\to$ test P5, round-resumable runner
+\texttt{run\_partition\_disjoint.py}): central-vs-FL gap
+disappears (FedProx 0.976/0.308 vs centralised MLP 0.973/0.382),
+FedProx ROC stabilisation over FedAvg survives (0.976 vs 0.906,
+checkpoint-independent), PR ordering reverses (FedAvg 0.370 above
+FedProx 0.308); calibration/threshold-transfer failures persist;
+event-level evaluation executed on 65 physical M/X-class events
+(detection 98.5--100\%, XGBoost false-alarm burden $\sim$7$\times$
+lower than neural arms, 23.4\,h median lead to flare peak); claims
+re-tiered, in-partition results disclosed as such. \\
 \bottomrule
 \end{tabularx}
 \end{table}

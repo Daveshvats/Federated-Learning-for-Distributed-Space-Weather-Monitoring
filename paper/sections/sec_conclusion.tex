@@ -20,62 +20,84 @@ for grid-resilience pipelines; the downstream flare$\to$CME$\to$storm
 $\to$GIC chain is discussed as future integration, not evaluated.
 
 To keep the summary honest, we classify the paper's claims into three
-levels. \textbf{Demonstrated} (multi-seed, single-pass, frozen
-protocol): FedProx with $\mu{=}0.01$ is the most \emph{consistent}
+levels, tiered against the leakage-free fold of
+Section~\ref{sec:res-leakfree}. \textbf{Demonstrated (leakage-free,
+single-pass, frozen protocol)}: the cleaned SWAN-SF export's
+same-partition train/test pairing shares instances (100\% of flaring
+test windows; 85.7--90\% TimeGAN-synthetic training positives), and
+the benchmark's intended temporally-preceding protocol removes the
+overlap; on that protocol all arms generalise (ROC-AUC 0.906--0.978);
+the in-partition federated-versus-centralised gap does not survive
+(FedProx 0.976/0.308 vs architecture-matched centralised MLP
+0.973/0.382); FedProx retains checkpoint-independent ROC stabilisation
+over plain FedAvg (0.976 vs 0.906); the threshold-transfer and
+calibration failures persist (only XGBoost's posteriors are usable);
+and event-level detection is essentially solved for every arm (64--65
+of 65 events, 23.4\,h median lead) while the false-alarm burden
+separates the arms by roughly $7\times$.
+\textbf{Demonstrated in-partition only (protocol-stability evidence,
+disclosed overlap)}: FedProx with $\mu{=}0.01$ is the most \emph{consistent}
 stabiliser among the components studied---above FedAvg on PR-AUC on
 five of five seeds (one-sided Wilcoxon $p=0.031$) with $2.7\times$
-narrower ROC-AUC variance; the FedProx global model attains 97.7\% of
-the centralised XGBoost reference's ROC-AUC (0.954 vs 0.977) and did
-not underperform the same-architecture pooled MLP (0.888) on this
-benchmark and configuration; plain FedAvg diverges under the
+narrower ROC-AUC variance, where the leakage-free fold shows the PR
+ordering between the two FL arms reverses; the FedProx global model
+attains 97.7\% of the centralised XGBoost reference's in-partition
+ROC-AUC (0.954 vs 0.977); plain FedAvg diverges under the
 preregistered configuration (and completes without collapse at
 $\alpha{=}5.0$, so the divergence is a heterogeneity-severity effect);
-per-client SMOTE is inactive on this
-benchmark variant (zero synthetic samples); and both the centralised
-and federated models concentrate attribution on current helicity,
-flux-emergence proxies, and Lorentz-force terms.
+per-client SMOTE is inactive on this benchmark variant (zero
+synthetic samples); and both the centralised and federated models
+concentrate attribution on current helicity, flux-emergence proxies,
+and Lorentz-force terms.
 \textbf{Supported with caveats}: one FedAvg cell with
 distribution-aware
 aggregation exceeds the FedProx headline ROC-AUC, recall-at-FPR
-figures are window-level statistics over correlated windows, and
-five-seed confidence intervals quantify seed variability only. Two
+figures are window-level statistics over correlated windows,
+five-seed confidence intervals quantify seed variability only, and
+the leakage-free fold is a single fold and seed (fold- and
+seed-replication is queued owner-side compute). Two
 formerly listed caveats were resolved by executed re-runs: the
 optimisation-budget confound (the budget-matched 500-epoch re-run of
-Section~\ref{sec:budget} shows the FedProx gap survives parity) and
+Section~\ref{sec:budget} shows the in-partition FedProx gap survives
+parity, though the gap itself is an in-partition artifact) and
 the within-distribution client holdouts (the untouched-holdout
 evaluation of Section~\ref{sec:res-clients} shows the federation
 benefit is larger under clean estimates).
 \textbf{Not demonstrated}: cryptographic privacy (secure aggregation
 and differential privacy are implemented but their accuracy cost is
-unmeasured; poisoning defence is absent), region-disjoint
-generalisation (the cleaned export lacks region identifiers;
-the split generator awaits raw metadata), deployment-grade
-calibration (under the $26\times$ prior shift the neural posteriors
+unmeasured; poisoning defence is absent), leakage-free
+multi-seed/ablation replication and the remaining temporally-preceding
+folds (one fold executed here), deployment-grade
+calibration (under the prior shift the neural posteriors
 are worse than climatology on Brier and ECE, and the executed
 five-arm comparison shows no validation-fit calibrator rescues them),
-event-level operational
-performance, the downstream GIC/SCADA pipeline, federated LSTM and
+neural-arm false-alarm reduction at event level,
+the downstream GIC/SCADA pipeline, federated LSTM and
 SCAFFOLD evaluation, and results on the raw, unbalanced benchmark.
 An independent re-execution from the public, byte-verified dataset
-artefacts reproduces every headline metric exactly
-(Section~\ref{sec:repro}), and three items of the original re-run
-programme---the frozen-FPR report, the calibration arms, and the
-untouched holdouts---have since been executed with results in
-Section~\ref{sec:results}; the remaining items are listed in
+artefacts reproduces every in-partition headline metric exactly
+(Section~\ref{sec:repro}); six items of the re-run
+programme---the frozen-FPR report, the calibration arms, the
+untouched holdouts, the budget-matched and $\alpha{=}5.0$ re-runs, the
+raw-metadata provenance audit, and the event-level/leakage-free
+evaluation on the temporally-preceding fold---have since been executed
+with results in Section~\ref{sec:results}; the remaining items are
+listed in
 Section~\ref{sec:limitations}, each with the implemented-and-tested
 protocol that would upgrade the claim.
 
 For the smart-grid community the message is correspondingly
 conditional: \emph{if} custodians of magnetogram data face
 data-locality constraints, then at benchmark scale a proximal-regularised
-federation retains the ranking skill of a same-architecture pooled
-model in this study, at negligible bandwidth, without any raw data
-movement---and the released framework, with its frozen protocol,
-machine-readable artefacts, and documented engineering history
-(v2.1--v3.1), is intended to make the follow-up work a matter of
-execution rather than re-engineering. For the machine-learning
-community it is a demonstration that the cross-silo regime of the
-physical sciences has failure modes---prior mismatch, layered
+federation keeps the federation converging where plain averaging
+collapses, at negligible bandwidth, without any raw data
+movement---while matching the same-architecture pooled model's
+ranking is, on the leakage-free protocol, a property the pooled
+reference shares rather than a federation advantage. For the
+machine-learning community the study is a caution and a demonstration:
+instance-level provenance audits can invert the conclusions drawn
+from a widely used preprocessed benchmark, and the cross-silo regime
+of the physical sciences has failure modes---prior mismatch, layered
 imbalance handling, optimiser--variance-reduction interactions---that
 the medical and mobile FL literature does not fully anticipate, and
 that are worth studying in their own right.

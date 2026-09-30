@@ -1,0 +1,147 @@
+{
+  "artifact": "dataset-structure audit from raw SWAN-SF metadata",
+  "date": "2026-09-30",
+  "raw_source": {
+    "repository": "Harvard Dataverse",
+    "doi": "doi:10.7910/DVN/EBCFKM",
+    "files": [
+      "partition1..5_instances.tar.gz (6.48 GB total)",
+      "addenda.tar.gz (34 MB: GOES flare lists, NOAA AR records)"
+    ],
+    "instance_format": "one CSV per 60-timestep window; filename encodes flare class, HARP id, window start/end"
+  },
+  "alignment_method": {
+    "matcher": "argmax/argmin position invariance (48 keys) + Spearman",
+    "rationale": "invariant under any per-feature monotone normalization; robust to imputation",
+    "thresholds": {
+      "real": "count>=28/48 or (>=16 and Spearman>=0.70)"
+    },
+    "test_verification_rate": "98.7-100.0% per partition",
+    "test_label_agreement": "100.00% on all partitions",
+    "tie_margin_median": "31-32 (best vs second-best count)"
+  },
+  "per_partition": {
+    "1": {
+      "raw_instances": 73492,
+      "test_windows": 73492,
+      "test_verified": 73476,
+      "test_verified_frac": 0.9997822892287596,
+      "test_label_agreement": 1.0,
+      "train_windows": 18773,
+      "train_verified": 11247,
+      "train_verified_frac": 0.599105097746764,
+      "train_windows_shared_with_test": 11247,
+      "train_shared_frac_of_verified": 1.0,
+      "train_real_positives": 1254,
+      "test_positive_instances": 1254,
+      "test_positives_in_train": 1254,
+      "train_synthetic_positives": 7524,
+      "train_synthetic_positive_share": 0.8571428571428572,
+      "train_synthetic_negatives": 2,
+      "unique_regions": 700
+    },
+    "2": {
+      "raw_instances": 88557,
+      "test_windows": 88557,
+      "test_verified": 87373,
+      "test_verified_frac": 0.9866300800614294,
+      "test_label_agreement": 1.0,
+      "train_windows": 19807,
+      "train_verified": 11226,
+      "train_verified_frac": 0.566769323976372,
+      "train_windows_shared_with_test": 11213,
+      "train_shared_frac_of_verified": 1.0,
+      "train_real_positives": 1401,
+      "test_positive_instances": 1401,
+      "test_positives_in_train": 1401,
+      "train_synthetic_positives": 8406,
+      "train_synthetic_positive_share": 0.8571428571428572,
+      "train_synthetic_negatives": 175,
+      "unique_regions": 882
+    },
+    "3": {
+      "raw_instances": 42510,
+      "test_windows": 42510,
+      "test_verified": 42476,
+      "test_verified_frac": 0.9992001881910139,
+      "test_label_agreement": 1.0,
+      "train_windows": 19965,
+      "train_verified": 11412,
+      "train_verified_frac": 0.5716003005259204,
+      "train_windows_shared_with_test": 11410,
+      "train_shared_frac_of_verified": 1.0,
+      "train_real_positives": 1424,
+      "test_positive_instances": 1424,
+      "test_positives_in_train": 1424,
+      "train_synthetic_positives": 8544,
+      "train_synthetic_positive_share": 0.8571428571428572,
+      "train_synthetic_negatives": 9,
+      "unique_regions": 390
+    },
+    "4": {
+      "raw_instances": 51261,
+      "test_windows": 51261,
+      "test_verified": 51198,
+      "test_verified_frac": 0.9987709954936501,
+      "test_label_agreement": 1.0,
+      "train_windows": 19320,
+      "train_verified": 11309,
+      "train_verified_frac": 0.585351966873706,
+      "train_windows_shared_with_test": 11148,
+      "train_shared_frac_of_verified": 0.9999103058570276,
+      "train_real_positives": 1166,
+      "test_positive_instances": 1165,
+      "test_positives_in_train": 1165,
+      "train_synthetic_positives": 7994,
+      "train_synthetic_positive_share": 0.857725321888412,
+      "train_synthetic_negatives": 17,
+      "unique_regions": 471
+    },
+    "5": {
+      "raw_instances": 75365,
+      "test_windows": 75365,
+      "test_verified": 75336,
+      "test_verified_frac": 0.9996152059974789,
+      "test_label_agreement": 1.0,
+      "train_windows": 19899,
+      "train_verified": 10987,
+      "train_verified_frac": 0.5521382984069552,
+      "train_windows_shared_with_test": 10987,
+      "train_shared_frac_of_verified": 1.0,
+      "train_real_positives": 990,
+      "test_positive_instances": 990,
+      "test_positives_in_train": 990,
+      "train_synthetic_positives": 8910,
+      "train_synthetic_positive_share": 0.9,
+      "train_synthetic_negatives": 2,
+      "unique_regions": 754
+    }
+  },
+  "totals": {
+    "test_windows": 331185,
+    "train_windows": 97764,
+    "train_verified_windows": 56181,
+    "train_windows_shared_with_test": 56005,
+    "train_shared_frac_of_verified": 0.99998,
+    "test_positive_instances_total": 6234,
+    "test_positives_in_train": 6234,
+    "test_positives_in_train_frac": 1.0,
+    "train_synthetic_positives_total": 41378,
+    "train_real_positives_total": 6395
+  },
+  "findings": [
+    "The Cleaned-SWANSF test pkl of partition p contains ALL raw instances of p (counts match exactly on every partition; value-matching verifies 98.7-100% with 100% label agreement).",
+    "The train pkl of partition p is a RUS-Tomek-TimeGAN rebalanced SUBSET of the same raw instances: 100% of verified train windows (56,005/56,006) are also test windows.",
+    "Every M/X-flaring test instance (6,234/6,234, 100%) is in the training pool; the minority class is fully memorisable.",
+    "85.7-90.0% of train positive windows are TimeGAN-synthetic (no raw counterpart); virtually no synthetic negatives.",
+    "The intended protocol (Cleaned-SWANSF release paper, 10.3847/1538-4365/ad7c4a) pairs temporally-preceding training partitions with a later test partition; the shipped pipeline pooled all five train pkls against all five test pkls, pairing each test partition with a rebalanced subset of itself.",
+    "No HARP/region id spans two partitions (0 shared regions), so a temporally-preceding fold is automatically region- and instance-disjoint.",
+    "Instance filenames carry HARP ids, not NOAA AR numbers; event keys are recovered from the filename flare tags and the addenda GOES peak list (65/65 P5 events matched, 4 ambiguous)."
+  ],
+  "leakage_free_fold": {
+    "runner": "experiments/run_partition_disjoint.py",
+    "protocol": "train pkls P1-4 -> single-pass test on test pkl P5",
+    "report": "outputs/partition_disjoint_eval.json",
+    "event_level": "outputs/event_level_p5.json"
+  }
+}

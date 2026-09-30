@@ -1,0 +1,305 @@
+{
+  "purpose": "leakage-free fold: train P1-4 -> test P5 (SWAN-SF temporally-preceding protocol); raw-metadata audit found the shipped all-5/all-5 pairing shares instances between train and test",
+  "test_partition": 5,
+  "protocol": {
+    "rounds": 50,
+    "mu": 0.01,
+    "alpha": 1.0,
+    "seed": 42,
+    "clients": 6,
+    "val_split": 0.16,
+    "flatten": "concat_stats_enhanced",
+    "calibration": "prior_shift"
+  },
+  "sizes": {
+    "train": 65406,
+    "val": 12459,
+    "test": 75365,
+    "train_pos": 0.48639267683029175,
+    "val_pos": 0.48639538884162903,
+    "test_pos": 0.013136071152985096
+  },
+  "results": {
+    "logistic_regression": {
+      "threshold": 0.4199999999999998,
+      "val_fbeta": 0.9816323848327528,
+      "test": {
+        "threshold": 0.4199999999999998,
+        "accuracy": 0.495813706627745,
+        "precision": 0.025392428439519853,
+        "recall": 1.0,
+        "f1": 0.049527239981990094,
+        "f2": 0.11525565800502934,
+        "roc_auc": 0.9775435158305746,
+        "pr_auc": 0.45458092276045176,
+        "brier": 0.3750019165649887,
+        "ece": 0.47656027922798994,
+        "prevalence": 0.013136071120546673,
+        "recall@0.5%FPR": 0.3747474747474748,
+        "recall@1%FPR": 0.49696969696969695,
+        "recall@2%FPR": 0.694949494949495,
+        "recall@5%FPR": 0.9050505050505051,
+        "preds": "[1 1 1 ... 0 0 0]"
+      },
+      "frozen_operating_points": {
+        "0.5%FPR": {
+          "frozen_threshold": 0.9379636200537531,
+          "realised_fpr": 0.2106218487394958,
+          "recall": 0.98989898989899,
+          "precision": 0.05887653950135176,
+          "alert_rate": 0.2208584886883832
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.8424485171624503,
+          "realised_fpr": 0.2987563025210084,
+          "recall": 0.9949494949494949,
+          "precision": 0.04244774833010127,
+          "alert_rate": 0.3079015458103894
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.669242225715616,
+          "realised_fpr": 0.3942588235294118,
+          "recall": 0.997979797979798,
+          "precision": 0.032595427402593115,
+          "alert_rate": 0.40218934518675775
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.2778424075483979,
+          "realised_fpr": 0.5856806722689075,
+          "recall": 1.0,
+          "precision": 0.022222222222222223,
+          "alert_rate": 0.5911232004246003
+        }
+      },
+      "shipped_in_partition": {
+        "roc_auc": 0.818,
+        "pr_auc": 0.114
+      }
+    },
+    "xgboost": {
+      "threshold": 0.3499999999999998,
+      "val_fbeta": 0.9967390230244738,
+      "test": {
+        "threshold": 0.3499999999999998,
+        "accuracy": 0.9126252239103032,
+        "precision": 0.12434537397609775,
+        "recall": 0.9353535353535354,
+        "f1": 0.21950930425506696,
+        "f2": 0.40589111948803364,
+        "roc_auc": 0.9709564417282064,
+        "pr_auc": 0.45721431908064547,
+        "brier": 0.05496261878795396,
+        "ece": 0.10107926792738017,
+        "prevalence": 0.013136071120546673,
+        "recall@0.5%FPR": 0.3696969696969697,
+        "recall@1%FPR": 0.5212121212121212,
+        "recall@2%FPR": 0.6919191919191919,
+        "recall@5%FPR": 0.8626262626262626,
+        "preds": "[0 0 0 ... 0 0 0]"
+      },
+      "frozen_operating_points": {
+        "0.5%FPR": {
+          "frozen_threshold": 0.6232958295923255,
+          "realised_fpr": 0.05543529411764706,
+          "recall": 0.8737373737373737,
+          "precision": 0.17341619887730553,
+          "alert_rate": 0.06618456843362304
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.35725410714065386,
+          "realised_fpr": 0.0863327731092437,
+          "recall": 0.9333333333333333,
+          "precision": 0.12579986385296119,
+          "alert_rate": 0.09745903270749022
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.1465006931857869,
+          "realised_fpr": 0.15260504201680672,
+          "recall": 0.9646464646464646,
+          "precision": 0.07761072734660707,
+          "alert_rate": 0.1632720758972998
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.0375627068852635,
+          "realised_fpr": 0.38147226890756303,
+          "recall": 0.9939393939393939,
+          "precision": 0.0335195530726257,
+          "alert_rate": 0.3895176806209779
+        }
+      },
+      "shipped_in_partition": {
+        "roc_auc": 0.977,
+        "pr_auc": 0.493
+      }
+    },
+    "centralized_mlp": {
+      "threshold": 0.23999999999999988,
+      "val_fbeta": 0.9877633817563146,
+      "test": {
+        "threshold": 0.23999999999999988,
+        "accuracy": 0.07039076494393949,
+        "precision": 0.013933849401829698,
+        "recall": 1.0,
+        "f1": 0.027484730705163798,
+        "f2": 0.06599120117317692,
+        "roc_auc": 0.9728209150326798,
+        "pr_auc": 0.3818943950498757,
+        "brier": 0.5437885756083837,
+        "ece": 0.6873982906225129,
+        "prevalence": 0.013136071120546673,
+        "recall@0.5%FPR": 0.30808080808080807,
+        "recall@1%FPR": 0.4111111111111111,
+        "recall@2%FPR": 0.5545454545454546,
+        "recall@5%FPR": 0.8484848484848485,
+        "preds": "[1 1 1 ... 1 1 1]"
+      },
+      "frozen_operating_points": {
+        "0.5%FPR": {
+          "frozen_threshold": 0.6091761805300289,
+          "realised_fpr": 0.6307226890756302,
+          "recall": 1.0,
+          "precision": 0.020668058455114824,
+          "alert_rate": 0.635573542095137
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.47772985359179887,
+          "realised_fpr": 0.782763025210084,
+          "recall": 1.0,
+          "precision": 0.016720713417105796,
+          "alert_rate": 0.7856166655609368
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.3541175816953127,
+          "realised_fpr": 0.8823126050420168,
+          "recall": 1.0,
+          "precision": 0.014862186993334534,
+          "alert_rate": 0.8838585550321767
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.21814276660557172,
+          "realised_fpr": 0.9509243697478992,
+          "recall": 1.0,
+          "precision": 0.013804643380046016,
+          "alert_rate": 0.9515690307171764
+        }
+      },
+      "shipped_in_partition": {
+        "roc_auc": 0.888,
+        "pr_auc": 0.153
+      }
+    },
+    "fedavg_mlp": {
+      "threshold": 0.3499999999999998,
+      "val_fbeta": 0.8924316160429602,
+      "test": {
+        "threshold": 0.3499999999999998,
+        "accuracy": 0.17784117295826976,
+        "precision": 0.015726267632481892,
+        "recall": 1.0,
+        "f1": 0.03096556254105283,
+        "f2": 0.07397776183644189,
+        "roc_auc": 0.905897462015109,
+        "pr_auc": 0.36995677953704703,
+        "brier": 0.1265975264298247,
+        "ece": 0.3371473462506998,
+        "prevalence": 0.013136071120546673,
+        "recall@0.5%FPR": 0.32323232323232326,
+        "recall@1%FPR": 0.498989898989899,
+        "recall@2%FPR": 0.6515151515151515,
+        "recall@5%FPR": 0.7606060606060606,
+        "preds": "[1 1 1 ... 0 1 1]"
+      },
+      "frozen_operating_points": {
+        "0.5%FPR": {
+          "frozen_threshold": 0.35051926755452245,
+          "realised_fpr": 0.7296941176470588,
+          "recall": 1.0,
+          "precision": 0.01791498525180507,
+          "alert_rate": 0.7332448749419492
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.35051926755452245,
+          "realised_fpr": 0.7296941176470588,
+          "recall": 1.0,
+          "precision": 0.01791498525180507,
+          "alert_rate": 0.7332448749419492
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.3502668112615195,
+          "realised_fpr": 0.7851966386554622,
+          "recall": 1.0,
+          "precision": 0.016669753658084832,
+          "alert_rate": 0.7880183108870166
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.3498645084019432,
+          "realised_fpr": 0.851818487394958,
+          "recall": 1.0,
+          "precision": 0.015386049981350243,
+          "alert_rate": 0.853765010283288
+        }
+      },
+      "shipped_in_partition": {
+        "roc_auc": 0.575,
+        "pr_auc": 0.199
+      }
+    },
+    "fedprox_mlp": {
+      "threshold": 0.5149999999999998,
+      "val_fbeta": 0.9777018229166666,
+      "test": {
+        "threshold": 0.5149999999999998,
+        "accuracy": 0.20104823193790222,
+        "precision": 0.016175677662859662,
+        "recall": 1.0,
+        "f1": 0.031836380300033766,
+        "f2": 0.07596335343676626,
+        "roc_auc": 0.9760480434598082,
+        "pr_auc": 0.30755285212383854,
+        "brier": 0.27052353643213023,
+        "ece": 0.5078439194065957,
+        "prevalence": 0.013136071120546673,
+        "recall@0.5%FPR": 0.20707070707070707,
+        "recall@1%FPR": 0.4484848484848485,
+        "recall@2%FPR": 0.6313131313131313,
+        "recall@5%FPR": 0.8929292929292929,
+        "preds": "[1 1 1 ... 1 0 0]"
+      },
+      "frozen_operating_points": {
+        "0.5%FPR": {
+          "frozen_threshold": 0.5239835041133637,
+          "realised_fpr": 0.29598655462184875,
+          "recall": 1.0,
+          "precision": 0.04303599374021909,
+          "alert_rate": 0.3052345253101572
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.5221760537708766,
+          "realised_fpr": 0.3794016806722689,
+          "recall": 1.0,
+          "precision": 0.033894823336072306,
+          "alert_rate": 0.38755390433224973
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.5199870741933899,
+          "realised_fpr": 0.49411764705882355,
+          "recall": 1.0,
+          "precision": 0.026232114467408585,
+          "alert_rate": 0.5007629536256883
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.5166780640510593,
+          "realised_fpr": 0.7014319327731092,
+          "recall": 1.0,
+          "precision": 0.01862337515754623,
+          "alert_rate": 0.7053539441385258
+        }
+      },
+      "shipped_in_partition": {
+        "roc_auc": 0.954,
+        "pr_auc": 0.307
+      }
+    }
+  },
+  "elapsed_s": 333.45518493652344
+}

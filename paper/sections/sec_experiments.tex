@@ -264,3 +264,70 @@ evaluation (Section~\ref{sec:res-clients},
 points now reported in Section~\ref{sec:res-calib}; the multi-seed,
 sweep, and ablation studies were not re-executed and their numbers
 remain the owner-side artefacts embedded in the repository.
+
+\subsection{Data-provenance audit and the leakage-free protocol}
+\label{sec:provenance}
+
+\paragraph{Raw-benchmark alignment.}
+The Cleaned SWAN-SF export carries no region or event identifiers, so
+the review-programme items that require them (region-disjoint
+splits, event-level evaluation, natural-prevalence substrates) were
+queued pending raw metadata. We obtained the raw benchmark from its
+official distribution (Harvard Dataverse,
+\texttt{doi:10.7910/DVN/EBCFKM}, 6.5\,GB across the five partition
+archives plus the 34\,MB addenda with the GOES flare event lists) and
+aligned every cleaned window to its raw instance. Each raw instance is
+a 60-timestep CSV whose filename encodes the flare class, the
+\emph{HARP} region identifier, and the window start/end timestamps,
+and the folder (FL for M/X-flaring, NF otherwise) gives the label. The
+matching key is the per-feature argmax/argmin position along the 60
+timesteps---48 discrete invariants that survive any per-feature
+monotone normalization and are robust to the export's imputation
+noise. A window is accepted as aligned when at least 28 of 48
+invariants agree (borderline cases require a mean per-feature Spearman
+rank correlation of at least 0.70). On the test partitions this
+verifies 98.7--100.0\% of windows with 100.00\% label agreement and a
+median best-to-second-best margin of 31--32 invariants; the alignment
+artefacts and per-window metadata tables are released with the code
+(\texttt{outputs/dataset\_structure\_audit.json}).
+
+\paragraph{What the audit found.}
+Three structural facts follow. First, the test export of partition
+$p$ contains \emph{all} raw instances of $p$ (the counts match exactly
+on every partition). Second, the training export of $p$ is a
+RUS-Tomek-TimeGAN rebalanced \emph{subset of the same instances}: of
+the 56{,}006 verified training windows across the five partitions,
+56{,}005 (99.998\%) are also test windows, and every M/X-flaring test
+instance---6{,}234 of 6{,}234, 100\% of the minority class---is in the
+training pool. Third, 85.7--90.0\% of the training positive windows are
+TimeGAN-synthetic (they have no raw counterpart), while virtually no
+negative windows are synthetic. The release paper of the cleaned
+dataset prescribes pairing \emph{temporally preceding} training
+partitions with a later test partition; the shipped pipeline of this
+study instead pooled the training exports of all five partitions and
+evaluated on the test exports of the same five, pairing each test
+partition with a rebalanced subset of itself. The published
+in-partition numbers therefore partially measure memorised data,
+most severely for the minority class. Because no region identifier
+spans two partitions (verified: 0 shared HARPs), a
+temporally-preceding fold is automatically instance-, region-, and
+time-disjoint.
+
+\paragraph{Leakage-free fold.}
+All headline-model comparisons were re-run under the benchmark's
+intended protocol: training on the training exports of partitions 1--4
+(77{,}865 windows; 65{,}406 train / 12{,}459 validation after the
+identical stratified carve), and a single-pass evaluation on the test
+export of partition 5 (75{,}365 windows at the natural 1.31\%
+prevalence). Everything else is frozen: Dirichlet $\alpha=1.0$, six
+clients, 50 rounds, seed 42, Fed-Focal loss, prior-shift calibration
+and validation-frozen thresholds. The runner is
+\texttt{experiments/run\_partition\_disjoint.py} (round-resumable);
+its artefacts are \texttt{outputs/partition\_disjoint\_eval.json} and,
+for the event-level analysis, \texttt{outputs/event\_level\_p5.json}
+with the per-window event keys recovered from the raw filenames and
+the addenda GOES peak list (65 of 65 partition-5 flare events matched,
+4 with multiple candidates). Event grouping uses the filename flare
+tag for positive windows (one group per physical flare) and
+region-day groups for background windows; alert de-duplication
+applies a 1-hour cooldown within each group.

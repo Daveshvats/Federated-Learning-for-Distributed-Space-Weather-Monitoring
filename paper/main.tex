@@ -3,7 +3,7 @@
 % ════════════════════════════════════════════════════════════════════
 %  Federated Learning for Data-Locality-Preserving Distributed
 %  Space Weather Monitoring: A Solar-Flare Prediction Component
-%  for Grid-Resilience Pipelines (v3.3, review-2 re-execution)
+%  for Grid-Resilience Pipelines (v3.4, leakage-free re-evaluation)
 %  arXiv-preprint-style single-column manuscript
 % ════════════════════════════════════════════════════════════════════
 
@@ -132,43 +132,51 @@ photospheric magnetic-field parameters and transmits only weight
 updates. All results are produced under a frozen evaluation protocol:
 an immutable train/validation/test contract, calibration and threshold
 selection on validation only, a runtime leakage audit, and single-pass
-test evaluation. On the held-out test set (331{,}185 windows at the
-natural 1.88\% flare prevalence), FedProx attains a ROC-AUC of 0.954
-(97.7\% of the centralised XGBoost reference's 0.977) and a PR-AUC of
-0.307, and did not underperform the pooled centralised MLP of
-identical architecture (0.888 / 0.153) on this benchmark and
-configuration---an empirical observation we discuss as a
-regularisation-like effect, noting that the two arms received
-different optimisation budgets, rather than as evidence that
-federation is free of cost. Plain FedAvg diverges under the
+test evaluation. A data-provenance audit against the raw benchmark
+(Harvard Dataverse; every cleaned window aligned to its raw instance
+by normalization-invariant matching, 98.7--100\% verification with
+100\% label agreement) then found that the cleaned export's
+same-partition train/test pairing shares instances: the test export of
+each partition contains \emph{all} raw instances while the training
+export is a rebalanced subset of the same instances, so 100\% of the
+flaring test windows (6{,}234) and 99.998\% of verified training
+windows were also test windows, and 85.7--90\% of training positives
+are TimeGAN-synthetic. The study therefore re-evaluates every headline
+claim on a leakage-free fold that follows the benchmark's intended
+temporally-preceding protocol (training partitions 1--4, single-pass
+test on partition 5, natural 1.31\% prevalence, identical frozen
+protocol). On that fold, discrimination generalises for all arms
+(ROC-AUC 0.906--0.978), the in-partition federated-versus-centralised
+gap disappears (FedProx 0.976 / PR 0.308 vs centralised MLP of
+identical architecture 0.973 / 0.382), and FedProx retains a ROC
+stabilisation over plain FedAvg (0.976 vs 0.906) whose val-curve
+dynamics are checkpoint-independent, although FedAvg's PR-AUC is
+higher (0.370 vs 0.308). Plain FedAvg diverges under the
 preregistered headline configuration (validation AUC $0.99\to0.05$
-after round 20). FedProx provided the most consistent stability under
-that configuration, exceeding FedAvg's PR-AUC on five of five seeds
-(one-sided Wilcoxon $p=0.031$) with $2.7\times$ narrower metric
-variance; however, the 24-cell ablation shows that distribution-aware
-aggregation also substantially mitigates FedAvg degradation, so
-stability is not attributable to the proximal term alone. The
-balancing arm (per-client SMOTE) is \emph{inactive} on the pre-balanced
-benchmark (zero synthetic samples; reported as a null). Cross-model
-SHAP analysis shows both the centralised and federated models
-concentrate decisions on current helicity, the R-value flux-emergence
-proxy, and Lorentz-force terms. We document a threshold-transfer
-failure under the $26\times$ validation-to-test prevalence shift and
-report prevalence-robust recall-at-FPR discrimination statistics
-(FedProx: 0.51 recall at 2\% FPR); deployment thresholds for fixed-FPR
-operation are selected on validation negatives and frozen before the
-single test pass. An independent re-execution from the public dataset
-artefacts (byte-verified against the SHA-256 data manifest)
-reproduces every headline metric exactly; in the same session a
-five-arm calibration comparison shows that \emph{no}
-validation-fit calibrator survives the prior shift, and an
+after round 20; the in-partition multiseed, sweep, ablation and
+client-level studies are retained as protocol-stability evidence and
+explicitly not as generalisation estimates). Cross-model SHAP analysis
+shows both the centralised and federated models concentrate decisions
+on current helicity, the R-value flux-emergence proxy, and
+Lorentz-force terms. We document a threshold-transfer failure that
+persists leakage-free under the prevalence shift and report
+prevalence-robust recall-at-FPR discrimination statistics; an
+event-level evaluation on 65 physical M/X-class events (raw-benchmark
+event keys, 1-hour alert cooldown) shows all arms detect 98.5--100\%
+of events with a 23.4-hour median lead time to flare peak, while
+XGBoost's false-alarm burden (1.7 windows/day) is roughly $7\times$
+lower than every neural arm's---the deployability boundary on this
+benchmark is calibration, not detection. An independent re-execution
+from the public dataset artefacts (byte-verified against the SHA-256
+data manifest) reproduces every in-partition headline metric exactly;
+in the same session a five-arm calibration comparison shows that
+\emph{no} validation-fit calibrator survives the prior shift, and an
 untouched-holdout study confirms that the proximal-stabilised global
 model matches local-only performance for every simulated client while
 clearly aiding the two smallest. The verified property is data locality, not
 cryptographic privacy, and the model is an upstream flare-probability
-component: the flare$\to$CME$\to$storm$\to$GIC chain, SCADA
-integration, and event-level operational evaluation remain future
-work.
+component: the flare$\to$CME$\to$storm$\to$GIC chain and SCADA
+integration remain future work.
 
 \vspace{0.55em}
 \noindent\textbf{Keywords:} federated learning; solar flare prediction;

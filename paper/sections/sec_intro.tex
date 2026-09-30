@@ -101,25 +101,43 @@ contributions are:
   SMOTE arm is inert on this benchmark variant), on top of both FedAvg
   \cite{mcmahan2017} and FedProx \cite{li2020} training loops
   (Section~\ref{sec:method}).
-  \item \textbf{A frozen, leakage-audited evaluation protocol}: an
-  immutable train/validation/test contract, calibration and threshold
-  selection on validation only, single-pass test evaluation, a
-  centralised-MLP architecture control, five-seed statistics with
-  confidence intervals and paired significance tests, a 24-cell
-  component-ablation grid, and---as protocol extensions released with
-  this revision---region-disjoint splits, natural-prevalence validation
-  with frozen FPR operating points, untouched client holdouts, an
-  explicit training-budget audit, event-level alerting metrics, and a
-  calibration-comparison harness (Section~\ref{sec:experiments}).
-  \item \textbf{A data-locality cost study.} On the held-out test
-  partitions (331{,}185 windows, 1.88\% prevalence), FedProx attains a
-  ROC-AUC of 0.954---97.7\% of the centralised XGBoost reference
-  (0.977)---and did not underperform the pooled centralised MLP of
-  identical architecture (0.888) on this benchmark and configuration,
-  a comparison whose optimisation budgets are documented and not
-  matched, while plain FedAvg diverges during training (validation AUC
-  $0.99\to0.05$); FedProx exceeds FedAvg's PR-AUC on all five seeds
-  (one-sided Wilcoxon $p=0.031$)
+  \item \textbf{A frozen, leakage-audited evaluation protocol and a
+  data-provenance audit of the benchmark export.} The protocol
+  comprises an immutable train/validation/test contract, calibration
+  and threshold selection on validation only, single-pass test
+  evaluation, a centralised-MLP architecture control, five-seed
+  statistics, a 24-cell component-ablation grid, region-disjoint
+  split generation, natural-prevalence operating points, untouched
+  client holdouts, a training-budget audit, event-level alerting
+  metrics, and a calibration-comparison harness
+  (Section~\ref{sec:experiments}). The provenance audit aligns every
+  cleaned window to the raw SWAN-SF instances (Harvard Dataverse;
+  normalization-invariant matching) and finds that the cleaned
+  export's same-partition train/test pairing shares instances---including 100\% of the flaring test windows and 85.7--90\%
+  TimeGAN-synthetic training positives---so the study re-evaluates all
+  headline claims on a leakage-free temporally-preceding fold
+  (Section~\ref{sec:provenance}).
+  \item \textbf{A leakage-free federated evaluation.} On the
+  temporally-preceding fold (training partitions 1--4, single-pass
+  test on partition 5, natural 1.31\% prevalence), all arms
+  generalise (ROC-AUC 0.906--0.978); the in-partition
+  federated-versus-centralised gap disappears (FedProx 0.976/0.308
+  vs architecture-matched centralised MLP 0.973/0.382); FedProx
+  retains checkpoint-independent ROC stabilisation over plain FedAvg
+  (0.976 vs 0.906); the threshold-transfer and calibration failures
+  persist; and an event-level evaluation on 65 physical M/X-class
+  events shows detection is not the deployability boundary---XGBoost's
+  false-alarm burden is roughly $7\times$ lower than every neural
+  arm's (Section~\ref{sec:res-leakfree}).
+  \item \textbf{An in-partition data-locality study, disclosed as
+  such.} On the same-partition protocol (331{,}185 test windows,
+  1.88\% prevalence) whose instance overlap the audit quantified,
+  FedProx attains ROC-AUC 0.954 (97.7\% of the XGBoost reference's
+  0.977) against the architecture-matched centralised MLP's 0.888, a
+  comparison whose optimisation budgets are documented and
+  budget-matched, while plain FedAvg diverges during training
+  (validation AUC $0.99\to0.05$); these numbers are retained as
+  protocol-stability evidence, not as generalisation estimates
   (Section~\ref{sec:results}).
   \item \textbf{A cross-model interpretability audit.} SHAP analysis
   of both the centralised XGBoost reference and the federated global

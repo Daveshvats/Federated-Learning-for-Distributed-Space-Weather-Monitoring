@@ -139,3 +139,19 @@ Abstract-level updates from the independent re-execution:
 - frozen-FPR realised test FPR quantified (FedProx 28.2-72.1%
   against 0.5-5% targets), strengthening the threshold-transfer
   honesty
+- v3.4 (2026-09-30): raw-benchmark provenance audit (every cleaned
+  window aligned to its raw instance) found the cleaned export's
+  same-partition train/test pairing shares instances — test exports
+  contain all raw instances, train exports are rebalanced subsets of
+  the same, 100% of flaring test windows are training windows, and
+  85.7-90% of training positives are TimeGAN-synthetic. Leakage-free
+  temporally-preceding fold (train P1-4 -> test P5) executed: all arms
+  generalise (ROC 0.906-0.978); the central-vs-FL gap disappears
+  (FedProx 0.976/0.308 vs centralised MLP 0.973/0.382); FedProx's ROC
+  stabilisation over FedAvg survives (0.976 vs 0.906,
+  checkpoint-independent; PR reverses); calibration/threshold-transfer
+  failures persist (only XGBoost usable); event-level evaluation on
+  65 M/X events: detection 98.5-100%, 23.4h median lead, XGBoost
+  false-alarm burden ~7x lower than the neural arms. All v3.3 and
+  earlier numbers are disclosed as in-partition protocol-stability
+  evidence, not generalisation estimates.

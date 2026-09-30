@@ -62,6 +62,7 @@ python experiments/run_calibration_comparison.py      # calibration arms (v3.3: 
 python experiments/run_client_holdout.py              # untouched-holdout client eval (v3.3: executed)
 python experiments/run_budget_matched.py              # 500-epoch budget-matched centralised (v3.3: executed)
 python experiments/run_alpha_promotion.py             # alpha=5.0 promotion run (v3.3: executed, negative)
+python experiments/run_partition_disjoint.py           # leakage-free fold P1-4 -> P5 (v3.4: executed)
 python experiments/run_event_level.py --input outputs/event_scores.json  # v3.1
 python secure_aggregation.py                          # secagg self-test
 ```
@@ -216,3 +217,26 @@ via the link in `download.txt` of the
 10 test `.pkl` files under `data/cleaned/train/` and
 `data/cleaned/test/` respectively, then verify with
 `python data_manifest/generate_manifest.py`.
+
+
+## v3.4 provenance audit + leakage-free fold (2026-09-30)
+
+Raw SWAN-SF benchmark obtained (Harvard Dataverse
+doi:10.7910/DVN/EBCFKM) and every cleaned window aligned to its raw
+instance (provenance/; argmax/argmin-invariant matching, test
+verification 98.7-100.0%, 100.00% label agreement). Audit findings:
+the cleaned export's same-partition train/test pairing shares
+instances (test export = all raw instances; train export = rebalanced
+subset of the same; 100% of flaring test windows are training
+windows; 85.7-90.0% of training positives are TimeGAN-synthetic).
+Leakage-free fold executed under the benchmark's intended
+temporally-preceding protocol (train P1-4 -> test P5,
+experiments/run_partition_disjoint.py): all arms generalise
+(ROC 0.906-0.978), central-vs-FL gap disappears (FedProx 0.976/0.308
+vs centralised MLP 0.973/0.382), FedProx ROC stabilisation over
+FedAvg survives (0.976 vs 0.906, checkpoint-independent), PR ordering
+reverses, calibration/threshold-transfer failures persist, event-level
+evaluation on 65 M/X events (detection 98.5-100%, XGBoost false-alarm
+burden ~7x lower than neural arms, 23.4h median lead). Artefacts:
+outputs/dataset_structure_audit.json, outputs/partition_disjoint_eval.json,
+outputs/event_level_p5.json, provenance/ (scripts + slim metadata).

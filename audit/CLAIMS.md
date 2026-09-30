@@ -87,3 +87,21 @@ natural-prevalence validation still queued); row 18 -> DEMONSTRATED.
 |---|-------|--------|----------|
 | 25 | FedProx-vs-centralised gap is not a budget artifact | DEMONSTRATED | `outputs/budget_matched.json` (runner `experiments/run_budget_matched.py`): shipped reference early-stops at epoch 13 (undertrained — confound ran against the federated arm); FL-style fixed 500-epoch budget reaches 0.917/0.219 vs FedProx 0.954/0.307 — gap survives budget parity |
 | 26 | Sweep winner (alpha=5.0) should be promoted to headline | REFUTED (negative result) | `outputs/alpha5_promotion.json` (runner `experiments/run_alpha_promotion.py`): full 50-round protocol at alpha=5.0 gives 0.955/0.296 vs headline 0.954/0.307 — no transfer; alpha=1.0 retained. FedAvg non-collapse at alpha=5.0 (0.915) shows headline divergence is a heterogeneity-severity effect |
+
+---
+
+## v3.4 provenance-audit claim updates (2026-09-30)
+
+| # | Claim | Status | Evidence |
+|---|-------|--------|----------|
+| 27 | Cleaned-SWANSF train/test exports are instance-disjoint | **REFUTED (headline audit finding)** | `outputs/dataset_structure_audit.json` + `provenance/`: every cleaned window aligned to its raw instance (argmax/argmin-invariant matching, test verification 98.7-100.0%, label agreement 100.00%); test export of partition p = ALL raw instances of p; train export = RUS-Tomek-TimeGAN subset of the same instances; 56,005/56,006 verified train windows are also test windows; 100% of flaring test instances (6,234) are training windows |
+| 28 | Training positives are real observations | REFUTED (85.7-90.0% synthetic) | TimeGAN-generated windows have no raw counterpart; synthetic share of train positives: P1-P4 85.7-85.8%, P5 90.0%; negatives ~0% |
+| 29 | Federated-vs-centralised gap survives a leakage-free protocol | **REFUTED** | `outputs/partition_disjoint_eval.json` (train P1-4 -> test P5, frozen protocol): FedProx 0.976/0.308 vs architecture-matched centralised MLP 0.973/0.382 — ROC within 0.003, PR reversed. The in-partition gap (0.954 vs 0.888) was a protocol-pairing artifact, as was its budget-parity survival (row 25) |
+| 30 | FedProx stabilises the federation vs plain FedAvg | DEMONSTRATED (leakage-free) | Fold: FedProx 0.976 vs FedAvg 0.906 ROC-AUC; FedAvg survives only via its round-35 validation checkpoint (val F1 collapsed to 0 by round 40) — checkpoint-lottery dynamics; FedProx checkpoint-independent. PR reverses (FedAvg 0.370 > FedProx 0.308), so the v3.3 "5/5 seeds on PR-AUC" claim is in-partition only |
+| 31 | Event-level detection is the deployability boundary | REFUTED (calibration is) | `outputs/event_level_p5.json`: 65 M/X events, detection 98.5-100%, median lead-to-peak 23.4h; XGBoost false-alarm burden 1.7 windows/day vs 8.6-12.7 neural arms (~7x) — mirrors the window-level calibration gap |
+| 32 | Threshold-transfer failure is an overlap artifact | REFUTED (persists leakage-free) | Fold realised FPR at frozen 2% target: XGBoost 15.3%, FedProx 49.4%, central MLP 88.2% — the balanced-training/natural-test interface, not instance overlap, is the cause |
+
+Row updates: rows 25/26 remain valid as **in-partition
+protocol-stability evidence** (disclosed); row 13 (recall@FPR
+window-level caveat) now carries event-level corroboration; row 16's
+natural-prevalence evaluation is executed at the fold's test boundary.
