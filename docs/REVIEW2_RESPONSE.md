@@ -483,8 +483,21 @@ synthetic in its positive class.
 8. Federated LSTM/SCAFFOLD — **SCAFFOLD EXECUTED (v3.5)** on the
    raw substrate (identical frozen budget as FedProx/FedAvg): fails
    outright at ROC 0.768 / PR 0.057, Brier 0.137, event detection
-   54/65 at 6.4 false-alarm windows per day. The LSTM arm alone
-   remains queued (owner GPU; ~8–15 h on CPU).
+   54/65 at 6.4 false-alarm windows per day. The LSTM arm is
+   **BUILT, TESTED, AND GPU-READY (v3.6)**:
+   `experiments/run_federated_lstm.py` trains FedAvg-LSTM +
+   FedProx-LSTM (plus an optional pooled centralized SolarLSTM
+   comparator) on the SAME frozen raw substrate — identical windows,
+   identical seed-42 split (label-equality asserted at startup;
+   144-stat cross-check 4.4e-4), identical Dirichlet shards — with
+   the full frozen evaluation (prior-shift calibration, val-frozen
+   F-beta thresholds, frozen-FPR operating points) and event-level
+   metrics. Round-resumable, CUDA-auto, multi-seed capable
+   (`--seed 43`). Measured CPU cost on the sandbox: ~43 min/round →
+   ~74 h total → owner-GPU execution (~1.5–3 h expected); a
+   self-contained bundle ships the 3D substrate + event metadata so
+   no raw download or preprocessing is needed. Smoke-verified
+   end-to-end on CPU; new test suite 17/17 (total 129 checks).
 9. Raw unbalanced programme — **EXECUTED (v3.5)**
    (`experiments/raw_substrate.py` builds the substrate,
    `experiments/run_raw_substrate.py` retrains the frozen protocol,
