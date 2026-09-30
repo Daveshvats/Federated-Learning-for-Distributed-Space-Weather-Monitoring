@@ -165,34 +165,37 @@ Additional guarantees, each with a test in `tests/`:
   SMOTE (Chawla et al., 2002), SHAP (Lundberg & Lee, 2017).
 - Manuscript and audit: see `paper/`.
 
-## Next actions (v3.1 queued re-run programme — updated v3.3)
+## Next actions (v3.1 queued re-run programme — updated v3.5)
 
 Implemented, unit-tested; items 2 (frozen-FPR report), 3 (calibration
 comparison), 5 (untouched holdouts), 6 (budget-matched training), and
 7 (alpha=5.0 promotion — negative) were **executed** in the v3.3
-independent re-executions (see `docs/REVIEW2_RESPONSE.md` §D-E); the
-remaining items are:
+independent re-executions (see `docs/REVIEW2_RESPONSE.md` §D-E).
+Items 1, 2, and 4 were executed on the v3.4 leakage-free fold
+(region-disjointness holds by construction; natural-prevalence test
+boundary; event-level evaluation, 65/65 GOES peak matches). Item 9 and
+the SCAFFOLD half of item 8 were **executed in v3.5**:
 
-1. Region-disjoint splits from raw SWAN-SF metadata (needs HARP/AR IDs)
-2. Natural-prevalence validation as default substrate (needs raw
-   benchmark partitions; the frozen-FPR *report* was executed — realised
-   test FPR now quantified)
-3. ~~Calibration comparison on the trained FL models~~ **EXECUTED**
-4. Event-level evaluation (needs event keys + timestamps)
-5. ~~Untouched-holdout client evaluation~~ **EXECUTED**
-6. ~~Budget-matched centralized-vs-federated training~~ **EXECUTED**
-   (`outputs/budget_matched.json`: shipped reference undertrained —
-   early stop at epoch 13; FL-style 500-epoch budget 0.917/0.219 vs
-   FedProx 0.954/0.307 — gap survives parity)
-7. ~~Sweep-winner promotion (alpha=5.0)~~ **EXECUTED — REFUTED**
-   (`outputs/alpha5_promotion.json`: 0.955/0.296 vs headline
-   0.954/0.307; alpha=1.0 retained; FedAvg non-collapse at alpha=5.0
-   shows the headline divergence is a heterogeneity-severity effect)
-8. Federated LSTM and SCAFFOLD evaluation
-9. Raw unbalanced SWAN-SF experiment programme
+8. ~~Federated LSTM and~~ SCAFFOLD evaluation — **SCAFFOLD EXECUTED
+   (v3.5)**: fails on the raw substrate (0.768/0.057, Brier 0.137,
+   54/65 events at 6.4 FA windows/day). The LSTM arm alone remains
+   queued (owner GPU).
+9. ~~Raw unbalanced SWAN-SF experiment programme~~ **EXECUTED (v3.5)**
+   (`experiments/raw_substrate.py` + `run_raw_substrate.py` +
+   `run_event_level_raw.py`; artefacts `outputs/raw_substrate_eval.json`,
+   `outputs/event_level_raw_p5.json`,
+   `outputs/raw_substrate_verification.json`): frozen protocol retrained
+   on raw P1-4 at natural 2.05% prevalence with FPCKNN/LSBZM reproduced
+   in-pipeline (train-only parameters, verified vs the release):
+   centralised arms substrate-robust (LR 0.978/0.448, XGB 0.974/0.329,
+   MLP 0.971/0.445), federated arms collapse (FedAvg 0.875/0.056 with
+   0/65 events, FedProx 0.930/0.149, SCAFFOLD 0.768/0.057).
 
-Items 1, 2, and 4 are preconditions for quoting any number in the paper
-as operational performance rather than benchmark result.
+Remaining: fold/seed replication of the leakage-free and raw-substrate
+runs, the federated LSTM arm (GPU), and the natural-prevalence SMOTE
+ablation. The event-level figures (`outputs/event_level_p5.json`,
+`outputs/event_level_raw_p5.json`) are the operational performance
+figures, with the single-fold caveat.
 
 ## v3.3 independent re-execution (2026-09-29)
 

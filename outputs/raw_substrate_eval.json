@@ -1,0 +1,433 @@
+{
+  "purpose": "review item 9: frozen protocol retrained on the RAW unbalanced SWAN-SF benchmark (natural prevalence, no RUS-Tomek-TimeGAN, no synthetic positives) with FPCKNN/LSBZM reproduced in-pipeline (train-only parameter fit); single-pass test on raw P5",
+  "protocol": {
+    "rounds": 50,
+    "mu": 0.01,
+    "alpha": 1.0,
+    "seed": 42,
+    "clients": 6,
+    "val_split": 0.16,
+    "flatten": "concat_stats_enhanced",
+    "calibration": "prior_shift",
+    "loss": "fed_focal"
+  },
+  "substrate": {
+    "train": 214888,
+    "val": 40932,
+    "test": 75365,
+    "train_pos": 0.020499050617218018,
+    "val_pos": 0.020497409626841545,
+    "test_pos": 0.013136071152985096,
+    "imputation": "FPCKNN-style (partial gaps: within-window linear interpolation; fully-missing series: Pearson-correlation-based kNN transfer, k=5, train-only references)",
+    "normalization": "LSBZM-style chain (robust clip -> shift -> log/sqrt/Box-Cox by fitted lambda -> z-score -> min-max), train-only parameters",
+    "stats": {
+      "raw_dir": "/tmp/swansf_raw",
+      "knn_k": 5,
+      "corr_space": 5,
+      "f16_scales": {
+        "0": 8.0,
+        "1": 65536.0,
+        "2": 274877906944.0,
+        "3": 1.2379400392853803e+27,
+        "4": 1125899906842624.0,
+        "5": 4096.0,
+        "6": 140737488355328.0,
+        "7": 3.022314549036573e+23,
+        "8": 1.9342813113834067e+25,
+        "9": 1073741824.0,
+        "10": 0.5,
+        "11": 0.5,
+        "12": 1.0,
+        "13": 256.0,
+        "14": 128.0,
+        "15": 128.0,
+        "16": 1024.0,
+        "17": 1024.0,
+        "18": 512.0,
+        "19": 0.5,
+        "20": 9.671406556917033e+24,
+        "21": 64.0,
+        "22": 64.0,
+        "23": 3.8685626227668134e+25
+      },
+      "p1_windows": 73492,
+      "p2_windows": 88557,
+      "p3_windows": 42510,
+      "p4_windows": 51261,
+      "p5_windows": 75365,
+      "lsbzm_clip_fraction": 0.001391,
+      "train": 214888,
+      "val": 40932,
+      "test": 75365,
+      "train_pos": 0.020499050617218018,
+      "val_pos": 0.020497409626841545,
+      "test_pos": 0.013136071152985096,
+      "elapsed_s": 263.7
+    },
+    "verification": {
+      "n_matched_windows": 75336,
+      "match_fraction_p5": 0.9996,
+      "median_spearman_all": 0.882,
+      "median_spearman_observed_nonzero": 0.8977,
+      "min_spearman_observed_nonzero": 0.8419,
+      "median_spearman_imputed": 0.3129
+    }
+  },
+  "results": {
+    "logistic_regression": {
+      "threshold": 0.8799999999999997,
+      "val_fbeta": 0.5549065420560748,
+      "test": {
+        "threshold": 0.8799999999999997,
+        "accuracy": 0.9782392357194984,
+        "precision": 0.34299516908212563,
+        "recall": 0.7171717171717171,
+        "f1": 0.46405228758169936,
+        "f2": 0.5887230514096186,
+        "roc_auc": 0.9775583329089212,
+        "pr_auc": 0.4481571747066412,
+        "brier": 0.052784017901053096,
+        "ece": 0.08453010710588876,
+        "prevalence": 0.013136071120546673,
+        "recall@0.5%FPR": 0.35555555555555557,
+        "recall@1%FPR": 0.5262626262626262,
+        "recall@2%FPR": 0.7323232323232324,
+        "recall@5%FPR": 0.8818181818181818,
+        "preds": "[0 0 0 ... 0 0 0]"
+      },
+      "frozen_operating_points": {
+        "0.5%FPR": {
+          "frozen_threshold": 0.9724870595811063,
+          "realised_fpr": 0.0020168067226890756,
+          "recall": 0.22525252525252526,
+          "precision": 0.5978552278820375,
+          "alert_rate": 0.004949246997943343
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.9517029888586761,
+          "realised_fpr": 0.004692436974789916,
+          "recall": 0.3525252525252525,
+          "precision": 0.5,
+          "alert_rate": 0.009261593577920786
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.9159086503504575,
+          "realised_fpr": 0.012894117647058823,
+          "recall": 0.6383838383838384,
+          "precision": 0.39723444374607164,
+          "alert_rate": 0.021110595103828036
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.8086346599741775,
+          "realised_fpr": 0.03013109243697479,
+          "recall": 0.8171717171717172,
+          "precision": 0.26524590163934425,
+          "alert_rate": 0.04046971405824985
+        }
+      },
+      "shipped_in_partition": {
+        "roc_auc": 0.818,
+        "pr_auc": 0.114
+      },
+      "fold_leakage_free_cleaned": {
+        "roc_auc": 0.978,
+        "pr_auc": 0.455
+      }
+    },
+    "xgboost": {
+      "threshold": 0.7449999999999997,
+      "val_fbeta": 0.9125905797101449,
+      "test": {
+        "threshold": 0.7449999999999997,
+        "accuracy": 0.9817289192596033,
+        "precision": 0.33447390932420873,
+        "recall": 0.39494949494949494,
+        "f1": 0.36220472440944884,
+        "f2": 0.3811659192825112,
+        "roc_auc": 0.973900612851201,
+        "pr_auc": 0.3286959055204234,
+        "brier": 0.017777938681076636,
+        "ece": 0.019341574254996004,
+        "prevalence": 0.013136071120546673,
+        "recall@0.5%FPR": 0.2696969696969697,
+        "recall@1%FPR": 0.3838383838383838,
+        "recall@2%FPR": 0.5868686868686869,
+        "recall@5%FPR": 0.8727272727272727,
+        "preds": "[0 0 0 ... 0 0 0]"
+      },
+      "frozen_operating_points": {
+        "0.5%FPR": {
+          "frozen_threshold": 0.7995309368283111,
+          "realised_fpr": 0.008242016806722688,
+          "recall": 0.34545454545454546,
+          "precision": 0.3581151832460733,
+          "alert_rate": 0.012671664565779872
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.6564684374020486,
+          "realised_fpr": 0.014010084033613446,
+          "recall": 0.47373737373737373,
+          "precision": 0.31039046988749175,
+          "alert_rate": 0.020049094407218204
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.45244236570531055,
+          "realised_fpr": 0.022198319327731093,
+          "recall": 0.6292929292929293,
+          "precision": 0.27396657871591906,
+          "alert_rate": 0.030173157301134478
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.1815742239775056,
+          "realised_fpr": 0.039852100840336135,
+          "recall": 0.8232323232323232,
+          "precision": 0.21566551997883038,
+          "alert_rate": 0.05014263915610695
+        }
+      },
+      "shipped_in_partition": {
+        "roc_auc": 0.977,
+        "pr_auc": 0.493
+      },
+      "fold_leakage_free_cleaned": {
+        "roc_auc": 0.971,
+        "pr_auc": 0.457
+      }
+    },
+    "centralized_mlp": {
+      "threshold": 0.21999999999999992,
+      "val_fbeta": 0.6776239907727797,
+      "test": {
+        "threshold": 0.21999999999999992,
+        "accuracy": 0.9735288263782923,
+        "precision": 0.2735466426318161,
+        "recall": 0.6131313131313131,
+        "f1": 0.37831100031162357,
+        "f2": 0.4911798025570481,
+        "roc_auc": 0.9710213258636788,
+        "pr_auc": 0.44496043514010586,
+        "brier": 0.010386922036482074,
+        "ece": 0.010668947191854183,
+        "prevalence": 0.013136071120546673,
+        "recall@0.5%FPR": 0.3424242424242424,
+        "recall@1%FPR": 0.43434343434343436,
+        "recall@2%FPR": 0.5959595959595959,
+        "recall@5%FPR": 0.8696969696969697,
+        "preds": "[0 0 0 ... 0 0 0]"
+      },
+      "frozen_operating_points": {
+        "0.5%FPR": {
+          "frozen_threshold": 0.35743555800279436,
+          "realised_fpr": 0.0034016806722689075,
+          "recall": 0.30707070707070705,
+          "precision": 0.5457809694793537,
+          "alert_rate": 0.007390698600145957
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.3106519492916251,
+          "realised_fpr": 0.008430252100840335,
+          "recall": 0.398989898989899,
+          "precision": 0.38649706457925637,
+          "alert_rate": 0.013560671399190606
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.25170390178469,
+          "realised_fpr": 0.01594621848739496,
+          "recall": 0.5333333333333333,
+          "precision": 0.3080513418903151,
+          "alert_rate": 0.022742652424865655
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.17563420303453317,
+          "realised_fpr": 0.03393613445378151,
+          "recall": 0.7717171717171717,
+          "precision": 0.23236009732360097,
+          "alert_rate": 0.0436276786306641
+        }
+      },
+      "shipped_in_partition": {
+        "roc_auc": 0.888,
+        "pr_auc": 0.153
+      },
+      "fold_leakage_free_cleaned": {
+        "roc_auc": 0.973,
+        "pr_auc": 0.382
+      }
+    },
+    "fedavg_mlp": {
+      "threshold": 0.05,
+      "val_fbeta": 0.0,
+      "test": {
+        "threshold": 0.05,
+        "accuracy": 0.9868639288794533,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "f2": 0.0,
+        "roc_auc": 0.8747205704099822,
+        "pr_auc": 0.05614600405791456,
+        "brier": 0.013054611795172283,
+        "ece": 0.011115004933193456,
+        "prevalence": 0.013136071120546673,
+        "recall@0.5%FPR": 0.0030303030303030303,
+        "recall@1%FPR": 0.031313131313131314,
+        "recall@2%FPR": 0.06262626262626263,
+        "recall@5%FPR": 0.1686868686868687,
+        "preds": "[0 0 0 ... 0 0 0]"
+      },
+      "frozen_operating_points": {
+        "0.5%FPR": {
+          "frozen_threshold": 0.004054269879359642,
+          "realised_fpr": 0.0031596638655462185,
+          "recall": 0.0,
+          "precision": 0.0,
+          "alert_rate": 0.003118158296291382
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.003903113347808805,
+          "realised_fpr": 0.006736134453781513,
+          "recall": 0.010101010101010102,
+          "precision": 0.019569471624266144,
+          "alert_rate": 0.006780335699595303
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.0037540395539788435,
+          "realised_fpr": 0.014050420168067226,
+          "recall": 0.046464646464646465,
+          "precision": 0.04216315307057745,
+          "alert_rate": 0.014476215750016586
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.0035919648571152555,
+          "realised_fpr": 0.03606050420168067,
+          "recall": 0.12727272727272726,
+          "precision": 0.04487179487179487,
+          "alert_rate": 0.03725867445100511
+        }
+      },
+      "shipped_in_partition": {
+        "roc_auc": 0.575,
+        "pr_auc": 0.199
+      },
+      "fold_leakage_free_cleaned": {
+        "roc_auc": 0.906,
+        "pr_auc": 0.37
+      }
+    },
+    "fedprox_mlp": {
+      "threshold": 0.15999999999999995,
+      "val_fbeta": 0.3439735828288387,
+      "test": {
+        "threshold": 0.15999999999999995,
+        "accuracy": 0.9071452265640549,
+        "precision": 0.09295392953929539,
+        "recall": 0.692929292929293,
+        "f1": 0.16391875746714457,
+        "f2": 0.30246913580246915,
+        "roc_auc": 0.9302553263729735,
+        "pr_auc": 0.148668867684149,
+        "brier": 0.03187531405574112,
+        "ece": 0.1382694406542117,
+        "prevalence": 0.013136071120546673,
+        "recall@0.5%FPR": 0.1292929292929293,
+        "recall@1%FPR": 0.20707070707070707,
+        "recall@2%FPR": 0.3434343434343434,
+        "recall@5%FPR": 0.5727272727272728,
+        "preds": "[0 0 0 ... 0 0 0]"
+      },
+      "frozen_operating_points": {
+        "0.5%FPR": {
+          "frozen_threshold": 0.16213755113626507,
+          "realised_fpr": 0.0025546218487394958,
+          "recall": 0.03838383838383838,
+          "precision": 0.16666666666666666,
+          "alert_rate": 0.0030252769853380216
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.16188505000902317,
+          "realised_fpr": 0.0039932773109243695,
+          "recall": 0.11818181818181818,
+          "precision": 0.2826086956521739,
+          "alert_rate": 0.005493266104955882
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.16147052262929332,
+          "realised_fpr": 0.010527731092436975,
+          "recall": 0.2101010101010101,
+          "precision": 0.20988900100908173,
+          "alert_rate": 0.013149339879254296
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.16091655793829135,
+          "realised_fpr": 0.03151596638655462,
+          "recall": 0.4686868686868687,
+          "precision": 0.16524216524216523,
+          "alert_rate": 0.03725867445100511
+        }
+      },
+      "shipped_in_partition": {
+        "roc_auc": 0.954,
+        "pr_auc": 0.307
+      },
+      "fold_leakage_free_cleaned": {
+        "roc_auc": 0.976,
+        "pr_auc": 0.308
+      }
+    },
+    "scaffold_mlp": {
+      "threshold": 0.3649999999999998,
+      "val_fbeta": 0.15321801738519625,
+      "test": {
+        "threshold": 0.3649999999999998,
+        "accuracy": 0.5759304717043721,
+        "precision": 0.024036392696870967,
+        "recall": 0.7898989898989899,
+        "f1": 0.04665314401622718,
+        "f2": 0.10714089987395188,
+        "roc_auc": 0.7684830693489517,
+        "pr_auc": 0.05663798211702756,
+        "brier": 0.13665327360368912,
+        "ece": 0.35176492365323453,
+        "prevalence": 0.013136071120546673,
+        "recall@0.5%FPR": 0.045454545454545456,
+        "recall@1%FPR": 0.1202020202020202,
+        "recall@2%FPR": 0.17474747474747473,
+        "recall@5%FPR": 0.2818181818181818,
+        "preds": "[1 1 1 ... 0 1 1]"
+      },
+      "frozen_operating_points": {
+        "0.5%FPR": {
+          "frozen_threshold": 0.3693259124766081,
+          "realised_fpr": 0.00614453781512605,
+          "recall": 0.06565656565656566,
+          "precision": 0.12452107279693486,
+          "alert_rate": 0.006926292045379155
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.369138012850153,
+          "realised_fpr": 0.010823529411764706,
+          "recall": 0.12525252525252525,
+          "precision": 0.13347685683530677,
+          "alert_rate": 0.012326676839381675
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.3688828210273035,
+          "realised_fpr": 0.019549579831932774,
+          "recall": 0.1707070707070707,
+          "precision": 0.10412815773259396,
+          "alert_rate": 0.02153519538247197
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.3683575067712699,
+          "realised_fpr": 0.04625210084033613,
+          "recall": 0.27474747474747474,
+          "precision": 0.07327586206896551,
+          "alert_rate": 0.04925363232269621
+        }
+      },
+      "shipped_in_partition": null,
+      "fold_leakage_free_cleaned": null
+    }
+  },
+  "elapsed_s": 126.43209671974182
+}

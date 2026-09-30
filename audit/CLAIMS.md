@@ -105,3 +105,21 @@ Row updates: rows 25/26 remain valid as **in-partition
 protocol-stability evidence** (disclosed); row 13 (recall@FPR
 window-level caveat) now carries event-level corroboration; row 16's
 natural-prevalence evaluation is executed at the fold's test boundary.
+
+---
+
+## v3.5 raw-substrate claim updates (2026-09-30)
+
+| # | Claim | Status | Evidence |
+|---|-------|--------|----------|
+| 33 | Centralised baselines generalise to the raw unbalanced benchmark | **DEMONSTRATED** | `outputs/raw_substrate_eval.json` (frozen protocol retrained on raw P1-4, natural 2.05% prevalence, FPCKNN/LSBZM reproduced in-pipeline, single-pass test raw P5): LR 0.978/0.448 (unchanged to 3 decimals vs the cleaned fold), central MLP 0.971/0.445 (PR up from 0.382), XGB 0.974/0.329 |
+| 34 | Federated arms' leakage-free standing transfers to the raw benchmark | **REFUTED** | Same run: FedProx 0.930/0.149 (was 0.976/0.308), FedAvg 0.875/0.056 (was 0.906/0.370) with 0/65 events detected, SCAFFOLD 0.768/0.057 fails outright (Brier 0.137). Best federated arm dominated by every centralised baseline; the standing was a property of the balanced synthetic substrate |
+| 35 | XGBoost's cleaned-fold PR-AUC reflects real minority-class learning | REFUTED (partially synthetic) | Raw-substrate XGB PR-AUC 0.329 vs 0.457 on the cleaned fold: the TimeGAN synthetic positives inflated minority precision by ~0.13 PR-AUC |
+| 36 | SCAFFOLD is a viable stabiliser for this problem | REFUTED (first real-substrate execution) | `outputs/raw_substrate_eval.json` + `outputs/event_level_raw_p5.json`: 0.768/0.057, Brier 0.137, event detection 54/65 at 6.4 false-alarm windows/day (~20x the centralised arms' burden) |
+| 37 | The FPCKNN/LSBZM preprocessing reproduction is rank-faithful | DEMONSTRATED (bounded) | `outputs/raw_substrate_verification.json`: on the audit-matched P5 windows (100% match), observed-nonzero Spearman vs the released export: median 0.898, min 0.842; the release is itself an exact monotone image of raw (rho=1.000), residual gap = float16-storage tie dilution; imputed positions method-dependent (median rho 0.313); the release re-imputes the R_VALUE zero mass (60.9% of the column) as if missing, this reproduction preserves zeros |
+
+Row updates: rows 29-32 (leakage-free fold) now carry the raw-substrate
+corroboration in `sec:res-raw`; the deployability boundary (row 31)
+extends: on the raw substrate the centralised MLP's Brier 0.010 is
+best of all arms and no federated arm is calibration-usable on any
+substrate.

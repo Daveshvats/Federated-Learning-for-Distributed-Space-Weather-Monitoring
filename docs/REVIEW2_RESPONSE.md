@@ -480,12 +480,54 @@ synthetic in its positive class.
    evidence; the gap it preserved is an in-partition artifact (see the
    fold).
 7. ~~α=5.0 promotion~~ (executed, refuted) — unchanged.
-8. Federated LSTM/SCAFFOLD — remains queued (compute).
-9. Raw unbalanced programme — now PARTIALLY superseded: the
-   temporally-preceding fold re-evaluates the frozen protocol on the
-   benchmark's intended substrate split; full raw-substrate retraining
-   (FPCKNN/LSBZM reproduction, no synthetic oversampling) remains
-   queued and is now unblocked by the committed metadata.
+8. Federated LSTM/SCAFFOLD — **SCAFFOLD EXECUTED (v3.5)** on the
+   raw substrate (identical frozen budget as FedProx/FedAvg): fails
+   outright at ROC 0.768 / PR 0.057, Brier 0.137, event detection
+   54/65 at 6.4 false-alarm windows per day. The LSTM arm alone
+   remains queued (owner GPU; ~8–15 h on CPU).
+9. Raw unbalanced programme — **EXECUTED (v3.5)**
+   (`experiments/raw_substrate.py` builds the substrate,
+   `experiments/run_raw_substrate.py` retrains the frozen protocol,
+   `experiments/run_event_level_raw.py` provides event metrics;
+   artefacts `outputs/raw_substrate_eval.json`,
+   `outputs/event_level_raw_p5.json`,
+   `outputs/raw_substrate_verification.json`). FPCKNN imputation and
+   LSBZM normalisation are reproduced in-pipeline from the release
+   paper's description with train-only parameters; the reproduction
+   is verified against the released export on the audit-matched P5
+   windows (100% match; observed-nonzero median Spearman ρ=0.898,
+   min 0.842; the release is itself an exact monotone image of the
+   raw values, ρ=1.000; imputed positions are method-dependent,
+   ρ=0.313; the release re-imputes the R_VALUE zero mass (60.9% of
+   that column) as if missing, this reproduction preserves zeros).
+   Headline: train raw P1–4 at natural 2.05% prevalence -> test raw
+   P5 (1.31%): LR 0.978/0.448, XGB 0.974/0.329, central MLP
+   0.971/0.445, FedAvg 0.875/0.056 (0/65 events detected), FedProx
+   0.930/0.149, SCAFFOLD 0.768/0.057. Centralised arms are
+   substrate-robust; every federated arm degrades sharply; XGB's
+   minority precision on the cleaned fold was inflated by the
+   TimeGAN synthetic positives (PR 0.457 -> 0.329). Remaining:
+   fold/seed replication and the natural-prevalence SMOTE arm.
+
+**Fourth-execution addendum: the raw-substrate retraining (v3.5).**
+Same frozen protocol, substrate = raw SWAN-SF with in-pipeline
+FPCKNN/LSBZM reproduction (details in item 9 above and paper Sec 6.2):
+
+| Model | fold (cleaned) ROC/PR | raw substrate ROC/PR | events | FA/day |
+|---|---|---|---|---|
+| Logistic regression | 0.978 / 0.455 | 0.978 / 0.448 | 51/65 | 0.3 |
+| XGBoost | 0.971 / 0.457 | 0.974 / 0.329 | 40/65 | 0.2 |
+| Centralised MLP | 0.973 / 0.382 | 0.971 / 0.445 | 52/65 | 0.3 |
+| FedAvg | 0.906 / 0.370 | 0.875 / 0.056 | 0/65 | 0.0 |
+| FedProx | 0.976 / 0.308 | 0.930 / 0.149 | 48/65 | 1.3 |
+| SCAFFOLD | — | 0.768 / 0.057 | 54/65 | 6.4 |
+
+Reading: the federated arms' leakage-free standing was still a
+property of the balanced/synthetic training substrate; at natural
+prevalence the focal-loss clients cannot learn the 2% minority
+through 6-client Dirichlet heterogeneity, and the best federated arm
+is dominated by every centralised baseline. The paper (v3.5) re-tiers
+all claims across the three substrates.
 
 **The leakage-free fold (runner
 `experiments/run_partition_disjoint.py`, artefacts

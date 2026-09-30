@@ -136,25 +136,158 @@ FedProx MLP & 65/65 (100\%) & 11.9 & 12.1 & 23.4 \\
 \end{tabular}
 \end{table}
 
+\subsection{Raw-substrate retraining: the unbalanced benchmark}
+\label{sec:res-raw}
+
+The leakage-free fold of Section~\ref{sec:res-leakfree} still trains
+on the cleaned export---RUS--Tomek rebalanced, TimeGAN-augmented,
+pre-normalised. The queued raw-benchmark experiment (item~9 of the
+re-run programme) asks the complementary question: does anything in
+the comparison survive when the frozen protocol is trained directly
+on the \emph{raw} SWAN-SF partitions at their natural class
+prevalence (2.05\% across training partitions 1--4), with no
+rebalancing, no synthetic positives, and the two cleaning stages
+reproduced in-pipeline? The raw benchmark cannot be trained on
+directly: 8.87\% of its values are missing (42.3M of 476.9M; TOTFZ
+is unobserved in 98.7\% of training windows) and the 24 parameters
+span 11 orders of magnitude. The experiment therefore reproduces the
+release's two preprocessing stages from their published description
+(ApJS, 10.3847/1538-4365/ad7c4a): a \emph{fast
+Pearson-correlation-based k-NN imputation} (partial gaps filled by
+within-window interpolation; fully-missing series transferred from
+the $k{=}5$ nearest training windows in the space of the five most
+correlated observable features) and the \emph{LSBZM} normalisation
+chain (robust clip, shift, log/sqrt/Box--Cox dispatched by fitted
+$\lambda$, z-score, min--max), with every parameter fitted on the
+training pool only. A verification against the released cleaned
+export on the audit-matched partition-5 windows (100\% window match)
+bounds the reproduction: at positions where the raw value was
+observed and nonzero, rank agreement with the release has median
+Spearman $\rho=0.898$ (min 0.842; the release is itself an exact
+monotone image of the raw values, $\rho=1.000$, so the residual gap
+is float16-storage tie dilution); at positions the release imputed,
+agreement is method-dependent (median $\rho=0.313$), and for the
+R-value flux-emergence proxy the release re-imputes the entire
+zero mass (60.9\% of that column) as if it were missing, whereas
+this reproduction preserves zeros as physical values. The three
+substrates therefore differ in composition as well as in
+preprocessing provenance, which is precisely the contrast the
+experiment isolates.
+
+Table~\ref{tab:rawsubstr} reports the six arms under the identical
+frozen protocol (Dirichlet $\alpha{=}1.0$, six clients, 50 rounds,
+Fed-Focal, seed 42, prior-shift calibration, validation-frozen
+thresholds). The result is decisive and asymmetric.
+\emph{Centralised arms are substrate-robust}: logistic regression is
+unchanged to the third decimal (0.978, PR 0.448 vs 0.455), the
+centralised MLP retains 0.971 ROC-AUC and its PR-AUC \emph{rises}
+from 0.382 to 0.445, and XGBoost keeps 0.974 ROC-AUC while its
+PR-AUC falls from 0.457 to 0.329---the synthetic TimeGAN positives
+were inflating its minority-class precision, not teaching it.
+\emph{Federated arms are substrate-fragile}: FedProx degrades from
+0.976/0.308 to 0.930/0.149; plain FedAvg's PR-AUC collapses from
+0.370 to 0.056 (its calibrated posteriors never cross the
+validation-frozen threshold: test recall 0.000); and SCAFFOLD---the
+one re-run item that had never been executed on any real
+substrate---fails outright at 0.768/0.057 with Brier 0.137. The
+federated-versus-centralised ordering of the leakage-free fold was
+still a property of the balanced training substrate; on the raw
+unbalanced benchmark the focal-loss clients cannot learn the 2\%
+minority class through 6-client Dirichlet heterogeneity, and the
+gap between the best federated and best centralised arm widens to
+0.048 ROC-AUC and $3\times$ PR-AUC.
+
+\begin{table}[t]
+\centering
+\caption{Raw-substrate retraining (train raw partitions 1--4,
+natural 2.05\% prevalence, FPCKNN/LSBZM reproduced in-pipeline with
+train-only parameters; single-pass test on raw partition 5, natural
+1.31\% prevalence; identical frozen protocol). The leakage-free
+cleaned-substrate fold is reproduced for comparison; SCAFFOLD was
+not run on the cleaned fold.}
+\label{tab:rawsubstr}
+\small
+\begin{tabular}{@{}l c c c c c c@{}}
+\toprule
+ & \multicolumn{2}{c}{\textbf{Fold (cleaned)}} &
+ \multicolumn{4}{c}{\textbf{Raw substrate}} \\
+\cmidrule(r){2-3} \cmidrule(l){4-7}
+\textbf{Model} & ROC & PR & ROC & PR & Brier & R@2\%FPR \\
+\midrule
+Logistic regression & 0.978 & 0.455 & 0.978 & 0.448 & 0.053 & 0.732 \\
+XGBoost (centralised) & 0.971 & 0.457 & 0.974 & 0.329 & 0.018 & 0.587 \\
+Centralised MLP & 0.973 & 0.382 & 0.971 & 0.445 & 0.010 & 0.596 \\
+FedAvg MLP & 0.906 & 0.370 & 0.875 & 0.056 & 0.013 & 0.063 \\
+FedProx MLP & 0.976 & 0.308 & 0.930 & 0.149 & 0.032 & 0.343 \\
+SCAFFOLD MLP & --- & --- & 0.768 & 0.057 & 0.137 & 0.175 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The event-level evaluation on the same substrate
+(Table~\ref{tab:eventlevel-raw}) makes the collapse operational: all
+65 true M/X-class events are matched to their GOES peaks exactly as
+in the cleaned fold, but plain FedAvg now detects \emph{zero} of
+them, FedProx detects 48 (73.8\%) at 1.3 false-alarm windows per
+day, and SCAFFOLD's 83.1\% detection rate is bought at 6.4
+false-alarm windows per day---roughly $20\times$ the centralised
+arms' burden. The centralised arms detect 61.5--80\% of events at
+0.2--0.3 false-alarm windows per day with 18--23\,h median lead
+times. Detection under class balance, in other words, was the
+artifact; under the benchmark's natural prevalence the deployable
+models are exactly the ones that never needed federation.
+
+\begin{table}[t]
+\centering
+\caption{Event-level metrics on the raw substrate (65 true M/X-class
+events, validation-frozen $F_2$ thresholds, 1-hour alert cooldown;
+99.86\% of test windows matched to the audit's event keys).}
+\label{tab:eventlevel-raw}
+\small
+\begin{tabular}{@{}l c c c c@{}}
+\toprule
+\textbf{Model} & \textbf{Events detected} & \textbf{FA windows/day} &
+\textbf{Alerts/day} & \textbf{Lead to peak (h)} \\
+\midrule
+Logistic regression & 51/65 (78.5\%) & 0.3 & 0.4 & 22.8 \\
+XGBoost (centralised) & 40/65 (61.5\%) & 0.2 & 0.3 & 18.0 \\
+Centralised MLP & 52/65 (80.0\%) & 0.3 & 0.4 & 20.5 \\
+FedAvg MLP & 0/65 (0.0\%) & 0.0 & 0.0 & --- \\
+FedProx MLP & 48/65 (73.8\%) & 1.3 & 1.4 & 23.0 \\
+SCAFFOLD MLP & 54/65 (83.1\%) & 6.4 & 6.6 & 23.2 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \subsection{What survives the leakage-free protocol}
 \label{sec:res-leakfree-discussion}
 
-Three claims transfer to the temporally-preceding fold unchanged:
-FedProx's \emph{ROC stabilisation} over plain FedAvg under adversarial
-heterogeneity (0.976 vs 0.906, with checkpoint-independent versus
-checkpoint-lottery dynamics); the \emph{deployability boundary} (only
-XGBoost's posteriors survive the prevalence shift; no neural arm is
-calibration-usable); and the \emph{threshold-transfer failure} at
-fixed-FPR operating points. Three claims do not transfer: the
-federated-versus-centralised ROC gap (0.003, within noise), FedProx's
-in-partition PR-AUC edge over every arm (its leakage-free PR-AUC of
-0.308 is the lowest of the five), and the absolute discrimination
-levels themselves (the task is easier on the unseen partition than
-the in-partition numbers implied). The multi-seed, sweep, ablation,
-and client-level studies of the following subsections were executed
-under the in-partition protocol and are retained as protocol-stability
-evidence; their leakage-free counterparts remain queued (one fold is
-reported here; fold- and seed-replication is owner-side compute).
+With the raw-substrate retraining of Section~\ref{sec:res-raw} the
+comparison now spans three substrates---in-partition (overlap
+disclosed), leakage-free cleaned (rebalanced, synthetic positives),
+and leakage-free raw (natural prevalence)---and the surviving claims
+can be tiered across all three. Two claims transfer unchanged to
+\emph{every} substrate: the \emph{deployability boundary} (only
+XGBoost's posteriors survive the prevalence shift on the cleaned
+fold; on the raw substrate the centralised MLP's Brier of 0.010 is
+the best of all arms; no federated arm is calibration-usable on any
+substrate) and the \emph{threshold-transfer failure} at fixed-FPR
+operating points. FedProx's \emph{ROC stabilisation} over plain
+FedAvg transfers to the cleaned fold (0.976 vs 0.906,
+checkpoint-independent dynamics) but shrinks to 0.930 vs 0.875 on
+the raw substrate, with both arms far below every centralised model.
+Three claims do not transfer beyond the cleaned fold: the
+federated-versus-centralised ROC gap (0.003 on the cleaned fold,
+0.048 in favour of centralised on raw), FedProx's in-partition
+PR-AUC edge (its raw PR-AUC of 0.149 is a third of the centralised
+MLP's 0.445), and the absolute discrimination levels of the
+federated arms themselves (FedAvg detects zero of 65 events on the
+raw substrate). The multi-seed, sweep, ablation, and client-level
+studies of the following subsections were executed under the
+in-partition protocol and are retained as protocol-stability
+evidence; their leakage-free and raw-substrate counterparts remain
+queued (one fold of each is reported here; fold- and
+seed-replication is owner-side compute).
 
 \subsection{Headline comparison on the held-out test set (in-partition protocol)}
 

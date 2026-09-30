@@ -83,6 +83,35 @@ $\sim$49\% prior must detect events at a $\sim$2\% prior, so absolute
 probability calibration degrades and decision thresholds must be
 re-optimised post hoc (Section~\ref{sec:thresholding}).
 
+The raw-benchmark experiments of Sections~\ref{sec:res-leakfree}
+and~\ref{sec:res-raw} additionally ingest the unprocessed SWAN-SF
+partitions directly. The raw substrate cannot be trained on as-is:
+8.87\% of its values are missing, the missingness is structured
+(the Lorentz-force component TOTFZ is unobserved in 98.7\% of
+training windows), and the 24 parameters span eleven orders of
+magnitude. We therefore reproduce the cleaned release's two
+preprocessing stages in-pipeline from their published description
+(ApJS, 10.3847/1538-4365/ad7c4a) rather than inheriting their
+output: a fast Pearson-correlation-based k-NN imputation (within-window
+linear interpolation for partial gaps; inverse-distance-weighted
+transfer of the $k{=}5$ nearest training windows' series, searched in
+the space of the five most-correlated observable features, for
+fully-missing series), and the LSBZM normalisation chain (robust
+quantile clip, positivity shift, a log/sqrt/Box--Cox stabiliser
+dispatched per feature by fitted $\lambda$, z-score, min--max), with
+every parameter fitted on the training pool only and a per-feature
+power-of-two pre-scaling for numerical safety. The reproduction is
+verified against the released export on the audit-matched windows
+(observed-position rank agreement in
+Section~\ref{sec:res-raw}); where the two pipelines differ
+substantively (the release re-imputes the R-value zero mass as if
+missing; we preserve zeros as physical ``no flux emergence''
+values), we preserve the raw semantics. The construction, the
+runner, and the verification are committed as
+\texttt{experiments/raw\_substrate.py},
+\texttt{experiments/run\_raw\_substrate.py}, and
+\texttt{experiments/run\_event\_level\_raw.py}.
+
 \subsection{Client-side feature representation}
 
 The framework supports two representations of the same 60-timestep
@@ -232,8 +261,9 @@ which renders SMOTE inert---the configured oversampling ratio produces
 zero synthetic samples. The balancing question is therefore
 inapplicable to this benchmark variant, and we report it as a null
 result rather than a contribution (Section~\ref{sec:res-ablation});
-SMOTE remains a live arm for the raw-benchmark evaluation queued in
-Section~\ref{sec:limitations}.
+SMOTE is a live arm for the raw-substrate programme, where natural
+prevalence finally gives it work to do
+(Section~\ref{sec:limitations}).
 
 \subsection{Threshold protocol for safety-critical recall}
 \label{sec:thresholding}

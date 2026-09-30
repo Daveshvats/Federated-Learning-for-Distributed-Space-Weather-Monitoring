@@ -3,7 +3,7 @@
 % ════════════════════════════════════════════════════════════════════
 %  Federated Learning for Data-Locality-Preserving Distributed
 %  Space Weather Monitoring: A Solar-Flare Prediction Component
-%  for Grid-Resilience Pipelines (v3.4, leakage-free re-evaluation)
+%  for Grid-Resilience Pipelines (v3.5, raw-substrate re-execution)
 %  arXiv-preprint-style single-column manuscript
 % ════════════════════════════════════════════════════════════════════
 
@@ -151,7 +151,17 @@ gap disappears (FedProx 0.976 / PR 0.308 vs centralised MLP of
 identical architecture 0.973 / 0.382), and FedProx retains a ROC
 stabilisation over plain FedAvg (0.976 vs 0.906) whose val-curve
 dynamics are checkpoint-independent, although FedAvg's PR-AUC is
-higher (0.370 vs 0.308). Plain FedAvg diverges under the
+higher (0.370 vs 0.308). Finally, retraining the identical frozen
+protocol on the RAW, unbalanced benchmark (natural 2.05\% training
+prevalence, no synthetic positives, the release's FPCKNN imputation
+and LSBZM normalisation reproduced in-pipeline with train-only
+parameters, verified against the released export) separates the arms
+decisively: the centralised baselines are substrate-robust (LR
+unchanged at 0.978; centralised MLP PR 0.445) while every federated
+arm degrades sharply (FedProx 0.930/0.149; FedAvg detects zero of 65
+events; SCAFFOLD fails at 0.768/0.057)---the federated standing was
+a property of the balanced synthetic substrate, so the case for
+federating this problem rests on data locality, not performance. Plain FedAvg diverges under the
 preregistered headline configuration (validation AUC $0.99\to0.05$
 after round 20; the in-partition multiseed, sweep, ablation and
 client-level studies are retained as protocol-stability evidence and

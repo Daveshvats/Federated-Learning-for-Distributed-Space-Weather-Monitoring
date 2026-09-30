@@ -155,3 +155,23 @@ Abstract-level updates from the independent re-execution:
   false-alarm burden ~7x lower than the neural arms. All v3.3 and
   earlier numbers are disclosed as in-partition protocol-stability
   evidence, not generalisation estimates.
+
+## v3.5 — raw-substrate re-execution (2026-09-30)
+
+The frozen protocol was retrained on the RAW unbalanced SWAN-SF
+benchmark (natural 2.05% training prevalence, no RUS-Tomek-TimeGAN,
+no synthetic positives) with the cleaned release's FPCKNN imputation
+and LSBZM normalisation reproduced in-pipeline from their published
+description (train-only parameters; reproduction verified against the
+released export on the audit-matched windows: observed-nonzero median
+Spearman rho=0.898, release itself an exact monotone image of raw;
+the release re-imputes the R_VALUE zero mass as if missing, we
+preserve zeros) and evaluated single-pass on raw P5 (1.31%):
+centralised arms are substrate-robust (LR 0.978/0.448, XGB
+0.974/0.329, central MLP 0.971/0.445) while every federated arm
+degrades sharply (FedProx 0.930/0.149, FedAvg 0.875/0.056 with 0/65
+events detected, SCAFFOLD 0.768/0.057). Event-level: central arms
+61.5-80% detection at 0.2-0.3 false-alarm windows/day. The federated
+arms' standing on the cleaned benchmark is a property of its balanced
+synthetic substrate; under natural prevalence the case for federating
+this problem rests on data locality, not predictive performance.

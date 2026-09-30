@@ -1,0 +1,230 @@
+{
+  "purpose": "FPCKNN/LSBZM reproduction check vs released cleaned export (P5 matched windows, provenance audit alignment)",
+  "n_matched_windows": 75336,
+  "match_fraction_p5": 0.9996,
+  "median_spearman_all": 0.882,
+  "min_spearman_all": -0.6582,
+  "median_spearman_observed": 0.8889,
+  "median_spearman_observed_nonzero": 0.8977,
+  "min_spearman_observed_nonzero": 0.8419,
+  "median_spearman_imputed": 0.3129,
+  "per_feature": {
+    "0": {
+      "spearman_all": 0.3632,
+      "spearman_observed": 0.3636,
+      "spearman_observed_nonzero": 0.9868,
+      "spearman_imputed": 0.2736,
+      "mae": 0.4362,
+      "n_observed_positions": 4503407,
+      "n_imputed_positions": 16753
+    },
+    "1": {
+      "spearman_all": 0.9036,
+      "spearman_observed": 0.9052,
+      "spearman_observed_nonzero": 0.9052,
+      "spearman_imputed": 0.4148,
+      "mae": 0.7137,
+      "n_observed_positions": 4503407,
+      "n_imputed_positions": 16753
+    },
+    "2": {
+      "spearman_all": 0.8815,
+      "spearman_observed": 0.8829,
+      "spearman_observed_nonzero": 0.8829,
+      "spearman_imputed": 0.4298,
+      "mae": 0.6986,
+      "n_observed_positions": 4503407,
+      "n_imputed_positions": 16753
+    },
+    "3": {
+      "spearman_all": 0.8654,
+      "spearman_observed": 0.8668,
+      "spearman_observed_nonzero": 0.8668,
+      "spearman_imputed": 0.4084,
+      "mae": 0.6268,
+      "n_observed_positions": 4503407,
+      "n_imputed_positions": 16753
+    },
+    "4": {
+      "spearman_all": 0.882,
+      "spearman_observed": 0.8835,
+      "spearman_observed_nonzero": 0.8835,
+      "spearman_imputed": 0.4087,
+      "mae": 0.7233,
+      "n_observed_positions": 4503407,
+      "n_imputed_positions": 16753
+    },
+    "5": {
+      "spearman_all": 0.8988,
+      "spearman_observed": 0.9006,
+      "spearman_observed_nonzero": 0.9006,
+      "spearman_imputed": 0.3373,
+      "mae": 0.5874,
+      "n_observed_positions": 4503407,
+      "n_imputed_positions": 16753
+    },
+    "6": {
+      "spearman_all": 0.8854,
+      "spearman_observed": 0.887,
+      "spearman_observed_nonzero": 0.887,
+      "spearman_imputed": 0.3479,
+      "mae": 0.7246,
+      "n_observed_positions": 4503407,
+      "n_imputed_positions": 16753
+    },
+    "7": {
+      "spearman_all": 0.8893,
+      "spearman_observed": 0.8907,
+      "spearman_observed_nonzero": 0.8907,
+      "spearman_imputed": 0.4323,
+      "mae": 0.7374,
+      "n_observed_positions": 4503407,
+      "n_imputed_positions": 16753
+    },
+    "8": {
+      "spearman_all": -0.6582,
+      "spearman_observed": 0.9116,
+      "spearman_observed_nonzero": 0.9972,
+      "spearman_imputed": -0.6583,
+      "mae": 0.9667,
+      "n_observed_positions": 597,
+      "n_imputed_positions": 4519563
+    },
+    "9": {
+      "spearman_all": 0.8404,
+      "spearman_observed": 0.8419,
+      "spearman_observed_nonzero": 0.8419,
+      "spearman_imputed": 0.3263,
+      "mae": 0.3948,
+      "n_observed_positions": 4503135,
+      "n_imputed_positions": 17025
+    },
+    "10": {
+      "spearman_all": 0.9074,
+      "spearman_observed": 0.9076,
+      "spearman_observed_nonzero": 0.9076,
+      "spearman_imputed": 0.872,
+      "mae": 0.2893,
+      "n_observed_positions": 4503135,
+      "n_imputed_positions": 17025
+    },
+    "11": {
+      "spearman_all": 0.8833,
+      "spearman_observed": 0.8835,
+      "spearman_observed_nonzero": 0.8835,
+      "spearman_imputed": 0.8342,
+      "mae": 0.3411,
+      "n_observed_positions": 4503135,
+      "n_imputed_positions": 17025
+    },
+    "12": {
+      "spearman_all": 0.8597,
+      "spearman_observed": 0.8616,
+      "spearman_observed_nonzero": 0.8616,
+      "spearman_imputed": 0.2579,
+      "mae": 0.4867,
+      "n_observed_positions": 4503135,
+      "n_imputed_positions": 17025
+    },
+    "13": {
+      "spearman_all": 0.8442,
+      "spearman_observed": 0.8458,
+      "spearman_observed_nonzero": 0.8458,
+      "spearman_imputed": 0.2995,
+      "mae": 0.8585,
+      "n_observed_positions": 4503135,
+      "n_imputed_positions": 17025
+    },
+    "14": {
+      "spearman_all": 0.8693,
+      "spearman_observed": 0.8711,
+      "spearman_observed_nonzero": 0.8947,
+      "spearman_imputed": 0.2901,
+      "mae": 0.5252,
+      "n_observed_positions": 4503135,
+      "n_imputed_positions": 17025
+    },
+    "15": {
+      "spearman_all": 0.8725,
+      "spearman_observed": 0.8744,
+      "spearman_observed_nonzero": 0.8744,
+      "spearman_imputed": 0.2569,
+      "mae": 0.7899,
+      "n_observed_positions": 4503121,
+      "n_imputed_positions": 17039
+    },
+    "16": {
+      "spearman_all": 0.957,
+      "spearman_observed": 0.959,
+      "spearman_observed_nonzero": 0.959,
+      "spearman_imputed": 0.3572,
+      "mae": 0.4223,
+      "n_observed_positions": 4503135,
+      "n_imputed_positions": 17025
+    },
+    "17": {
+      "spearman_all": 0.9551,
+      "spearman_observed": 0.9572,
+      "spearman_observed_nonzero": 0.9572,
+      "spearman_imputed": 0.3531,
+      "mae": 0.4243,
+      "n_observed_positions": 4503135,
+      "n_imputed_positions": 17025
+    },
+    "18": {
+      "spearman_all": 0.9413,
+      "spearman_observed": 0.9435,
+      "spearman_observed_nonzero": 0.9435,
+      "spearman_imputed": 0.2496,
+      "mae": 0.2892,
+      "n_observed_positions": 4503135,
+      "n_imputed_positions": 17025
+    },
+    "19": {
+      "spearman_all": 0.882,
+      "spearman_observed": 0.8844,
+      "spearman_observed_nonzero": 0.8844,
+      "spearman_imputed": 0.1525,
+      "mae": 0.4874,
+      "n_observed_positions": 4503135,
+      "n_imputed_positions": 17025
+    },
+    "20": {
+      "spearman_all": 0.235,
+      "spearman_observed": 0.9111,
+      "spearman_observed_nonzero": 0.9111,
+      "spearman_imputed": -0.7179,
+      "mae": 0.5005,
+      "n_observed_positions": 2557493,
+      "n_imputed_positions": 1962667
+    },
+    "21": {
+      "spearman_all": 0.9112,
+      "spearman_observed": 0.9135,
+      "spearman_observed_nonzero": 0.9135,
+      "spearman_imputed": 0.2459,
+      "mae": 0.6581,
+      "n_observed_positions": 4503135,
+      "n_imputed_positions": 17025
+    },
+    "22": {
+      "spearman_all": 0.909,
+      "spearman_observed": 0.9114,
+      "spearman_observed_nonzero": 0.9114,
+      "spearman_imputed": 0.1516,
+      "mae": 0.4678,
+      "n_observed_positions": 4503135,
+      "n_imputed_positions": 17025
+    },
+    "23": {
+      "spearman_all": 0.0504,
+      "spearman_observed": 0.9173,
+      "spearman_observed_nonzero": 0.9173,
+      "spearman_imputed": -0.8593,
+      "mae": 0.5111,
+      "n_observed_positions": 2270824,
+      "n_imputed_positions": 2249336
+    }
+  },
+  "caveat": "the release normalises per-partition and fits on all partitions; this reproduction fits on the train pool only (leakage-free) \u2014 exact equality is not expected, rank equivalence is the criterion. The release additionally re-imputes the R_VALUE zero mass (60.9% of that column) as if missing; this reproduction preserves zeros as physical values ('no flux emergence'), which is the sole cause of f00's low pooled rank agreement (rho=1.0000 on raw>0 positions). Residual sub-1.0 observed-position agreement (~0.99) is tie dilution from float16 storage quantisation (2^-11 relative)."
+}

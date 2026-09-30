@@ -132,6 +132,25 @@ event-level evaluation executed on 65 physical M/X-class events
 (detection 98.5--100\%, XGBoost false-alarm burden $\sim$7$\times$
 lower than neural arms, 23.4\,h median lead to flare peak); claims
 re-tiered, in-partition results disclosed as such. \\
+\addlinespace[2pt]
+v3.5 & Raw-substrate retraining (re-run item 9) and the SCAFFOLD arm
+(item 8, half) still queued; the release's imputation/normalisation
+stages not reproducible in-pipeline. & Both executed
+(\texttt{experiments/raw\_substrate.py},
+\texttt{run\_raw\_substrate.py},
+\texttt{run\_event\_level\_raw.py}): FPCKNN-style imputation and
+LSBZM-style normalisation reproduced from the release paper's
+description with train-only parameters and verified against the
+released export on the audit-matched windows (median Spearman
+$\rho=0.898$ at observed-nonzero positions; release is an exact
+monotone image of raw, $\rho=1.000$; R-value zero mass re-imputed
+by the release but preserved here); frozen protocol retrained on
+raw P1--4 at natural 2.05\% prevalence, single-pass test on raw P5:
+centralised arms substrate-robust (LR 0.978/0.448, XGB 0.974/0.329,
+MLP 0.971/0.445), federated arms collapse (FedAvg 0.875/0.056, 0/65
+events; FedProx 0.930/0.149; SCAFFOLD 0.768/0.057); event-level:
+central arms 61.5--80\% detection at 0.2--0.3 FA windows/day; claims
+re-tiered across three substrates. \\
 \bottomrule
 \end{tabularx}
 \end{table}
