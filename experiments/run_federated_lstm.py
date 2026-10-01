@@ -43,6 +43,17 @@ USAGE
         --limit-train 20000 --limit-eval 4000      # wiring + timing check
     python experiments/run_federated_lstm.py --seed 43
         # multi-seed: keeps the frozen val carve; reseeds init/shards
+
+    python experiments/run_federated_lstm.py --tag scaffold --scaffold-only
+        # SCAFFOLD-LSTM arm only (seed 42) -> outputs/raw_lstm_scaffold.json
+    python experiments/run_federated_lstm.py --seed 43 --scaffold
+        # full 4-arm replication -> outputs/raw_lstm_seed43.json
+    python experiments/run_federated_lstm.py --tag smote --smote \
+        --no-central-lstm
+        # natural-prevalence SMOTE ablation -> outputs/raw_lstm_smote.json
+
+    python experiments/run_gpu_queue.py
+        # the whole remaining GPU queue in ONE resumable command
 """
 import argparse
 import json
@@ -61,6 +72,10 @@ from experiments.raw_substrate import (CACHE, TRAIN_PARTS, TEST_PART,
 FROZEN_SPLIT_SEED = cfg.SEED      # captured BEFORE any --seed override
 FPR_TARGETS = (0.005, 0.01, 0.02, 0.05)
 CHUNK = 4096                      # windows per LSBZM re-application chunk
+MLP_COUNTERPART_MAP = {"fedavg_lstm": "fedavg_mlp",
+                       "fedprox_lstm": "fedprox_mlp",
+                       "scaffold_lstm": "scaffold_mlp",
+                       "central_lstm": "centralized_mlp"}
 
 
 # ── small helpers ───────────────────────────────────────────────────────────
@@ -303,19 +318,30 @@ def train_centralized_lstm(X_train, y_train, X_val, y_val, seed=None,
 
 # ── event-level evaluation (same recipe as run_event_level_raw.py) ─────────
 
+def find_aux_dir(raw_dir, cache_dir=None):
+    """Resolve the event-level aux metadata directory: raw_dir first,
+    then data/cache/rawsubstrate/aux, then _aux (Windows unzippers
+    rename aux -> _aux because AUX is a reserved device name — this
+    exact rename silently skipped the owner's in-run event-level pass
+    in v3.6).  Returns None when no match_test_p5.csv is found."""
+    cd = CACHE if cache_dir is None else cache_dir
+    for cand in (raw_dir, os.path.join(cd, "aux"), os.path.join(cd, "_aux")):
+        if os.path.exists(os.path.join(cand, "match_test_p5.csv")):
+            return cand
+    return None
+
+
 def event_level_eval(arms_probs, y_test, thresholds, raw_dir, out_json,
                      purpose, cooldown=5):
     """Event-level metrics on raw P5 for the LSTM arms.  Aux metadata is
-    looked up in raw_dir first, then data/cache/rawsubstrate/aux/ (the
-    GPU-bundle layout).  Returns the report dict or None if absent."""
+    looked up via find_aux_dir (raw_dir, then cache aux, then the
+    Windows-renamed _aux).  Returns the report dict or None if absent."""
     import pandas as pd
     from experiments.run_event_level import event_level_metrics
-    aux = raw_dir if os.path.exists(
-        os.path.join(raw_dir, "match_test_p5.csv")) \
-        else os.path.join(CACHE, "aux")
-    if not os.path.exists(os.path.join(aux, "match_test_p5.csv")):
-        print("[event] aux metadata not found — event-level skipped",
-              flush=True)
+    aux = find_aux_dir(raw_dir)
+    if aux is None:
+        print("[event] aux metadata not found (raw_dir / cache aux / _aux)"
+              " — event-level skipped", flush=True)
         return None
 
     y = np.asarray(y_test).astype(int)
@@ -438,6 +464,19 @@ def main():
     ap.add_argument("--limit-eval", type=int, default=0,
                     help="smoke: subsample val/test windows")
     ap.add_argument("--output", default=None)
+    ap.add_argument("--scaffold", action="store_true",
+                    help="add the SCAFFOLD-LSTM arm (same 50-round budget "
+                         "and SGD control-variate recipe as the MLP "
+                         "SCAFFOLD arm of run_raw_substrate.py)")
+    ap.add_argument("--scaffold-only", action="store_true",
+                    help="train ONLY the SCAFFOLD arm (no other arm is "
+                         "retrained; combine with --tag so no frozen "
+                         "artefact is touched)")
+    ap.add_argument("--smote", action="store_true",
+                    help="enable per-client SMOTE (natural-prevalence "
+                         "ablation; 3D-aware flatten/reshape since v3.8)")
+    ap.add_argument("--force", action="store_true",
+                    help="allow overwriting an existing --output file")
     args = ap.parse_args()
 
     import torch
@@ -450,7 +489,15 @@ def main():
     except Exception:
         pass
     cfg.USE_LSTM = True
-    cfg.USE_SCAFFOLD = False
+    if args.scaffold or args.scaffold_only:
+        cfg.USE_SCAFFOLD = True       # run_scaffold no-ops without it
+    else:
+        cfg.USE_SCAFFOLD = False
+    if args.smote:
+        cfg.USE_SMOTE = True          # per-client SMOTE ablation arm
+    if args.scaffold_only:
+        args.scaffold = True
+        args.central_lstm = False     # ONLY the scaffold arm runs
 
     seed = FROZEN_SPLIT_SEED if args.seed is None else args.seed
     if seed != FROZEN_SPLIT_SEED:
@@ -461,6 +508,11 @@ def main():
     out_path = args.output or ("outputs/raw_lstm_eval.json"
                                if tag == "lstm"
                                else f"outputs/raw_lstm_{tag}.json")
+    if os.path.exists(out_path) and not args.force:
+        raise SystemExit(
+            f"[LSTM] {out_path} already exists — refusing to overwrite a "
+            f"frozen artefact.  Pass --force or use a different "
+            f"--tag/--output.")
 
     t0 = time.time()
     d = build_3d(args.raw_dir)
@@ -505,7 +557,8 @@ def main():
         seed=cfg.SEED, min_samples=cfg.MIN_SAMPLES_PER_CLIENT)
 
     # ── arms ────────────────────────────────────────────────────────────
-    from federated_learning import run_fedavg, run_fedprox, get_model_probs
+    from federated_learning import (run_fedavg, run_fedprox, run_scaffold,
+                                    get_model_probs)
     models, walls = {}, {}
     if args.central_lstm:
         ts = time.time()
@@ -513,25 +566,38 @@ def main():
             X_train, y_train, X_val, y_val, seed=cfg.SEED,
             cache_path=os.path.join(CACHE, f"central_{tag}.pt"))
         walls["central_lstm"] = time.time() - ts
-    ts = time.time()
-    models["fedavg_lstm"], _ = run_fedavg(
-        shards, X_val, y_val, n_rounds=n_rounds, use_lstm=True,
-        eval_batch_size=cfg.EVAL_BATCH_SIZE, seed=cfg.SEED,
-        resume_path=os.path.join(CACHE, f"fedavg_{tag}.pt"))
-    walls["fedavg_lstm"] = time.time() - ts
-    ts = time.time()
-    models["fedprox_lstm"], _ = run_fedprox(
-        shards, X_val, y_val, n_rounds=n_rounds, mu=cfg.MU, use_lstm=True,
-        eval_batch_size=cfg.EVAL_BATCH_SIZE, seed=cfg.SEED,
-        resume_path=os.path.join(CACHE, f"fedprox_{tag}.pt"))
-    walls["fedprox_lstm"] = time.time() - ts
+    if not args.scaffold_only:
+        ts = time.time()
+        models["fedavg_lstm"], _ = run_fedavg(
+            shards, X_val, y_val, n_rounds=n_rounds, use_lstm=True,
+            eval_batch_size=cfg.EVAL_BATCH_SIZE, seed=cfg.SEED,
+            resume_path=os.path.join(CACHE, f"fedavg_{tag}.pt"))
+        walls["fedavg_lstm"] = time.time() - ts
+        ts = time.time()
+        models["fedprox_lstm"], _ = run_fedprox(
+            shards, X_val, y_val, n_rounds=n_rounds, mu=cfg.MU, use_lstm=True,
+            eval_batch_size=cfg.EVAL_BATCH_SIZE, seed=cfg.SEED,
+            resume_path=os.path.join(CACHE, f"fedprox_{tag}.pt"))
+        walls["fedprox_lstm"] = time.time() - ts
+    if args.scaffold:
+        ts = time.time()
+        scaf_model, _ = run_scaffold(
+            shards, X_val, y_val, n_rounds=n_rounds, use_lstm=True,
+            eval_batch_size=cfg.EVAL_BATCH_SIZE, seed=cfg.SEED,
+            resume_path=os.path.join(CACHE, f"scaffold_{tag}.pt"))
+        if scaf_model is not None:
+            models["scaffold_lstm"] = scaf_model
+            walls["scaffold_lstm"] = time.time() - ts
 
     # ── evaluation: identical frozen protocol ───────────────────────────
     from evaluation import (make_calibrator, find_optimal_threshold_fbeta,
                             compute_all_metrics,
                             select_fpr_thresholds_on_validation,
                             frozen_operating_point_metrics)
-    device = next(models["fedprox_lstm"].parameters()).device
+    # any trained arm fixes the eval device (fedprox absent in
+    # --scaffold-only / partial-arm runs)
+    device = next(next(iter(models.values())).parameters()).device \
+        if models else "cpu"
 
     REF = {}
     rp = "outputs/raw_substrate_eval.json"
@@ -540,8 +606,14 @@ def main():
         REF = {k: {"roc_auc": v["test"]["roc_auc"],
                    "pr_auc": v["test"]["pr_auc"]}
                for k, v in r.items()}
-    MLP_MAP = {"fedavg_lstm": "fedavg_mlp", "fedprox_lstm": "fedprox_mlp",
-               "central_lstm": "centralized_mlp"}
+    # frozen seed-42 LSTM arms — cross-tag runs (scaffold / seed43 /
+    # smote) inline their seed-42 counterpart for immediate comparison
+    LSTM_REF = {}
+    if tag != "lstm" and os.path.exists("outputs/raw_lstm_eval.json"):
+        r0 = json.load(open("outputs/raw_lstm_eval.json"))["results"]
+        LSTM_REF = {k: {"roc_auc": v["test"]["roc_auc"],
+                        "pr_auc": v["test"]["pr_auc"]}
+                   for k, v in r0.items()}
 
     results, probs_dump = {}, {}
     for name, model in models.items():
@@ -563,11 +635,12 @@ def main():
         frozen = select_fpr_thresholds_on_validation(y_val, p_val_c,
                                                      FPR_TARGETS)
         ops = frozen_operating_point_metrics(y_test, p_test_c, frozen)
-        ref = REF.get(MLP_MAP.get(name))
+        ref = REF.get(MLP_COUNTERPART_MAP.get(name))
         results[name] = {
             "threshold": float(t), "val_fbeta": float(fb),
             "test": metrics, "frozen_operating_points": ops,
             "rawsubstr_mlp_counterpart": ref,
+            "lstm_seed42_counterpart": LSTM_REF.get(name),
             "wall_s": round(walls.get(name, 0.0), 1),
         }
         probs_dump[name] = np.asarray(p_test_c, dtype=np.float32)
@@ -575,6 +648,11 @@ def main():
               f"PR-AUC {metrics['pr_auc']:.3f}"
               + (f"  (MLP counterpart {ref['roc_auc']:.3f}/"
                  f"{ref['pr_auc']:.3f})" if ref else ""), flush=True)
+        lref = LSTM_REF.get(name)
+        if lref:
+            print(f"  {'':16s} seed-42 LSTM counterpart "
+                  f"{lref['roc_auc']:.3f}/{lref['pr_auc']:.3f}",
+                  flush=True)
 
     report = {
         "purpose": ("review item 8 (LSTM half): frozen-protocol LSTM arms "
@@ -584,7 +662,9 @@ def main():
                     "and Dirichlet shards as run_raw_substrate.py; "
                     "single-pass test on raw P5. Optional pooled "
                     "centralized SolarLSTM comparator isolates "
-                    "architecture vs federation."),
+                    "architecture vs federation. Optional arms: "
+                    "SCAFFOLD-LSTM (--scaffold / --scaffold-only) and "
+                    "per-client SMOTE (--smote)."),
         "protocol": {"rounds": n_rounds, "mu": cfg.MU, "alpha": 1.0,
                      "seed": cfg.SEED, "clients": cfg.N_CLIENTS,
                      "val_split": cfg.VAL_SPLIT,
@@ -595,7 +675,13 @@ def main():
                               "bidirectional": cfg.LSTM_BIDIRECTIONAL},
                      "calibration": cfg.CALIBRATION_METHOD,
                      "loss": cfg.LOSS_VARIANT, "device": str(device),
-                     "tag": tag, "smoke": bool(smoke)},
+                     "tag": tag, "smoke": bool(smoke),
+                     "arms": sorted(models.keys()),
+                     "scaffold": bool(cfg.USE_SCAFFOLD),
+                     "smote": bool(getattr(cfg, "USE_SMOTE", False)),
+                     "smote_ratio": (cfg.SMOTE_RATIO
+                                      if getattr(cfg, "USE_SMOTE", False)
+                                      else None)},
         "substrate": {"train": int(len(y_train)), "val": int(len(y_val)),
                       "test": int(len(y_test)),
                       "test_pos": float(np.mean(y_test)),
@@ -621,14 +707,16 @@ def main():
           flush=True)
 
     if smoke:
-        r = walls.get("fedavg_lstm", 0.0)
-        est = r * (n_full_train / max(len(y_train), 1)) \
-            * cfg.N_ROUNDS / max(n_rounds, 1)
-        print(f"[smoke] FedAvg-LSTM {n_rounds} round(s) on "
-              f"{len(y_train):,} windows took {r:.0f}s -> full arm "
-              f"({n_full_train:,} windows x {cfg.N_ROUNDS} rounds) "
-              f"estimated {est/3600:.1f} h on this device; "
-              f"~{2*est/3600:.1f} h for both FL arms", flush=True)
+        arm = "fedavg_lstm" if walls.get("fedavg_lstm") else \
+            ("scaffold_lstm" if walls.get("scaffold_lstm") else None)
+        if arm:
+            r = walls[arm]
+            est = r * (n_full_train / max(len(y_train), 1)) \
+                * cfg.N_ROUNDS / max(n_rounds, 1)
+            print(f"[smoke] {arm} {n_rounds} round(s) on "
+                  f"{len(y_train):,} windows took {r:.0f}s -> full arm "
+                  f"({n_full_train:,} windows x {cfg.N_ROUNDS} rounds) "
+                  f"estimated {est/3600:.1f} h on this device", flush=True)
 
 
 if __name__ == "__main__":

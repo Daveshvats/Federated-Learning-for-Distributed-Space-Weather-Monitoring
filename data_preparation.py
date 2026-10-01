@@ -488,6 +488,11 @@ def apply_smote(X: np.ndarray, y: np.ndarray, seed=None):
     (experiments/run_ablations.py) now calls this under USE_SMOTE=True.
 
     v3.0: accepts an explicit seed for multi-seed reproducibility.
+    v3.8: 3D-aware — LSTM shards (n, T, F) are flattened to (n, T*F),
+    resampled, and reshaped back, so the natural-prevalence SMOTE
+    ablation works for the sequence arms (imblearn's SMOTE is 2D-only
+    and would otherwise raise, hit the except-branch, and silently
+    return the shard UNCHANGED — a no-op ablation).
     """
     if seed is None:
         seed = cfg.SEED
@@ -503,14 +508,30 @@ def apply_smote(X: np.ndarray, y: np.ndarray, seed=None):
 
     k = min(5, n_minority - 1)
 
+    # 3D LSTM shards: flatten -> SMOTE -> reshape (synthetic windows are
+    # feature-wise interpolations of two real minority windows)
+    is_3d = (X.ndim == 3)
+    if is_3d:
+        n, T, F = X.shape
+        X_in = np.asarray(X.reshape(n, T * F), dtype=np.float32)
+    else:
+        X_in = X
+
     try:
         sm = SMOTE(
             sampling_strategy=SMOTE_RATIO,
             random_state=seed,
             k_neighbors=k
         )
-        X_res, y_res = sm.fit_resample(X, y)
-        return X_res, y_res
+        X_res, y_res = sm.fit_resample(X_in, y)
     except Exception as e:
         print(f"[SMOTE] Error: {e} — returning original shard unchanged.")
         return X, y
+
+    if is_3d:
+        X_res = X_res.reshape(-1, T, F)
+    if len(X_res) != len(X):
+        print(f"[SMOTE] shard rebalanced: n {len(X):,} -> {len(X_res):,} "
+              f"(pos {n_minority:,} -> {int(np.asarray(y_res).sum()):,}, "
+              f"ratio target {SMOTE_RATIO}, k={k})")
+    return X_res, y_res

@@ -152,3 +152,9 @@ baseline on any substrate).
 Row updates: the v3.6 architecture-conditional collapse (rows 34/35,
 38) now carries the event-level quantifier — FedAvg-MLP 0/65 events
 vs FedAvg-LSTM 35/65 on identical shards/protocol.
+
+## v3.8 owner-GPU queue claim updates (2026-10-01)
+
+| # | Claim | Status | Evidence |
+|---|-------|--------|----------|
+| 44 | SCAFFOLD-LSTM, seed-43 replication, and the natural-prevalence SMOTE ablation on the raw substrate | STAGED (code-verified, not yet executed) | `experiments/run_gpu_queue.py` one-command queue + `run_federated_lstm.py --scaffold/--smote/--seed 43` (34 new checks, 176/176 total; smoke-verified on the real 3D caches on CPU incl. the fixed 3D SMOTE path and the `_aux` fallback). NO numeric claim about these arms may enter the paper until the owner-side run lands in `outputs/raw_lstm_{scaffold,seed43,smote}.json` |

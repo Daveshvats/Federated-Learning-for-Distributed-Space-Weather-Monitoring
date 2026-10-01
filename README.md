@@ -66,6 +66,7 @@ python experiments/run_partition_disjoint.py           # leakage-free fold P1-4 
 python experiments/run_event_level.py --input outputs/event_scores.json  # v3.1
 python experiments/run_federated_lstm.py               # LSTM arms on the raw substrate (v3.6: EXECUTED on owner GPU)
 python experiments/run_event_level_lstm.py              # LSTM event-level pass (v3.6: torch-free CPU, standalone)
+python experiments/run_gpu_queue.py                    # v3.8: ONE-COMMAND owner-GPU queue (SCAFFOLD-LSTM + seed-43 + SMOTE; resumable, skip-if-done, RUNLOG ledger)
 python secure_aggregation.py                          # secagg self-test
 ```
 
@@ -112,7 +113,7 @@ SF9/
 ├── privacy_analysis/           # threat model
 ├── limitations/                # honest limitations
 ├── docs/                       # GIC boundary, lit-search, review-2 response
-├── tests/                      # integrity + substrate + LSTM suites (142 checks)
+├── tests/                      # integrity + substrate + LSTM suites (176 checks)
 ├── logs/                       # execution logs
 ├── paper/                      # manuscript (LaTeX + PDF) + review
 └── outputs/                    # results.json, figures (regenerated)
@@ -214,10 +215,14 @@ the SCAFFOLD half of item 8 were **executed in v3.5**:
    MLP 0.971/0.445), federated arms collapse (FedAvg 0.875/0.056 with
    0/65 events, FedProx 0.930/0.149, SCAFFOLD 0.768/0.057).
 
-Remaining: fold/seed replication of the leakage-free, raw-substrate,
-and LSTM runs (the LSTM arms executed at a single seed on a single
-device), the SCAFFOLD-LSTM arm, and the
-natural-prevalence SMOTE ablation. The event-level figures
+Remaining (owner-side, **one command** — `python
+experiments/run_gpu_queue.py`, v3.8): the SCAFFOLD-LSTM arm, the
+seed-43 replication of the raw-substrate LSTM runs (executed at a
+single seed on a single device so far), and the natural-prevalence
+per-client SMOTE ablation.  The queue is resumable and skip-if-done,
+live-logs to `logs/queue_<step>.log`, and appends a machine-written
+ledger to `RUNLOG.md` (every owner-side ask, delivery and execution
+status).  The event-level figures
 (`outputs/event_level_p5.json`, `outputs/event_level_raw_p5.json`,
 `outputs/event_level_raw_lstm_p5.json`)
 are the operational performance figures, with the single-fold caveat.

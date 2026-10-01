@@ -511,7 +511,8 @@ synthetic in its positive class.
    the in-run pass had skipped because Windows renames the bundle's
    `aux/` to `_aux/`, AUX being a reserved device name**)**.
    Remaining on this item: the SCAFFOLD-LSTM arm and
-   seed-replication (`--seed 43`).
+   seed-replication (`--seed 43`) — both packaged in the v3.8
+   one-command owner-GPU queue (see addendum G).
 9. Raw unbalanced programme — **EXECUTED (v3.5)**
    (`experiments/raw_substrate.py` builds the substrate,
    `experiments/run_raw_substrate.py` retrains the frozen protocol,
@@ -614,3 +615,40 @@ in-run pass had skipped on the owner machine because Windows renames
 the bundle's `aux/` directory to `_aux/` (AUX is a reserved device
 name); the runner now accepts both names automatically (13-check
 test suite, total 142 checks).
+
+## G. Owner-GPU queue package (2026-10-01, v3.8)
+
+The entire remaining owner-side compute is now ONE resumable command:
+
+    python experiments/run_gpu_queue.py
+
+It executes three additive steps (no frozen seed-42 artefact is
+touched; every step writes its own report + event-level JSON):
+
+1. **SCAFFOLD-LSTM** (seed 42, 50 rounds, frozen protocol) — the last
+   unexecuted arm of the raw-substrate benchmark
+   (`run_federated_lstm.py --tag scaffold --scaffold-only`).
+2. **Seed-43 replication** — central + FedAvg + FedProx + SCAFFOLD,
+   reseeded init/shards, frozen val carve kept (`--seed 43
+   --scaffold`) — upgrades the single-seed/single-device caveat.
+3. **Natural-prevalence per-client SMOTE ablation** — FedAvg + FedProx
+   with `--smote` (ratio 0.25): the ablation the cleaned substrate
+   could not support (its training partitions were pre-balanced).
+
+Engineering notes (all CPU-verified here before handover, 34 new
+checks, total battery 176/176):
+
+- `data_preparation.apply_smote` is now 3D-aware: LSTM shards
+  (n, 60, 24) are flattened, resampled, reshaped.  Previously imblearn's
+  2D-only SMOTE would have raised, hit the except-branch, and silently
+  returned the shard UNCHANGED — a no-op ablation (caught in smoke).
+- The in-runner event-level path now resolves `_aux` (Windows AUX
+  rename) via `find_aux_dir`, so the new runs' event-level JSONs are
+  produced on the owner machine without the standalone pass.
+- The runner gained `--scaffold / --scaffold-only / --smote / --force`
+  and refuses to overwrite existing (frozen) outputs without `--force`;
+  cross-tag runs inline both the MLP counterpart and the frozen seed-42
+  LSTM counterpart.
+- `RUNLOG.md` (repo root) is the owner-side execution ledger: every
+  ask, its delivery channel, whether it ran, and machine-written
+  completion lines appended by the queue driver.
