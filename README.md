@@ -112,7 +112,7 @@ SF9/
 ├── privacy_analysis/           # threat model
 ├── limitations/                # honest limitations
 ├── docs/                       # GIC boundary, lit-search, review-2 response
-├── tests/                      # integrity + substrate + LSTM suites (140 checks)
+├── tests/                      # integrity + substrate + LSTM suites (142 checks)
 ├── logs/                       # execution logs
 ├── paper/                      # manuscript (LaTeX + PDF) + review
 └── outputs/                    # results.json, figures (regenerated)
@@ -194,9 +194,15 @@ the SCAFFOLD half of item 8 were **executed in v3.5**:
    (`experiments/run_federated_lstm.py`) is round-resumable,
    device-auto, multi-seed capable (`--seed 43`), and re-runs after
    completion reuse the trained checkpoints (evaluation-only,
-   ~minutes). The event-level pass is
-   `experiments/run_event_level_lstm.py` (torch-free, CPU, needs
-   `data/cache/rawsubstrate/test_probs_lstm.npz` + `aux/`).
+   ~minutes). The event-level pass was **executed in v3.7** via
+   `experiments/run_event_level_lstm.py` (torch-free, CPU, Windows
+   `_aux` fallback) over the GPU run's stored probabilities:
+   FedAvg-LSTM 35/65 events (53.8%, 0.2 FA windows/day) where its
+   MLP counterpart detects 0/65; FedProx-LSTM 49/65 (75.4%) at
+   0.4 FA windows/day with a 23.2h median lead — FedProx-MLP's
+   detection at 3.5x lower false-alarm burden; no federated arm
+   reaches the 78.5-80% centralised detection frontier. Artefact:
+   `outputs/event_level_raw_lstm_p5.json`.
 9. ~~Raw unbalanced SWAN-SF experiment programme~~ **EXECUTED (v3.5)**
    (`experiments/raw_substrate.py` + `run_raw_substrate.py` +
    `run_event_level_raw.py`; artefacts `outputs/raw_substrate_eval.json`,
@@ -210,12 +216,10 @@ the SCAFFOLD half of item 8 were **executed in v3.5**:
 
 Remaining: fold/seed replication of the leakage-free, raw-substrate,
 and LSTM runs (the LSTM arms executed at a single seed on a single
-device), the LSTM arms' event-level pass (one command:
-`python experiments/run_event_level_lstm.py` — needs the GPU run's
-`test_probs_lstm.npz`, already on the owner machine, plus `aux/`
-from the bundle), the SCAFFOLD-LSTM arm, and the
+device), the SCAFFOLD-LSTM arm, and the
 natural-prevalence SMOTE ablation. The event-level figures
-(`outputs/event_level_p5.json`, `outputs/event_level_raw_p5.json`)
+(`outputs/event_level_p5.json`, `outputs/event_level_raw_p5.json`,
+`outputs/event_level_raw_lstm_p5.json`)
 are the operational performance figures, with the single-fold caveat.
 
 ## v3.3 independent re-execution (2026-09-29)

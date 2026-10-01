@@ -140,3 +140,15 @@ not; row 30 (FedProx stabilisation) gains the raw-LSTM replication;
 the conclusion's smart-grid message is re-worded (parity is
 encoder-dependent; no federated arm exceeds the best centralised
 baseline on any substrate).
+
+## v3.7 event-level LSTM claim updates (2026-10-01)
+
+| # | Claim | Status | Evidence |
+|---|-------|--------|----------|
+| 41 | The sequence-encoder rescue is a window-level (ranking) phenomenon only | **REFUTED** | `outputs/event_level_raw_lstm_p5.json` (standalone CPU pass over the GPU run's stored test probs + audit metadata; 65/65 GOES peaks matched, labels asserted): FedAvg-LSTM detects 35/65 M/X events (53.8%, 0.2 FA windows/day) where its MLP counterpart detects 0/65; the rescue survives validation-frozen thresholds and 1-h cooldown, not just ranking metrics |
+| 42 | FedProx-LSTM dominates FedProx-MLP at event level | **CONFIRMED** | 49/65 (75.4%) vs 48/65 (73.8%) detection at 0.4 vs 1.3 FA windows/day (3.5x lower burden); median lead 23.2 h (p10 7.7 h, p90 24.0 h) — the joint-longest on the substrate |
+| 43 | No federated arm exceeds the best centralised baseline on any substrate (now including event level) | **CONFIRMED (extended)** | Raw P5 event-level frontier: LR 51/65 (78.5%) and central MLP 52/65 (80.0%) at 0.2-0.3 FA/day vs FedProx-LSTM 49/65 (75.4%) at 0.4; data-locality framing stands at window AND event level |
+
+Row updates: the v3.6 architecture-conditional collapse (rows 34/35,
+38) now carries the event-level quantifier — FedAvg-MLP 0/65 events
+vs FedAvg-LSTM 35/65 on identical shards/protocol.

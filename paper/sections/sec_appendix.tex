@@ -12,16 +12,27 @@ deployments in other domains will actually need, and because several
 of the fixes correct subtle interactions that a clean-slate
 reimplementation would likely rediscover the hard way.
 
-\begin{table}[h]
-\centering
-\caption{Documented stability fixes and protocol revisions across
-framework versions (v2.1--v3.1), as recorded in the released source.}
-\label{tab:evolution}
+\begingroup
 \small
-\begin{tabularx}{\textwidth}{@{}c >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X@{}}
+\setlength{\LTcapwidth}{\textwidth}
+\begin{longtable}{@{}p{0.09\textwidth} >{\raggedright\arraybackslash}p{0.42\textwidth} >{\raggedright\arraybackslash}p{0.43\textwidth}@{}}
+\caption{Documented stability fixes and protocol revisions across
+framework versions (v2.1--v3.7), as recorded in the released source.}
+\label{tab:evolution}\\
 \toprule
 \textbf{Version} & \textbf{Diagnosed failure mode} & \textbf{Fix} \\
 \midrule
+\endfirsthead
+\multicolumn{3}{@{}l@{}}{\footnotesize (continued from previous page)}\\
+\toprule
+\textbf{Version} & \textbf{Diagnosed failure mode} & \textbf{Fix} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{3}{r@{}}{\footnotesize (continued on next page)}\\
+\endfoot
+\bottomrule
+\endlastfoot
 v2.1 & LSTM models require 3D input while baselines require 2D; a
 single data path served neither correctly. & Dual data path: 2D
 statistical features for MLP and baselines; raw $60\times24$ tensors
@@ -166,9 +177,22 @@ regression; first federated Brier to beat the climatology floor;
 stabilisation now on three substrates $\times$ two encoders;
 CPU-only event-level runner released; claims re-tiered (the collapse
 is a flattened-feature-MLP property). \\
-\bottomrule
-\end{tabularx}
-\end{table}
+\addlinespace[2pt]
+v3.7 & Event-level behaviour of the LSTM arms unevaluated: the
+owner-GPU run predated the audit-metadata extraction, so the v3.6
+release shipped the CPU runner staged but unexecuted against real
+probabilities. & Executed via \texttt{run\_event\_level\_lstm.py}
+(torch-free, CPU, Windows \texttt{\_aux} fallback added) over the
+GPU run's stored test probabilities and the audit metadata (65/65
+GOES peaks matched, labels asserted equal): FedAvg-LSTM 35/65
+events (53.8\%, 0.2 FA windows/day) against its MLP counterpart's
+0/65; FedProx-LSTM 49/65 (75.4\%) at 0.4 FA windows/day with a
+23.2\,h median lead---FedProx-MLP's detection at $3.5\times$ lower
+false-alarm burden; no federated sequence arm reaches the
+78.5--80\% centralised detection frontier. Artefact
+\texttt{outputs/event\_level\_raw\_lstm\_p5.json}. \\
+\end{longtable}
+\endgroup
 
 Three of these fixes deserve narrative emphasis because they encode
 non-obvious engineering knowledge. The SCAFFOLD failure (v2.3) is the

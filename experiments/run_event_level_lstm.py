@@ -14,7 +14,9 @@ CPU-only box — from the two small artefacts the GPU run leaves behind:
 
 plus the aux metadata (audit match table, pooled test meta, GOES flare
 list) under data/cache/rawsubstrate/aux/ — the GPU-bundle layout, also
-where run_federated_lstm.py looks for it.
+where run_federated_lstm.py looks for it. On Windows the reserved
+device name AUX forces extractors to rename that directory, so
+_aux/ is accepted as a fallback automatically.
 
 Usage:
     python experiments/run_event_level_lstm.py            # tag 'lstm'
@@ -55,7 +57,12 @@ def main():
     ap.add_argument("--cooldown", type=int, default=COOLDOWN)
     args = ap.parse_args()
 
-    aux = args.aux or os.path.join(args.cache, "aux")
+    # 'aux' is a reserved device name on Windows, so bundle extraction
+    # there lands as '_aux' — accept both, explicit --aux wins.
+    aux = args.aux
+    if aux is None:
+        cands = [os.path.join(args.cache, d) for d in ("aux", "_aux")]
+        aux = next((c for c in cands if os.path.isdir(c)), cands[0])
     probs_path = os.path.join(args.cache, f"test_probs_{args.tag}.npz")
     eval_path = args.eval or os.path.join(
         CLONE, "outputs",

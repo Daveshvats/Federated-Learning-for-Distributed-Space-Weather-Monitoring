@@ -233,7 +233,10 @@ day, and SCAFFOLD's 83.1\% detection rate is bought at 6.4
 false-alarm windows per day---roughly $20\times$ the centralised
 arms' burden. The centralised arms detect 61.5--80\% of events at
 0.2--0.3 false-alarm windows per day with 18--23\,h median lead
-times. Detection under class balance, in other words, was the
+times. The sequence arms appended below the rule
+(Section~\ref{sec:res-lstm}) restore partial federated detection
+and are discussed there. Detection under class balance, in other
+words, was the
 artifact; under the benchmark's natural prevalence the deployable
 models are exactly the ones that never needed federation.
 
@@ -241,7 +244,10 @@ models are exactly the ones that never needed federation.
 \centering
 \caption{Event-level metrics on the raw substrate (65 true M/X-class
 events, validation-frozen $F_2$ thresholds, 1-hour alert cooldown;
-99.86\% of test windows matched to the audit's event keys).}
+99.86\% of test windows matched to the audit's event keys). The
+sequence arms (below the rule) are evaluated by the standalone
+torch-free CPU runner over the owner-GPU run's stored per-window
+test probabilities and the same audit metadata.}
 \label{tab:eventlevel-raw}
 \small
 \begin{tabular}{@{}l c c c c@{}}
@@ -255,6 +261,10 @@ Centralised MLP & 52/65 (80.0\%) & 0.3 & 0.4 & 20.5 \\
 FedAvg MLP & 0/65 (0.0\%) & 0.0 & 0.0 & --- \\
 FedProx MLP & 48/65 (73.8\%) & 1.3 & 1.4 & 23.0 \\
 SCAFFOLD MLP & 54/65 (83.1\%) & 6.4 & 6.6 & 23.2 \\
+\midrule
+Centralised LSTM & 41/65 (63.1\%) & 0.3 & 0.4 & 19.3 \\
+FedAvg LSTM & 35/65 (53.8\%) & 0.2 & 0.2 & 17.4 \\
+FedProx LSTM & 49/65 (75.4\%) & 0.4 & 0.5 & 23.2 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -324,9 +334,23 @@ this substrate. Finally, the FedProx-over-FedAvg stabilisation now
 appears on all three substrates and both encoders (cleaned fold
 0.976 vs 0.906; raw MLP 0.930 vs 0.875; raw LSTM 0.970 vs
 0.958)---the most replicated single finding of this study. The
-event-level pass for these arms is a staged one-command step over
-the same audit metadata used for Table~\ref{tab:eventlevel-raw}
-(the window-level artefacts above are complete without it).
+event-level pass (bottom block of Table~\ref{tab:eventlevel-raw})
+was executed offline, on CPU, from the GPU run's stored per-window
+test probabilities over the same audit metadata---no retraining,
+65/65 GOES peaks matched. Where plain FedAvg-MLP detects \emph{zero}
+of the 65 events, FedAvg-LSTM detects 35 (53.8\%) at 0.2
+false-alarm windows per day: the encoder rescue survives the
+validation-frozen thresholds and the cooldown machinery, not just
+the ranking metrics. FedProx-LSTM is the standout: 49/65 (75.4\%)
+detection at 0.4 false-alarm windows per day, exceeding
+FedProx-MLP's raw detection while cutting its false-alarm burden
+$3.5\times$ (1.3), with a 23.2\,h median lead to flare peak---the
+joint-longest on this substrate and $4\times$ the 1-hour minimum
+warning horizon the event protocol is built around. No federated
+sequence arm reaches the centralised detection frontier (logistic
+regression 78.5\%, centralised MLP 80.0\%, both at 0.2--0.3
+false-alarm windows per day), so the data-locality conclusion of
+Section~\ref{sec:res-raw} holds at event level as well.
 
 \begin{table}[t]
 \centering
@@ -381,7 +405,8 @@ FedProx's in-partition PR-AUC edge (its raw PR-AUC of 0.149 is a
 third of the centralised MLP's 0.445, though the sequence arm
 reaches 0.404), and the absolute discrimination levels of the
 flattened-feature federated arms themselves (FedAvg-MLP detects zero
-of 65 events on the raw substrate; FedAvg-LSTM does not collapse).
+of 65 events on the raw substrate; the sequence arm detects 35,
+Section~\ref{sec:res-lstm}).
 The multi-seed, sweep, ablation, and client-level
 studies of the following subsections were executed under the
 in-partition protocol and are retained as protocol-stability

@@ -3,7 +3,8 @@
 % ════════════════════════════════════════════════════════════════════
 %  Federated Learning for Data-Locality-Preserving Distributed
 %  Space Weather Monitoring: A Solar-Flare Prediction Component
-%  for Grid-Resilience Pipelines (v3.6, federated LSTM executed)
+%  for Grid-Resilience Pipelines (v3.7, federated LSTM executed,
+%  window- and event-level)
 %  arXiv-preprint-style single-column manuscript
 % ════════════════════════════════════════════════════════════════════
 
@@ -18,6 +19,7 @@
 
 \usepackage{booktabs}
 \usepackage{tabularx}
+\usepackage{longtable}
 \usepackage{adjustbox}
 \usepackage{enumitem}
 \usepackage{caption}
@@ -163,8 +165,11 @@ zero of 65 events; SCAFFOLD fails at 0.768/0.057). The collapse is
 encoder-conditional: under the same protocol the sequential SolarLSTM
 (owner GPU) does not collapse---FedAvg-LSTM 0.958/0.305 against its
 MLP counterpart's 0.875/0.056, FedProx-LSTM 0.970/0.404, above its
-pooled comparator though below logistic regression---so the
-balanced-substrate standing is a property of the flattened-feature
+pooled comparator though below logistic regression, and at event
+level FedAvg-LSTM detects 35/65 events where its MLP counterpart
+detects zero while FedProx-LSTM's 49/65 comes at a
+centralised-level false-alarm rate---so the balanced-substrate
+standing is a property of the flattened-feature
 MLP, not of federation per se; the case for federating this problem
 rests on data locality, not performance. Plain FedAvg diverges under the
 preregistered headline configuration (validation AUC $0.99\to0.05$

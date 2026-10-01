@@ -175,3 +175,27 @@ events detected, SCAFFOLD 0.768/0.057). Event-level: central arms
 arms' standing on the cleaned benchmark is a property of its balanced
 synthetic substrate; under natural prevalence the case for federating
 this problem rests on data locality, not predictive performance.
+
+## v3.6/v3.7 — federated LSTM arms, window + event level (2026-10-01)
+
+The frozen protocol's sequence-encoder arms (SolarLSTM, 219,265
+parameters, raw 60x24 windows) were executed on the owner GPU
+(RTX 4060 Laptop, 2.6 h, artefacts `outputs/raw_lstm_eval.json`;
+substrate identity asserted against the frozen 2D split): centrally
+the LSTM is the weaker architecture (0.962/0.314 vs central MLP
+0.971/0.445) but the federated sequence arms do NOT collapse at
+natural prevalence — FedAvg-LSTM 0.958/0.305 (MLP counterpart
+0.875/0.056), FedProx-LSTM 0.970/0.404, above its pooled comparator
+(budget-caveated) and XGBoost's raw PR-AUC, below LR; FedProx-LSTM's
+Brier 0.011 is the first federated result to beat the climatology
+floor. The event-level pass (v3.7, executed offline on CPU from the
+GPU run's stored test probabilities over the audit metadata,
+`outputs/event_level_raw_lstm_p5.json`) completes the rescue: where
+FedAvg-MLP detects 0/65 events, FedAvg-LSTM detects 35 (53.8%) at
+0.2 false-alarm windows/day; FedProx-LSTM 49/65 (75.4%) at 0.4 FA
+windows/day with a 23.2 h median lead — FedProx-MLP's detection at
+3.5x lower false-alarm burden. No federated sequence arm reaches the
+centralised detection frontier (LR 78.5%, central MLP 80.0%): the
+collapse is a property of the flattened-feature MLP arms, not of
+federation per se; the case for federating this problem rests on
+data locality, not performance, at both evaluation levels.

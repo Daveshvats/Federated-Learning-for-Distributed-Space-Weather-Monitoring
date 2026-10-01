@@ -9,6 +9,8 @@ torch-free event-level pass over a GPU run's test_probs_<tag>.npz:
      correct match/meta join, label assert, GOES peak join, all three
      arms reported, deterministic detection/lead-time arithmetic
   3. label-mismatch guard: corrupted y_test trips the assert
+  4. Windows _aux fallback: an 'aux' directory renamed '_aux' (AUX
+     is a reserved Windows device name) resolves without --aux
 
 Runs without torch.  Run:  python tests/test_event_level_lstm.py
 """
@@ -111,8 +113,10 @@ def build_fixture(tmp, corrupt_labels=False):
 
 
 def run_script(aux, eval_path, out_json, cache, extra=()):
-    cmd = [sys.executable, SCRIPT, "--cache", cache, "--aux", aux,
-           "--eval", eval_path, "--out", out_json, *extra]
+    cmd = [sys.executable, SCRIPT, "--cache", cache]
+    if aux is not None:
+        cmd += ["--aux", aux]
+    cmd += ["--eval", eval_path, "--out", out_json, *extra]
     return subprocess.run(cmd, capture_output=True, text=True)
 
 
@@ -187,11 +191,33 @@ def test_label_mismatch_guard():
         shutil.rmtree(tmp, ignore_errors=True)
 
 
+def test_windows_aux_fallback():
+    """Windows extractors rename bundle 'aux' -> '_aux' (AUX is a
+    reserved device name); the runner must resolve it without --aux
+    exactly as with an explicit --aux path."""
+    tmp = tempfile.mkdtemp(prefix="evlstm_waux_")
+    try:
+        aux, eval_path, _ = build_fixture(tmp)
+        os.rename(aux, os.path.join(tmp, "_aux"))
+        out_json = os.path.join(tmp, "event_level_raw_lstm_p5.json")
+        r = run_script(None, eval_path, out_json, tmp)
+        check("script resolves _aux without --aux (Windows case)",
+              r.returncode == 0, r.stderr[-300:])
+        if r.returncode == 0:
+            out = json.load(open(out_json))
+            check("fallback run reports the same 2 true events",
+                  out["n_true_events"] == 2 and
+                  out["models"]["central_lstm"]["n_detected_events"] == 2)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
 def main():
     print("── tests/test_event_level_lstm.py ──")
     test_missing_inputs()
     tmp, aux, eval_path = test_end_to_end()
     test_label_mismatch_guard()
+    test_windows_aux_fallback()
     if tmp:
         shutil.rmtree(tmp, ignore_errors=True)
     print(f"\n{PASS} passed, {FAIL} failed")

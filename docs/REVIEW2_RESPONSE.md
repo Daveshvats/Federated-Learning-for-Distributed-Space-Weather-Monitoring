@@ -503,13 +503,15 @@ synthetic in its positive class.
    targets within band incl. the same conservative 0.5% drift as the
    MLP arms. FedProx-over-FedAvg stabilisation now replicated on all
    three substrates x both encoders (0.976/0.906, 0.930/0.875,
-   0.970/0.958). Remaining on this item: the event-level pass
-   (standalone torch-free runner `experiments/run_event_level_
-   lstm.py` — 11-check test suite, total 140 checks — needs the GPU
-   run's `data/cache/rawsubstrate/test_probs_lstm.npz` + `aux/`
-   metadata; also completable by re-running the main runner with
-   `aux/` in place, which then reuses the done checkpoints), the
-   SCAFFOLD-LSTM arm, and seed-replication (`--seed 43`).
+   0.970/0.958). **The event-level pass is now EXECUTED (v3.7**,
+   see the sixth addendum below: FedAvg-LSTM 35/65 events vs the
+   MLP arm's 0/65; FedProx-LSTM 49/65 (75.4%) at 0.4 FA windows/day,
+   23.2 h median lead; runner `experiments/run_event_level_lstm.py`,
+   13-check suite, total 142 checks, Windows `_aux` fallback —
+   the in-run pass had skipped because Windows renames the bundle's
+   `aux/` to `_aux/`, AUX being a reserved device name**)**.
+   Remaining on this item: the SCAFFOLD-LSTM arm and
+   seed-replication (`--seed 43`).
 9. Raw unbalanced programme — **EXECUTED (v3.5)**
    (`experiments/raw_substrate.py` builds the substrate,
    `experiments/run_raw_substrate.py` retrains the frozen protocol,
@@ -580,3 +582,35 @@ the calibration/threshold-transfer failures persist; only XGBoost's
 posteriors are deployment-usable. The manuscript (v3.4) re-tiers all
 claims accordingly and discloses the in-partition results as
 protocol-stability evidence.
+
+**Sixth-execution addendum: event-level completion of the LSTM arms
+(2026-10-01, v3.7).** The owner supplied the GPU run's stored test
+probabilities (`data/cache/rawsubstrate/test_probs_lstm.npz`, whose
+per-arm ROC/PR reproduce the validated report to 4 decimals) plus the
+audit metadata; the standalone torch-free runner
+(`experiments/run_event_level_lstm.py`, CPU, minutes) computed the
+event-level metrics over the same 65 M/X events, match table, and
+GOES peak list as the v3.5 MLP pass (65/65 peaks matched, labels
+asserted equal; artefact `outputs/event_level_raw_lstm_p5.json`):
+
+| Arm (raw P5) | Events | FA windows/day | Lead (h) |
+|---|---|---|---|
+| Centralised LSTM | 41/65 (63.1%) | 0.3 | 19.3 |
+| FedAvg LSTM | 35/65 (53.8%) | 0.2 | 17.4 |
+| FedProx LSTM | 49/65 (75.4%) | 0.4 | 23.2 |
+
+Reading: the encoder rescue survives the operational machinery —
+FedAvg-LSTM detects 35/65 events where its MLP counterpart detects
+zero, and FedProx-LSTM strictly dominates FedProx-MLP at event level
+(75.4% vs 73.8% detection at 3.5x lower false-alarm burden, 0.4 vs
+1.3 FA windows/day, 23.2 h median lead, p10 7.7 h / p90 24.0 h). No
+federated sequence arm reaches the centralised detection frontier
+(LR 78.5%, central MLP 80.0% at 0.2-0.3 FA/day), so the
+data-locality framing stands at both evaluation levels. The paper
+(v3.7) adds the three rows to the raw event-level table, quantifies
+the "does not collapse" claim (0 -> 35/65), and retires the staged
+language in Secs. 6.5/7/8. Diagnosis note for reproducibility: the
+in-run pass had skipped on the owner machine because Windows renames
+the bundle's `aux/` directory to `_aux/` (AUX is a reserved device
+name); the runner now accepts both names automatically (13-check
+test suite, total 142 checks).
