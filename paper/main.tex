@@ -3,8 +3,8 @@
 % ════════════════════════════════════════════════════════════════════
 %  Federated Learning for Data-Locality-Preserving Distributed
 %  Space Weather Monitoring: A Solar-Flare Prediction Component
-%  for Grid-Resilience Pipelines (v3.7, federated LSTM executed,
-%  window- and event-level)
+%  for Grid-Resilience Pipelines (v3.8, four-arm federation matrix
+%  complete: SCAFFOLD-LSTM, seed replication, SMOTE ablation)
 %  arXiv-preprint-style single-column manuscript
 % ════════════════════════════════════════════════════════════════════
 
@@ -168,10 +168,15 @@ MLP counterpart's 0.875/0.056, FedProx-LSTM 0.970/0.404, above its
 pooled comparator though below logistic regression, and at event
 level FedAvg-LSTM detects 35/65 events where its MLP counterpart
 detects zero while FedProx-LSTM's 49/65 comes at a
-centralised-level false-alarm rate---so the balanced-substrate
+centralised-level false-alarm rate and SCAFFOLD-LSTM posts the
+substrate's highest detection (55/65) at 0.4 false-alarm windows
+per day---so the balanced-substrate
 standing is a property of the flattened-feature
-MLP, not of federation per se; the case for federating this problem
-rests on data locality, not performance. Plain FedAvg diverges under the
+MLP, not of federation per se. A second-seed replication
+reproduces every sequence arm's ranking within $\pm$0.005 ROC-AUC,
+and per-client SMOTE at natural prevalence is a clean negative
+(unchanged for FedAvg, $-0.116$ PR-AUC for FedProx); the case for
+federating this problem rests on data locality, not performance. Plain FedAvg diverges under the
 preregistered headline configuration (validation AUC $0.99\to0.05$
 after round 20; the in-partition multiseed, sweep, ablation and
 client-level studies are retained as protocol-stability evidence and

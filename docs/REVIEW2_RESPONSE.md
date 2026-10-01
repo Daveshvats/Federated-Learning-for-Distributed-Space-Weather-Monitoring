@@ -652,3 +652,44 @@ checks, total battery 176/176):
 - `RUNLOG.md` (repo root) is the owner-side execution ledger: every
   ask, its delivery channel, whether it ran, and machine-written
   completion lines appended by the queue driver.
+
+## H. Second owner-GPU execution addendum: the queue lands (2026-10-01, v3.8)
+
+The queue of addendum G was executed overnight on the owner's RTX
+4060 Laptop (31,250 s ≈ 8.7 h; 1.5 h SCAFFOLD-LSTM, 3.9 h seed-43
+replication, 3.2 h the two SMOTE arms).  All three steps completed
+and wrote all six artefacts; each child process exited with Windows
+code 0xC0000409 *after* the atomic JSON writes (a teardown-time
+fail-fast known to PyTorch-CUDA on Windows), so the queue's "FAILED"
+labels were cosmetic — the logs' completion signatures (event JSON +
+report lines) and a re-run's skip-if-done behaviour both confirm
+full execution.
+
+Artefacts were validated on receipt (64 checks: protocol
+fingerprints, frozen substrate identity, embedded frozen-counterpart
+bit-matches vs `raw_substrate_eval.json` / `raw_lstm_eval.json`,
+65/65 GOES peak matches, event-count and timing cross-checks against
+the queue logs) and are now committed and guarded by
+`tests/test_gpu_queue_artefacts.py` (17 checks; battery 176 → 193).
+
+Numeric outcomes integrated into the paper (v3.8):
+
+- **SCAFFOLD-LSTM** 0.970/0.294 window-level (MLP counterpart
+  0.768/0.057 — the largest single-encoder swing on the substrate,
+  +0.202/+0.238); event level 55/65 (84.6%) at 0.41 FA windows/day,
+  23.2 h median lead: its MLP twin's 83.1% at 1/15th the false-alarm
+  burden, and nominally above the 78.5–80% centralised frontier —
+  reported as a *priced* exception (≈2× alarm budget, ECE 0.035),
+  not a ranking win (Sec 6.5).
+- **seed-43 replication**: every arm's ROC-AUC within ±0.005 of the
+  seed-42 run; the qualitative structure (no collapse, FedProx ≥
+  FedAvg, SCAFFOLD competitive) fully replicates (Sec 6.6,
+  Table `tab:lstmrep`).
+- **natural-prevalence per-client SMOTE ablation**: clean negative —
+  FedAvg unchanged (0.961/0.307), FedProx −0.116 PR-AUC (0.946/0.288)
+  with event detection 49→37 (Sec 6.6).  Completes the
+  cleaned-substrate SMOTE null at natural prevalence.
+
+The remaining owner-side queue is now fold-replication breadth only
+(remaining temporally-preceding folds; the sequence arms'
+cleaned-fold pairing).

@@ -277,20 +277,30 @@ remain the owner-side artefacts embedded in the repository.
 
 \paragraph{Owner-GPU execution of the sequence arms.}
 The raw-substrate LSTM arms of Section~\ref{sec:res-lstm} were
-executed once, on owner-side GPU hardware (NVIDIA RTX\,4060 Laptop,
-CUDA/cuDNN; 2.6\,h total: 0.08\,h pooled comparator, 1.16\,h
-FedAvg-LSTM, 1.33\,h FedProx-LSTM), because the CPU-only protocol
-above would have needed an estimated 74\,h---the one experiment
-where GPU was a practical requirement. The substrate identity is
-device-independent and asserted at startup (label equality with the
-frozen 2D split; 144-statistic cross-check at
-$4.4\times10^{-4}$), and the run writes the same machine-readable
-artefact schema as every CPU arm
-(\texttt{outputs/raw\_lstm\_eval.json}). The residual device effect
-is kernel-level nondeterminism in cuDNN recurrence and
-float-reduction order, expected within $\pm$0.001--0.005 on
-AUC-scale metrics; all other artefacts in this paper were produced
-under the bit-stable CPU protocol above.
+executed on owner-side GPU hardware (an NVIDIA RTX\,4060 Laptop
+with CUDA and cuDNN), because the CPU-only protocol above would
+have needed an estimated 74\,h---the one experiment where GPU was
+a practical requirement. Two batches: the seed-42 arms (2.6\,h total: 0.08\,h
+pooled comparator, 1.16\,h FedAvg-LSTM, 1.33\,h FedProx-LSTM) and,
+as a second single resumable queue, the remaining programme (8.7\,h:
+1.5\,h SCAFFOLD-LSTM, 3.9\,h the seed-43 replication of all four
+arms, 3.2\,h the two SMOTE ablation arms). The substrate identity
+is device-independent and asserted at startup on every run (label
+equality with the frozen 2D split; 144-statistic cross-check at
+$4.4\times10^{-4}$), and each run writes the same machine-readable
+artefact schema as every CPU arm (\texttt{raw\_lstm\_eval},
+\texttt{raw\_lstm\_scaffold}, \texttt{raw\_lstm\_seed43}, and
+\texttt{raw\_lstm\_smote}, all under \texttt{outputs/}).
+Each GPU batch was validated on receipt, before integration, by a
+machine artefact audit (64 checks for the second batch: protocol
+fingerprints, substrate identity, embedded frozen-counterpart
+bit-matches, event-key reconciliation, and cross-checks against
+the run logs). The residual device effect is kernel-level
+nondeterminism in cuDNN recurrence and float-reduction order,
+predicted within $\pm$0.001--0.005 on AUC-scale metrics and now
+measured by the seed-43 replication at $\le$0.005 ROC-AUC on every
+arm (Section~\ref{sec:res-lstmrep}); all other artefacts in this
+paper were produced under the bit-stable CPU protocol above.
 
 \subsection{Data-provenance audit and the leakage-free protocol}
 \label{sec:provenance}

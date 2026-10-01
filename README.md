@@ -66,7 +66,7 @@ python experiments/run_partition_disjoint.py           # leakage-free fold P1-4 
 python experiments/run_event_level.py --input outputs/event_scores.json  # v3.1
 python experiments/run_federated_lstm.py               # LSTM arms on the raw substrate (v3.6: EXECUTED on owner GPU)
 python experiments/run_event_level_lstm.py              # LSTM event-level pass (v3.6: torch-free CPU, standalone)
-python experiments/run_gpu_queue.py                    # v3.8: ONE-COMMAND owner-GPU queue (SCAFFOLD-LSTM + seed-43 + SMOTE; resumable, skip-if-done, RUNLOG ledger)
+python experiments/run_gpu_queue.py                    # v3.8: one-command owner-GPU queue — EXECUTED 2026-10-01 (8.7 h; artefacts committed + guarded)
 python secure_aggregation.py                          # secagg self-test
 ```
 
@@ -113,7 +113,7 @@ SF9/
 ├── privacy_analysis/           # threat model
 ├── limitations/                # honest limitations
 ├── docs/                       # GIC boundary, lit-search, review-2 response
-├── tests/                      # integrity + substrate + LSTM suites (176 checks)
+├── tests/                      # integrity + substrate + LSTM + queue + artefact suites (193 checks)
 ├── logs/                       # execution logs
 ├── paper/                      # manuscript (LaTeX + PDF) + review
 └── outputs/                    # results.json, figures (regenerated)
@@ -215,15 +215,17 @@ the SCAFFOLD half of item 8 were **executed in v3.5**:
    MLP 0.971/0.445), federated arms collapse (FedAvg 0.875/0.056 with
    0/65 events, FedProx 0.930/0.149, SCAFFOLD 0.768/0.057).
 
-Remaining (owner-side, **one command** — `python
-experiments/run_gpu_queue.py`, v3.8): the SCAFFOLD-LSTM arm, the
-seed-43 replication of the raw-substrate LSTM runs (executed at a
-single seed on a single device so far), and the natural-prevalence
-per-client SMOTE ablation.  The queue is resumable and skip-if-done,
-live-logs to `logs/queue_<step>.log`, and appends a machine-written
-ledger to `RUNLOG.md` (every owner-side ask, delivery and execution
-status).  The event-level figures
-(`outputs/event_level_p5.json`, `outputs/event_level_raw_p5.json`,
+Remaining (owner-side): fold-replication breadth only — the remaining temporally-preceding folds and the sequence arms' cleaned-fold pairing. The v3.8 one-command queue
+(`python experiments/run_gpu_queue.py`, resumable and skip-if-done,
+live-logs to `logs/queue_<step>.log`, machine-written ledger in
+`RUNLOG.md`) was **EXECUTED on the owner GPU on 2026-10-01** (8.7 h;
+all three steps completed; artefacts validated on receipt by a
+64-check audit and committed): SCAFFOLD-LSTM 0.970/0.294 window,
+55/65 events (84.6%) at 0.41 FA/day; seed-43 replication of all four
+arms (ROC within ±0.005 on every arm); per-client SMOTE ablation a
+clean negative (FedAvg unchanged, FedProx −0.116 PR-AUC).  The
+event-level figures (`outputs/event_level_p5.json`,
+`outputs/event_level_raw_p5.json`,
 `outputs/event_level_raw_lstm_p5.json`)
 are the operational performance figures, with the single-fold caveat.
 

@@ -1,0 +1,60 @@
+{
+  "purpose": "event-level evaluation of the raw-substrate LSTM arms on raw P5, natural prevalence",
+  "cooldown_windows": 5,
+  "n_windows": 75263,
+  "n_matched_by_audit": 75263,
+  "n_event_groups": 4409,
+  "n_true_events": 65,
+  "flare_peak_match_rate": 1.0,
+  "models": {
+    "scaffold_lstm": {
+      "threshold": 0.15999999999999995,
+      "cooldown_windows": 5,
+      "n_windows": 75263,
+      "n_event_groups": 4409,
+      "n_true_events": 65,
+      "n_detected_events": 55,
+      "event_detection_rate": 0.8461538461538461,
+      "n_missed_events": 10,
+      "missed_events": [
+        "M1.0@10277.0:ar5446",
+        "M1.0@10708.0:ar5745",
+        "M1.2@10285.0:ar5456",
+        "M1.2@10869.0:ar5885",
+        "M1.2@13862.0:ar7115",
+        "M1.5@10694.0:ar5738",
+        "M1.9@11410.0:ar6052",
+        "M2.1@11065.0:ar5956",
+        "M3.6@11122.0:ar5982",
+        "M3.9@11432.0:ar6078"
+      ],
+      "alerts_per_detected_event_mean": 2.5384615384615383,
+      "duplicate_alert_rate": 0.6666666666666667,
+      "false_alarm_windows": 512,
+      "background_groups_with_alerts": 161,
+      "total_alerts": 677,
+      "alert_rate_per_window": 0.008995123765993915,
+      "lead_time_minutes": {
+        "median": 0.0,
+        "min": 0.0,
+        "max": 1260.0,
+        "n_events_with_lead_time": 55
+      },
+      "observation_days": 1258.325,
+      "alerts_per_day": 0.5380168080583315,
+      "false_alarm_windows_per_day": 0.40689011185504537,
+      "caveats": [
+        "window-level FPR != operational false-alarm rate: overlapping windows of one active region are correlated decisions",
+        "event grouping quality bounds all event-level statistics; region-id-only grouping is an approximation",
+        "lead time requires the event start time; without raw SWAN-SF metadata it is reported as null"
+      ],
+      "lead_to_flare_peak_minutes": {
+        "median": 1391.0,
+        "p10": 330.6,
+        "p90": 1436.2,
+        "n": 55,
+        "negative_means_alert_after_peak": true
+      }
+    }
+  }
+}

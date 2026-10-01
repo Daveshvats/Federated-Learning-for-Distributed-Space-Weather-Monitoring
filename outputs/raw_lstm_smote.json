@@ -1,0 +1,162 @@
+{
+  "purpose": "review item 8 (LSTM half): frozen-protocol LSTM arms (FedAvg/FedProx SolarLSTM) trained on the RAW unbalanced SWAN-SF benchmark with in-pipeline FPCKNN/LSBZM \u2014 identical substrate, frozen split, and Dirichlet shards as run_raw_substrate.py; single-pass test on raw P5. Optional pooled centralized SolarLSTM comparator isolates architecture vs federation. Optional arms: SCAFFOLD-LSTM (--scaffold / --scaffold-only) and per-client SMOTE (--smote).",
+  "protocol": {
+    "rounds": 50,
+    "mu": 0.01,
+    "alpha": 1.0,
+    "seed": 42,
+    "clients": 6,
+    "val_split": 0.16,
+    "input": "3D (60, 24) LSBZM-normalised series",
+    "lstm": {
+      "hidden": 128,
+      "layers": 2,
+      "dropout": 0.3,
+      "bidirectional": false
+    },
+    "calibration": "prior_shift",
+    "loss": "fed_focal",
+    "device": "cuda:0",
+    "tag": "smote",
+    "smoke": false,
+    "arms": [
+      "fedavg_lstm",
+      "fedprox_lstm"
+    ],
+    "scaffold": false,
+    "smote": true,
+    "smote_ratio": 0.25
+  },
+  "substrate": {
+    "train": 214888,
+    "val": 40932,
+    "test": 75365,
+    "test_pos": 0.013136071152985096,
+    "source": "data/cache/rawsubstrate (frozen split, cross-checked vs the 2D substrate)"
+  },
+  "results": {
+    "fedavg_lstm": {
+      "threshold": 0.08499999999999999,
+      "val_fbeta": 0.824730173627405,
+      "test": {
+        "threshold": 0.08499999999999999,
+        "accuracy": 0.9797518742121675,
+        "precision": 0.296969696969697,
+        "recall": 0.39595959595959596,
+        "f1": 0.3393939393939394,
+        "f2": 0.3712121212121212,
+        "roc_auc": 0.9612461217214159,
+        "pr_auc": 0.3068128826417212,
+        "brier": 0.012171906630982556,
+        "ece": 0.009591411021462631,
+        "prevalence": 0.013136071120546673,
+        "recall@0.5%FPR": 0.22323232323232323,
+        "recall@1%FPR": 0.36363636363636365,
+        "recall@2%FPR": 0.5121212121212121,
+        "recall@5%FPR": 0.7505050505050505,
+        "preds": "[0 0 0 ... 0 0 0]"
+      },
+      "frozen_operating_points": {
+        "0.5%FPR": {
+          "frozen_threshold": 0.08570412842365818,
+          "realised_fpr": 0.012423529411764707,
+          "recall": 0.3939393939393939,
+          "precision": 0.2968036529680365,
+          "alert_rate": 0.017435148941816494
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.051612254462605395,
+          "realised_fpr": 0.017411764705882352,
+          "recall": 0.4676767676767677,
+          "precision": 0.2633674630261661,
+          "alert_rate": 0.02332647780800106
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.030218988745832558,
+          "realised_fpr": 0.022857142857142857,
+          "recall": 0.5545454545454546,
+          "precision": 0.24410849266340595,
+          "alert_rate": 0.029841438333443906
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.011286224879041531,
+          "realised_fpr": 0.04130420168067227,
+          "recall": 0.7141414141414142,
+          "precision": 0.18708653082826143,
+          "alert_rate": 0.05014263915610695
+        }
+      },
+      "rawsubstr_mlp_counterpart": {
+        "roc_auc": 0.8747205704099822,
+        "pr_auc": 0.05614600405791456
+      },
+      "lstm_seed42_counterpart": {
+        "roc_auc": 0.9581284576861048,
+        "pr_auc": 0.3053507227647554
+      },
+      "wall_s": 5038.5
+    },
+    "fedprox_lstm": {
+      "threshold": 0.22999999999999993,
+      "val_fbeta": 0.7653985507246377,
+      "test": {
+        "threshold": 0.22999999999999993,
+        "accuracy": 0.9792476613812778,
+        "precision": 0.2707667731629393,
+        "recall": 0.3424242424242424,
+        "f1": 0.3024085637823372,
+        "f2": 0.32521105141980045,
+        "roc_auc": 0.9455332077073253,
+        "pr_auc": 0.2876364739856131,
+        "brier": 0.012034810453508708,
+        "ece": 0.008790444644269277,
+        "prevalence": 0.013136071120546673,
+        "recall@0.5%FPR": 0.2676767676767677,
+        "recall@1%FPR": 0.3111111111111111,
+        "recall@2%FPR": 0.41515151515151516,
+        "recall@5%FPR": 0.6676767676767676,
+        "preds": "[0 0 0 ... 0 0 0]"
+      },
+      "frozen_operating_points": {
+        "0.5%FPR": {
+          "frozen_threshold": 0.34451674474320204,
+          "realised_fpr": 0.007825210084033614,
+          "recall": 0.296969696969697,
+          "precision": 0.3356164383561644,
+          "alert_rate": 0.011623432627877663
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.22356016804251652,
+          "realised_fpr": 0.012571428571428572,
+          "recall": 0.34545454545454546,
+          "precision": 0.2678151918559123,
+          "alert_rate": 0.016944204869634445
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.13344496082392393,
+          "realised_fpr": 0.019307563025210084,
+          "recall": 0.4080808080808081,
+          "precision": 0.21956521739130436,
+          "alert_rate": 0.02441451602202614
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.04899499083950408,
+          "realised_fpr": 0.03841344537815126,
+          "recall": 0.5575757575757576,
+          "precision": 0.16192431798181284,
+          "alert_rate": 0.04523319843428647
+        }
+      },
+      "rawsubstr_mlp_counterpart": {
+        "roc_auc": 0.9302553263729735,
+        "pr_auc": 0.148668867684149
+      },
+      "lstm_seed42_counterpart": {
+        "roc_auc": 0.9697419098548511,
+        "pr_auc": 0.40445689247237226
+      },
+      "wall_s": 6457.1
+    }
+  },
+  "elapsed_s": 11523.0
+}

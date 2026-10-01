@@ -158,3 +158,18 @@ vs FedAvg-LSTM 35/65 on identical shards/protocol.
 | # | Claim | Status | Evidence |
 |---|-------|--------|----------|
 | 44 | SCAFFOLD-LSTM, seed-43 replication, and the natural-prevalence SMOTE ablation on the raw substrate | STAGED (code-verified, not yet executed) | `experiments/run_gpu_queue.py` one-command queue + `run_federated_lstm.py --scaffold/--smote/--seed 43` (34 new checks, 176/176 total; smoke-verified on the real 3D caches on CPU incl. the fixed 3D SMOTE path and the `_aux` fallback). NO numeric claim about these arms may enter the paper until the owner-side run lands in `outputs/raw_lstm_{scaffold,seed43,smote}.json` |
+
+## v3.8 executed claim updates (2026-10-01, second owner-GPU batch)
+
+| # | Claim | Status | Evidence |
+|---|-------|--------|----------|
+| 44 | SCAFFOLD-LSTM, seed-43 replication, and the natural-prevalence SMOTE ablation on the raw substrate | **EXECUTED** (was STAGED) | One resumable owner-GPU queue (`experiments/run_gpu_queue.py`), 8.7 h (RTX 4060 Laptop; 1.5/3.9/3.2 h per step); all 6 artefacts committed (`outputs/raw_lstm_{scaffold,seed43,smote}.json` + event-level JSONs); validated on receipt by a 64-check audit (protocol fingerprints, substrate identity 214,888/40,932/75,365 @ 1.3136%, embedded frozen-counterpart bit-matches, 65/65 GOES peak matches, log cross-checks) |
+| 45 | SCAFFOLD-LSTM recovers the hardest raw-substrate MLP failure | **CONFIRMED** | 0.970/0.294 vs MLP counterpart 0.768/0.057 (+0.202 ROC, +0.238 PR — the largest single-encoder swing on this substrate); largest-encoder-swing status also guards the four-arm federation matrix: central 0.962/0.314, FedAvg 0.958/0.305, FedProx 0.970/0.404, SCAFFOLD 0.970/0.294 |
+| 46 | The raw-substrate sequence-arm rankings are seed-robust | **CONFIRMED** | seed 43 re-execution (reseeded init + Dirichlet shards, frozen val carve): ROC-AUC moves ≤ 0.005 on every arm (central 0.962→0.962, FedAvg 0.958→0.961, FedProx 0.970→0.965, SCAFFOLD 0.968); no collapse, FedProx ≥ FedAvg, event detection within a 7-point band (49→45, 55→50 of 65) |
+| 47 | Per-client SMOTE at natural prevalence is a clean negative | **CONFIRMED** | ratio 0.25 minority:majority, 3D-aware: FedAvg 0.961/0.307 (natural 0.958/0.305 — unchanged; events 35→40); FedProx 0.946/0.288 vs 0.970/0.404 (−0.116 PR-AUC; events 49→37); completes the cleaned-substrate SMOTE null — the rescue is architectural, not class-balance-driven |
+| 48 | Row 43's "no federated arm exceeds the centralised baseline" now requires an event-level qualifier | **QUALIFIED** | SCAFFOLD-LSTM posts the substrate's highest event detection rate, 55/65 (84.6%) at 0.41 FA windows/day — above LR 78.5% and central MLP 80.0% — but at ~2x their false-alarm burden, with window-level ranking still 0.008/0.154 below LR and the worst sequence-encoder calibration (ECE 0.035); the claim holds at window-level ranking and at matched operating budgets |
+
+Row updates: rows 34/35/38/43 (v3.6/v3.7 collapse/rescue/fresh-hold
+claims) now carry the v3.8 four-arm + two-seed quantifiers; the
+paper's Sec 6.5/6.6, abstract, and conclusion are the narrative
+counterparts of rows 44–48.

@@ -91,15 +91,17 @@ path---which consumes the raw $60\times24$ windows and matches the
 temporal
 architectures that lead centralised SWAN-SF benchmarks
 \cite{hassani2025}---has been evaluated federated on the raw
-substrate (Section~\ref{sec:res-lstm}, owner GPU, single seed): the
+substrate (Section~\ref{sec:res-lstm}, owner GPU, two seeds): the
 sequence arms do not collapse at natural prevalence, at window
 level and at event level, retroactively
 validating them as the route to closing the tree-ensemble gap in
-federated settings. What remains on this axis: their cleaned-fold
-pairing and the SCAFFOLD-LSTM arm
-(its MLP instance is the hardest raw-substrate failure, and the
-AdamW/control-variate confound of
-Section~\ref{sec:discussion} is unresolved). Personalised FL
+federated settings. The SCAFFOLD-LSTM arm has since been executed
+(0.970/0.294 window-level; 55/65 events at 0.41 false-alarm windows
+per day), recovering the hardest raw-substrate MLP failure, and a
+second-seed replication confirms every ranking result within
+$\pm$0.005 ROC-AUC (Section~\ref{sec:res-lstmrep}). What remains on
+this axis: their cleaned-fold
+pairing. Personalised FL
 (per-client heads over a shared backbone) is a further direction:
 agencies may prefer a global model for situational awareness plus a
 locally adapted model for their
@@ -150,10 +152,12 @@ here for the first time on a real substrate, fails at 0.768/0.057)
 substantially restore the federated standing (FedProx-LSTM
 0.970/0.404), relocating the fragility from the federation mechanism
 to the flattened-feature representation.
-What remains open is replication breadth rather than direction:
-fold- and seed-replication of the raw-substrate run, and the
-natural-prevalence \emph{smote} arm, which now has work to do and is
-unstudied because the cleaned variant was pre-balanced.
+What remains open is fold-replication breadth: the seed-replication
+and natural-prevalence balancing questions queued in earlier
+revisions are now executed (Section~\ref{sec:res-lstmrep}: every
+arm's ROC within $\pm$0.005 at seed 43; per-client SMOTE is a
+clean negative---FedAvg unchanged, FedProx $-0.116$ PR-AUC---so
+the rescue is architectural rather than class-balance-driven).
 
 \paragraph{Executed and queued re-run programme.}
 For auditability we collect the re-run experiments in one place.
@@ -184,15 +188,15 @@ together with the SCAFFOLD half of item~(4) on the natural-prevalence
 benchmark (Section~\ref{sec:res-raw}), and the LSTM half of
 item~(4) was executed on the owner GPU (Section~\ref{sec:res-lstm}:
 the sequence arms restore the federated standing, FedProx-LSTM
-0.970/0.404, at 2.6\,h wall-clock against an estimated 74\,h of CPU).
-What remains queued is replication breadth and completion: fold- and
-seed-replication of the leakage-free, raw-substrate, and LSTM runs
-(the LSTM arms executed at a single seed on a single device, with
-cross-device AUC jitter of $\pm$0.001--0.005 expected), the LSTM
-arms' event-level pass and cleaned-fold pairing, the SCAFFOLD-LSTM
-arm, and the natural-prevalence SMOTE ablation,
-which is now meaningful but was inert on the pre-balanced cleaned
-variant. Items previously labelled operational preconditions have
+0.970/0.404, at 2.6\,h wall-clock against an estimated 74\,h of CPU),
+and the second owner-GPU batch executed the remaining queue
+(Section~\ref{sec:res-lstmrep}: SCAFFOLD-LSTM, the seed-43
+replication of all four arms, and the natural-prevalence SMOTE
+ablation, 8.7\,h, validated by a 64-check artefact audit).
+What remains queued is fold-replication breadth: the remaining
+temporally-preceding folds for the leakage-free and raw-substrate
+runs, and the sequence arms' cleaned-fold pairing.
+Items previously labelled operational preconditions have
 been discharged; the event-level figures of
 Tables~\ref{tab:eventlevel} and~\ref{tab:eventlevel-raw} are the
 operational performance figures of this revision, with the

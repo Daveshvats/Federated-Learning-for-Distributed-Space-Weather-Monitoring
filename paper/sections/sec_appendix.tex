@@ -17,7 +17,7 @@ reimplementation would likely rediscover the hard way.
 \setlength{\LTcapwidth}{\textwidth}
 \begin{longtable}{@{}p{0.09\textwidth} >{\raggedright\arraybackslash}p{0.42\textwidth} >{\raggedright\arraybackslash}p{0.43\textwidth}@{}}
 \caption{Documented stability fixes and protocol revisions across
-framework versions (v2.1--v3.7), as recorded in the released source.}
+framework versions (v2.1--v3.8), as recorded in the released source.}
 \label{tab:evolution}\\
 \toprule
 \textbf{Version} & \textbf{Diagnosed failure mode} & \textbf{Fix} \\
@@ -191,6 +191,26 @@ events (53.8\%, 0.2 FA windows/day) against its MLP counterpart's
 false-alarm burden; no federated sequence arm reaches the
 78.5--80\% centralised detection frontier. Artefact
 \texttt{outputs/event\_level\_raw\_lstm\_p5.json}. \\
+\addlinespace[2pt]
+v3.8 & The remaining owner-side programme unexecuted: SCAFFOLD-LSTM
+absent (hardest MLP failure left open), sequence arms single-seed
+single-device, and the natural-prevalence SMOTE ablation unstudied. &
+Executed as one resumable owner-GPU queue (8.7\,h, RTX 4060;
+queue driver \texttt{run\_gpu\_queue.py}; artefacts validated on
+receipt by a 64-check audit: protocol fingerprints, substrate
+identity, embedded frozen-counterpart bit-matches, event-key
+reconciliation, log cross-checks): SCAFFOLD-LSTM 0.970/0.294
+window-level (vs MLP counterpart 0.768/0.057) and 55/65 events
+(84.6\%) at 0.41 FA windows/day---the substrate's highest detection
+rate, above the centralised frontier at a priced alarm budget;
+seed-43 replication of all four arms (ROC within $\pm$0.005 on
+every arm, qualitative structure unchanged); per-client SMOTE
+ablation a clean negative (FedAvg 0.961/0.307 unchanged, FedProx
+0.946/0.288, $-0.116$ PR-AUC). Artefacts
+\texttt{raw\_lstm\_scaffold.json}, \texttt{raw\_lstm\_seed43.json},
+\texttt{raw\_lstm\_smote.json} and their event-level JSONs;
+Tables \ref{tab:lstmraw}--\ref{tab:lstmrep}
+extended. \\
 \end{longtable}
 \endgroup
 

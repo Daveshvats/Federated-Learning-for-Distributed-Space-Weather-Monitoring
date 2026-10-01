@@ -247,7 +247,9 @@ events, validation-frozen $F_2$ thresholds, 1-hour alert cooldown;
 99.86\% of test windows matched to the audit's event keys). The
 sequence arms (below the rule) are evaluated by the standalone
 torch-free CPU runner over the owner-GPU run's stored per-window
-test probabilities and the same audit metadata.}
+test probabilities and the same audit metadata; the SCAFFOLD-LSTM row
+was evaluated in-runner by the same event-level machinery during
+the second GPU batch.}
 \label{tab:eventlevel-raw}
 \small
 \begin{tabular}{@{}l c c c c@{}}
@@ -265,6 +267,7 @@ SCAFFOLD MLP & 54/65 (83.1\%) & 6.4 & 6.6 & 23.2 \\
 Centralised LSTM & 41/65 (63.1\%) & 0.3 & 0.4 & 19.3 \\
 FedAvg LSTM & 35/65 (53.8\%) & 0.2 & 0.2 & 17.4 \\
 FedProx LSTM & 49/65 (75.4\%) & 0.4 & 0.5 & 23.2 \\
+SCAFFOLD LSTM & 55/65 (84.6\%) & 0.4 & 0.5 & 23.2 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -289,10 +292,14 @@ identical seed-42 Dirichlet shards, so the only degrees of freedom
 are the encoder and the device. The SolarLSTM (219,265 parameters,
 consuming the raw $60\times24$ series directly) is trained under the
 same Fed-Focal loss, prior-shift calibration, and validation-frozen
-threshold machinery as every other arm; SCAFFOLD-LSTM was not
-executed, its MLP instance being the hardest failure on this
-substrate and its control-variate arithmetic under AdamW remaining
-the confound documented in Section~\ref{sec:discussion}.
+threshold machinery as every other arm. The one arm still unexecuted
+at v3.6---SCAFFOLD-LSTM, whose MLP instance is the hardest failure
+on this substrate---was subsequently run in a second owner-GPU batch
+together with the seed-43 replication and the SMOTE ablation
+reported below, under the client-side fixed-step SGD that the
+control-variate arithmetic requires (the AdamW invalidation of
+Section~\ref{sec:discussion} is avoided by construction in the
+federated implementation).
 
 Table~\ref{tab:lstmraw} reports the outcome alongside each arm's
 frozen MLP counterpart, and the asymmetry of
@@ -304,7 +311,12 @@ FedAvg-LSTM holds 0.958/0.305 where the FedAvg MLP fell to
 encoder alone, under identical shards, budgets, and aggregation.
 FedProx-LSTM reaches 0.970/0.404: above its own pooled centralised
 comparator ($+0.008$ ROC, $+0.090$ PR) and above XGBoost's raw
-PR-AUC (0.329). The two contrasts isolate what happened. Between
+PR-AUC (0.329). SCAFFOLD-LSTM lands at 0.970/0.294 against its MLP
+counterpart's 0.768/0.057---the largest single encoder swing on
+this substrate ($+0.202$ ROC-AUC, $+0.238$ PR-AUC): the hardest
+failure of the flattened-feature matrix is fully recovered by the
+sequence encoder under the identical protocol, completing the
+four-arm federation matrix on this benchmark. The two contrasts isolate what happened. Between
 federated arms of identical budget and aggregation, the sequence
 encoder removes the natural-prevalence collapse the MLP suffers; the
 load-bearing comparison is budget-matched by construction. Between
@@ -333,7 +345,8 @@ MLP's Brier of 0.010 remains the best of all nine arms executed on
 this substrate. Finally, the FedProx-over-FedAvg stabilisation now
 appears on all three substrates and both encoders (cleaned fold
 0.976 vs 0.906; raw MLP 0.930 vs 0.875; raw LSTM 0.970 vs
-0.958)---the most replicated single finding of this study. The
+0.958, replicated at seed 43 as 0.965 vs 0.961)---the most
+replicated single finding of this study. The
 event-level pass (bottom block of Table~\ref{tab:eventlevel-raw})
 was executed offline, on CPU, from the GPU run's stored per-window
 test probabilities over the same audit metadata---no retraining,
@@ -346,11 +359,20 @@ detection at 0.4 false-alarm windows per day, exceeding
 FedProx-MLP's raw detection while cutting its false-alarm burden
 $3.5\times$ (1.3), with a 23.2\,h median lead to flare peak---the
 joint-longest on this substrate and $4\times$ the 1-hour minimum
-warning horizon the event protocol is built around. No federated
-sequence arm reaches the centralised detection frontier (logistic
-regression 78.5\%, centralised MLP 80.0\%, both at 0.2--0.3
-false-alarm windows per day), so the data-locality conclusion of
-Section~\ref{sec:res-raw} holds at event level as well.
+warning horizon the event protocol is built around. SCAFFOLD-LSTM,
+evaluated in-runner by the same machinery, supplies the sharpest
+event-level datum of the batch: 55/65 (84.6\%) detection at 0.41
+false-alarm windows per day and a 23.2\,h median lead---its MLP
+twin's 83.1\% detection rate at one-fifteenth its false-alarm
+burden, and nominally above the centralised detection frontier
+(logistic regression 78.5\%, centralised MLP 80.0\%, both at
+0.2--0.3 per day). The crossing is an operating-point purchase
+rather than a ranking win---it is bought with $1.5$--$2\times$ the
+centralised arms' alarm budget, the window-level ranking still
+sits below logistic regression by 0.008/0.154, and the arm carries
+the worst sequence-encoder calibration (ECE 0.035)---so the
+data-locality conclusion of Section~\ref{sec:res-raw} survives at
+event level with this one priced exception.
 
 \begin{table}[t]
 \centering
@@ -359,7 +381,9 @@ substrate, shards, and evaluation as Table~\ref{tab:rawsubstr};
 owner-GPU execution, seed 42) with each arm's frozen MLP counterpart
 repeated from Table~\ref{tab:rawsubstr} for the
 architecture-versus-federation contrast. Brier and ECE on the
-calibrated test probabilities at natural 1.31\% prevalence.}
+calibrated test probabilities at natural 1.31\% prevalence. The
+seed-43 replication and per-client SMOTE ablation of the same arms
+are reported in Table~\ref{tab:lstmrep}.}
 \label{tab:lstmraw}
 \small
 \begin{tabular}{@{}l cc cc c c c@{}}
@@ -372,9 +396,84 @@ calibrated test probabilities at natural 1.31\% prevalence.}
 Centralised & 0.962 & 0.314 & 0.971 & 0.445 & 0.0111 & 0.005 & 0.481 \\
 FedAvg & 0.958 & 0.305 & 0.875 & 0.056 & 0.0112 & 0.007 & 0.431 \\
 FedProx & 0.970 & 0.404 & 0.930 & 0.149 & 0.0106 & 0.020 & 0.525 \\
+SCAFFOLD & 0.970 & 0.294 & 0.768 & 0.057 & 0.0120 & 0.035 & 0.521 \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\subsection{Seed replication and the natural-prevalence SMOTE
+ablation}
+\label{sec:res-lstmrep}
+
+The v3.6 sequence arms executed at a single seed on a single
+device, and the replication caveat that followed them is discharged
+by the second owner-GPU batch: all four arms re-executed at seed 43
+(model initialisation and the Dirichlet shard draw reseeded, the
+frozen validation carve kept identical). The ranking structure
+replicates exactly (Table~\ref{tab:lstmrep}, middle columns).
+ROC-AUC moves by at most 0.005 on any arm (FedAvg
+0.958$\to$0.961, FedProx 0.970$\to$0.965, SCAFFOLD
+0.970$\to$0.968, central 0.962$\to$0.962)---inside the device and
+kernel jitter band predicted in Section~\ref{sec:repro}---and
+every qualitative finding survives: no arm collapses, FedProx
+stays above FedAvg on both rank metrics, SCAFFOLD stays
+competitive, and no federated arm approaches the centralised
+ranking frontier. PR-AUC, as expected at 1.3\% prevalence, moves
+more (FedAvg 0.305$\to$0.271, central 0.314$\to$0.357, SCAFFOLD
+0.294$\to$0.368, FedProx 0.404$\to$0.381) without overturning any
+load-bearing ordering. Event-level detection moves within a
+seven-point band at comparable false-alarm rates (FedAvg
+35$\to$36, central 41$\to$43, FedProx 49$\to$45, SCAFFOLD
+55$\to$50 of 65). The sequence-encoder rescue is not an artefact
+of one seed.
+
+\begin{table}[t]
+\centering
+\caption{Seed-43 replication and per-client SMOTE ablation of the
+raw-substrate sequence arms (window-level test metrics; protocol,
+substrate, and evaluation identical to
+Table~\ref{tab:lstmraw}). Seed 43 reseeds model initialisation and
+the Dirichlet shard draw; the frozen validation carve is unchanged.
+SMOTE oversamples each client's minority class to a 0.25
+minority-to-majority ratio (seed 42, flattening the $60\times24$
+series and reshaping).}
+\label{tab:lstmrep}
+\small
+\begin{tabular}{@{}l cc cc cc@{}}
+\toprule
+ & \multicolumn{2}{c}{\textbf{Seed 42}} &
+ \multicolumn{2}{c}{\textbf{Seed 43}} &
+ \multicolumn{2}{c}{\textbf{Seed 42 + SMOTE}} \\
+\cmidrule(r){2-3} \cmidrule(r){4-5} \cmidrule(l){6-7}
+\textbf{Model} & ROC & PR & ROC & PR & ROC & PR \\
+\midrule
+Centralised & 0.962 & 0.314 & 0.962 & 0.357 & --- & --- \\
+FedAvg & 0.958 & 0.305 & 0.961 & 0.271 & 0.961 & 0.307 \\
+FedProx & 0.970 & 0.404 & 0.965 & 0.381 & 0.946 & 0.288 \\
+SCAFFOLD & 0.970 & 0.294 & 0.968 & 0.368 & --- & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The complementary ablation asks whether class rebalancing can
+substitute for the encoder. Per-client SMOTE, oversampling each
+shard's minority to a 0.25 minority-to-majority ratio on the
+flattened $60\times24$ series, was run for the two production
+federated arms at seed 42 (Table~\ref{tab:lstmrep}, right columns).
+FedAvg is unchanged (0.961/0.307 against 0.958/0.305 natural;
+event detection 35$\to$40 of 65); FedProx is actively degraded:
+0.946/0.288 against 0.970/0.404, a $-0.116$ PR-AUC loss, with
+event detection falling 49$\to$37 of 65. The result completes the
+cleaned-fold SMOTE null (Section~\ref{sec:res-ablation}: inert
+there because the substrate was pre-balanced) at natural
+prevalence, where it has work to do: oversampling does not rescue
+the collapsed arms and costs the strongest arm 0.116 of its 0.404
+PR-AUC. This is consistent with the loss-stacking analysis of
+Section~\ref{sec:discussion}---SMOTE, the focal $\alpha$, and
+class-rate-aware aggregation all adjust the same effective
+positive-class weight, and stacking a second balancing mechanism on
+the protocol's existing ones overshoots. The rescue is
+architectural; class balance is neither necessary nor sufficient.
 
 \subsection{What survives the leakage-free protocol}
 \label{sec:res-leakfree-discussion}

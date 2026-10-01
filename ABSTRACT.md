@@ -199,3 +199,23 @@ centralised detection frontier (LR 78.5%, central MLP 80.0%): the
 collapse is a property of the flattened-feature MLP arms, not of
 federation per se; the case for federating this problem rests on
 data locality, not performance, at both evaluation levels.
+
+## v3.8 — four-arm federation matrix complete (2026-10-01)
+
+Second owner-GPU batch (one resumable queue, 8.7 h; artefacts
+validated by a 64-check audit on receipt): SCAFFOLD-LSTM 0.970/0.294
+against its MLP counterpart's 0.768/0.057 — the hardest
+flattened-feature failure fully recovered by the sequence encoder —
+and at event level the substrate's highest detection, 55/65 (84.6%)
+at 0.41 FA windows/day: its MLP twin's 83.1% at 1/15th the
+false-alarm burden and nominally above the 78.5–80% centralised
+frontier, reported as a priced operating-point exception rather than
+a ranking win. A second-seed replication (seed 43, reseeded
+init/shards, frozen val carve) reproduces every sequence arm's
+ranking within ±0.005 ROC-AUC, discharging the single-seed caveat of
+v3.6/v3.7. The natural-prevalence per-client SMOTE ablation is a
+clean negative (FedAvg unchanged at 0.961/0.307; FedProx −0.116
+PR-AUC to 0.946/0.288, events 49→37 of 65), completing the
+cleaned-substrate SMOTE null: the rescue is architectural, not
+class-balance-driven. No further owner-GPU asks remain beyond
+fold-replication breadth.

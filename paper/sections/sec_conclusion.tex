@@ -46,16 +46,22 @@ XGBoost's minority-class precision was inflated by the synthetic
 positives (PR-AUC 0.457$\to$0.329), and every federated \emph{MLP}
 arm degrades sharply (FedProx 0.930/0.149; FedAvg detects zero of 65
 events; SCAFFOLD, executed here for the first time on a real
-substrate, fails at 0.768/0.057). The sequence encoder qualifies the
+substrate, fails at 0.768/0.057, while the same algorithm's LSTM
+instance recovers to 0.970/0.294). The sequence encoder qualifies the
 ending: the identical frozen protocol with the SolarLSTM, executed
 on the owner GPU, restores the federated arms substantially
 (FedAvg-LSTM 0.958/0.305 where the FedAvg MLP fell to 0.875/0.056;
 FedProx-LSTM 0.970/0.404, above its own pooled comparator
 0.962/0.314 and XGBoost's raw PR-AUC, though still below logistic
-regression 0.978/0.448)---so the balanced-substrate standing is a
-property of the flattened-feature MLP arms, not of federation per
-se, and no federated arm exceeds the best centralised baseline on
-any substrate.
+regression 0.978/0.448, and at event level the substrate's highest
+detection rate, SCAFFOLD-LSTM's 55/65 at 0.4 false-alarm windows per
+day, bought at a higher alarm budget)---so the balanced-substrate
+standing is a property of the flattened-feature MLP arms, not of
+federation per se, and no federated arm exceeds the best
+centralised baseline on any substrate's window-level ranking (the
+SCAFFOLD-LSTM event-level detection rate is the one priced
+exception, achieved at roughly twice the centralised arms'
+false-alarm burden).
 \textbf{Demonstrated in-partition only (protocol-stability evidence,
 disclosed overlap)}: FedProx with $\mu{=}0.01$ is the most \emph{consistent}
 stabiliser among the components studied---above FedAvg on PR-AUC on
@@ -93,11 +99,13 @@ calibration (under the prior shift the neural posteriors
 are worse than climatology on Brier and ECE, and the executed
 five-arm comparison shows no validation-fit calibrator rescues them),
 neural-arm false-alarm reduction at event level,
-the downstream GIC/SCADA pipeline, and the SCAFFOLD-LSTM arm (a
-staged one-command step; the window-level and event-level LSTM
-results are both executed and reported),
-fold- and seed-replication of the leakage-free, raw-substrate, and
-LSTM runs, and the natural-prevalence balancing ablation.
+the downstream GIC/SCADA pipeline, the cleaned-fold pairing of the
+sequence arms, and fold-replication breadth; the SCAFFOLD-LSTM arm,
+the seed-43 replication, and the natural-prevalence balancing
+ablation queued in earlier revisions have since been executed
+(Section~\ref{sec:res-lstmrep}: the four-arm federation matrix is
+complete, every ranking result replicates within $\pm$0.005
+ROC-AUC, and per-client SMOTE is a clean negative).
 An independent re-execution from the public, byte-verified dataset
 artefacts reproduces every in-partition headline metric exactly
 (Section~\ref{sec:repro}); eight items of the re-run
@@ -105,7 +113,9 @@ programme---the frozen-FPR report, the calibration arms, the
 untouched holdouts, the budget-matched and $\alpha{=}5.0$ re-runs, the
 raw-metadata provenance audit, the event-level/leakage-free
 evaluation on the temporally-preceding fold, and the raw-substrate
-retraining with the SCAFFOLD arm, plus the federated LSTM arms---have
+retraining with the SCAFFOLD arm, plus the federated LSTM
+arms, their seed-43 replication, and the natural-prevalence SMOTE
+ablation---have
 since been executed with results in Section~\ref{sec:results}; the
 remaining
 items are listed in
