@@ -12,7 +12,7 @@ assistant (no owner action).
 | # | Given | Ask | Command | GPU? | Delivered | Status | Outcome |
 |---|-------|-----|---------|------|-----------|--------|---------|
 | 1 | 2026-09-30 | Item-8 LSTM arms on the raw substrate (frozen protocol, seed 42) | `python experiments/run_federated_lstm.py` | YES (~2.6 h) | chat + git e185e4a | **RAN** (9,290 s on RTX 4060 Laptop) | `outputs/raw_lstm_eval.json` validated 44/45 checks → paper v3.6; event-level pass executed on CPU by assistant → v3.7 |
-| 2 | 2026-10-01 | Sync local repo with the queue package on `origin/improvements` | `git stash && git pull origin improvements && git stash drop` | **no** (10 s, any machine) | chat | **GIVEN — PENDING** | see safety note below |
+| 2 | 2026-10-01 | Sync local repo with the queue package on `origin/improvements` | `git stash && git pull origin improvements && git stash drop` | **no** (10 s, any machine) | chat | **RAN** (implicit: queue code exists only post-pull) | CRLF-noise stashed + dropped; untracked files + data/ untouched, as predicted |
 | 3 | 2026-10-01 | The remaining GPU programme in ONE batch: SCAFFOLD-LSTM (seed 42), seed-43 replication (4 arms), per-client SMOTE ablation | `python experiments/run_gpu_queue.py` | YES (~7-8 h, overnight; resumable) | git (this commit) + chat | **RAN** (31,250 s = 8.7 h on RTX 4060 Laptop) | all 3 steps COMPLETED and wrote all 6 JSONs; each child exited 0xC0000409 at Windows teardown AFTER the atomic writes (benign — logs + queue summary confirm full execution); JSONs uploaded 2026-10-01, validation + v3.8 integration pending |
 
 ## Why ask #2 is safe on the owner's local repo (verified from the
