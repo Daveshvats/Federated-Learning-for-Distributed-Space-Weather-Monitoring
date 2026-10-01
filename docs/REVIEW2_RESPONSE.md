@@ -480,24 +480,36 @@ synthetic in its positive class.
    evidence; the gap it preserved is an in-partition artifact (see the
    fold).
 7. ~~α=5.0 promotion~~ (executed, refuted) — unchanged.
-8. Federated LSTM/SCAFFOLD — **SCAFFOLD EXECUTED (v3.5)** on the
-   raw substrate (identical frozen budget as FedProx/FedAvg): fails
-   outright at ROC 0.768 / PR 0.057, Brier 0.137, event detection
-   54/65 at 6.4 false-alarm windows per day. The LSTM arm is
-   **BUILT, TESTED, AND GPU-READY (v3.6)**:
-   `experiments/run_federated_lstm.py` trains FedAvg-LSTM +
-   FedProx-LSTM (plus an optional pooled centralized SolarLSTM
-   comparator) on the SAME frozen raw substrate — identical windows,
-   identical seed-42 split (label-equality asserted at startup;
-   144-stat cross-check 4.4e-4), identical Dirichlet shards — with
-   the full frozen evaluation (prior-shift calibration, val-frozen
-   F-beta thresholds, frozen-FPR operating points) and event-level
-   metrics. Round-resumable, CUDA-auto, multi-seed capable
-   (`--seed 43`). Measured CPU cost on the sandbox: ~43 min/round →
-   ~74 h total → owner-GPU execution (~1.5–3 h expected); a
-   self-contained bundle ships the 3D substrate + event metadata so
-   no raw download or preprocessing is needed. Smoke-verified
-   end-to-end on CPU; new test suite 17/17 (total 129 checks).
+8. Federated LSTM/SCAFFOLD — **BOTH EXECUTED**. SCAFFOLD (v3.5, CPU)
+   on the raw substrate (identical frozen budget as FedProx/FedAvg):
+   fails outright at ROC 0.768 / PR 0.057, Brier 0.137, event detection
+   54/65 at 6.4 false-alarm windows per day. The LSTM arms (v3.6,
+   **EXECUTED on the owner GPU** — RTX 4060 Laptop, 2.6 h wall, 9,290 s;
+   artefact `outputs/raw_lstm_eval.json`, validated against the frozen
+   protocol fingerprint and the frozen MLP counterparts embedded in
+   the report): centrally the SolarLSTM is the weaker architecture
+   (0.962/0.314 vs central MLP 0.971/0.445) but the federated
+   sequence arms do NOT collapse at natural prevalence — FedAvg-LSTM
+   0.958/0.305 (MLP counterpart 0.875/0.056: a +0.083/+0.249 swing
+   from the encoder alone under identical shards, budgets, and
+   aggregation) and FedProx-LSTM **0.970/0.404**, above its own pooled
+   comparator (budget-caveated: central capped at 30 epochs vs 500
+   shard passes) and above XGBoost's raw PR-AUC (0.329), still below
+   logistic regression (0.978/0.448). FedProx-LSTM's Brier 0.011 is
+   the first federated result on any substrate to beat the
+   climatology floor (0.013); its ECE (0.020) is 4x the central
+   LSTM's. Threshold-transfer failure persists (val F2 0.727/0.765/
+   0.593 -> test 0.405/0.309/0.499); frozen-FPR points realise
+   targets within band incl. the same conservative 0.5% drift as the
+   MLP arms. FedProx-over-FedAvg stabilisation now replicated on all
+   three substrates x both encoders (0.976/0.906, 0.930/0.875,
+   0.970/0.958). Remaining on this item: the event-level pass
+   (standalone torch-free runner `experiments/run_event_level_
+   lstm.py` — 11-check test suite, total 140 checks — needs the GPU
+   run's `data/cache/rawsubstrate/test_probs_lstm.npz` + `aux/`
+   metadata; also completable by re-running the main runner with
+   `aux/` in place, which then reuses the done checkpoints), the
+   SCAFFOLD-LSTM arm, and seed-replication (`--seed 43`).
 9. Raw unbalanced programme — **EXECUTED (v3.5)**
    (`experiments/raw_substrate.py` builds the substrate,
    `experiments/run_raw_substrate.py` retrains the frozen protocol,
@@ -517,7 +529,8 @@ synthetic in its positive class.
    P5 (1.31%): LR 0.978/0.448, XGB 0.974/0.329, central MLP
    0.971/0.445, FedAvg 0.875/0.056 (0/65 events detected), FedProx
    0.930/0.149, SCAFFOLD 0.768/0.057. Centralised arms are
-   substrate-robust; every federated arm degrades sharply; XGB's
+   substrate-robust; every federated MLP arm degrades sharply while
+   the sequence arms do not (see item 8); XGB's
    minority precision on the cleaned fold was inflated by the
    TimeGAN synthetic positives (PR 0.457 -> 0.329). Remaining:
    fold/seed replication and the natural-prevalence SMOTE arm.

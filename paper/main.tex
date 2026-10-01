@@ -3,7 +3,7 @@
 % ════════════════════════════════════════════════════════════════════
 %  Federated Learning for Data-Locality-Preserving Distributed
 %  Space Weather Monitoring: A Solar-Flare Prediction Component
-%  for Grid-Resilience Pipelines (v3.5, raw-substrate re-execution)
+%  for Grid-Resilience Pipelines (v3.6, federated LSTM executed)
 %  arXiv-preprint-style single-column manuscript
 % ════════════════════════════════════════════════════════════════════
 
@@ -108,7 +108,7 @@ Grid-Resilience Pipelines}
 
 \begin{center}
 \begin{minipage}{0.92\textwidth}
-\small
+\footnotesize
 \textbf{Abstract ---}
 The vulnerability of modern power grids to geomagnetically induced
 currents (GICs), triggered by M- and X-class solar flares, presents a
@@ -158,10 +158,15 @@ and LSBZM normalisation reproduced in-pipeline with train-only
 parameters, verified against the released export) separates the arms
 decisively: the centralised baselines are substrate-robust (LR
 unchanged at 0.978; centralised MLP PR 0.445) while every federated
-arm degrades sharply (FedProx 0.930/0.149; FedAvg detects zero of 65
-events; SCAFFOLD fails at 0.768/0.057)---the federated standing was
-a property of the balanced synthetic substrate, so the case for
-federating this problem rests on data locality, not performance. Plain FedAvg diverges under the
+\emph{MLP} arm degrades sharply (FedProx 0.930/0.149; FedAvg detects
+zero of 65 events; SCAFFOLD fails at 0.768/0.057). The collapse is
+encoder-conditional: under the same protocol the sequential SolarLSTM
+(owner GPU) does not collapse---FedAvg-LSTM 0.958/0.305 against its
+MLP counterpart's 0.875/0.056, FedProx-LSTM 0.970/0.404, above its
+pooled comparator though below logistic regression---so the
+balanced-substrate standing is a property of the flattened-feature
+MLP, not of federation per se; the case for federating this problem
+rests on data locality, not performance. Plain FedAvg diverges under the
 preregistered headline configuration (validation AUC $0.99\to0.05$
 after round 20; the in-partition multiseed, sweep, ablation and
 client-level studies are retained as protocol-stability evidence and

@@ -64,7 +64,8 @@ python experiments/run_budget_matched.py              # 500-epoch budget-matched
 python experiments/run_alpha_promotion.py             # alpha=5.0 promotion run (v3.3: executed, negative)
 python experiments/run_partition_disjoint.py           # leakage-free fold P1-4 -> P5 (v3.4: executed)
 python experiments/run_event_level.py --input outputs/event_scores.json  # v3.1
-python experiments/run_federated_lstm.py               # LSTM arms on the raw substrate (v3.6: GPU-ready, owner-side)
+python experiments/run_federated_lstm.py               # LSTM arms on the raw substrate (v3.6: EXECUTED on owner GPU)
+python experiments/run_event_level_lstm.py              # LSTM event-level pass (v3.6: torch-free CPU, standalone)
 python secure_aggregation.py                          # secagg self-test
 ```
 
@@ -111,7 +112,7 @@ SF9/
 ├── privacy_analysis/           # threat model
 ├── limitations/                # honest limitations
 ├── docs/                       # GIC boundary, lit-search, review-2 response
-├── tests/                      # integrity + substrate + LSTM suites (129 checks)
+├── tests/                      # integrity + substrate + LSTM suites (140 checks)
 ├── logs/                       # execution logs
 ├── paper/                      # manuscript (LaTeX + PDF) + review
 └── outputs/                    # results.json, figures (regenerated)
@@ -177,22 +178,25 @@ Items 1, 2, and 4 were executed on the v3.4 leakage-free fold
 boundary; event-level evaluation, 65/65 GOES peak matches). Item 9 and
 the SCAFFOLD half of item 8 were **executed in v3.5**:
 
-8. ~~Federated LSTM and~~ SCAFFOLD evaluation — **SCAFFOLD EXECUTED
-   (v3.5)**: fails on the raw substrate (0.768/0.057, Brier 0.137,
-   54/65 events at 6.4 FA windows/day). The LSTM arm is **BUILT,
-   TESTED, AND GPU-READY (v3.6)**:
-   `experiments/run_federated_lstm.py` trains FedAvg-LSTM +
-   FedProx-LSTM (plus an optional pooled centralized SolarLSTM
-   comparator) on the SAME frozen raw substrate — identical windows,
-   split (label-equality asserted, 144-stat cross-check 4.4e-4), and
-   Dirichlet shards — with the full frozen evaluation and event-level
-   metrics. Round-resumable, device-auto (CUDA if available),
-   multi-seed capable (`--seed 43`). Measured on the 2-core CPU
-   sandbox: ~43 min/round -> ~74 h total, so it runs on the owner GPU
-   (~1.5-3 h expected); a self-contained data bundle ships the 3D
-   substrate + event metadata so no raw download or preprocessing is
-   needed. Smoke-verified end-to-end on CPU (17/17 new tests;
-   suites 78/78, 18/18, 16/16).
+8. ~~Federated LSTM and~~ SCAFFOLD evaluation — **BOTH EXECUTED**:
+   SCAFFOLD (v3.5, CPU) fails on the raw substrate (0.768/0.057,
+   Brier 0.137, 54/65 events at 6.4 FA windows/day). The LSTM arms
+   (v3.6, **executed on the owner GPU** — RTX 4060 Laptop, 2.6 h,
+   `outputs/raw_lstm_eval.json`): centrally the SolarLSTM is weaker
+   (0.962/0.314 vs central MLP 0.971/0.445) but the federated
+   sequence arms do NOT collapse at natural prevalence —
+   FedAvg-LSTM 0.958/0.305 (MLP counterpart 0.875/0.056),
+   FedProx-LSTM **0.970/0.404**, above its own pooled comparator
+   and XGBoost's raw PR-AUC (0.329), below LR (0.978/0.448);
+   FedProx-LSTM Brier 0.011 is the first federated result to beat
+   the climatology floor; FedProx-over-FedAvg stabilisation now
+   replicated on 3 substrates x 2 encoders. The runner
+   (`experiments/run_federated_lstm.py`) is round-resumable,
+   device-auto, multi-seed capable (`--seed 43`), and re-runs after
+   completion reuse the trained checkpoints (evaluation-only,
+   ~minutes). The event-level pass is
+   `experiments/run_event_level_lstm.py` (torch-free, CPU, needs
+   `data/cache/rawsubstrate/test_probs_lstm.npz` + `aux/`).
 9. ~~Raw unbalanced SWAN-SF experiment programme~~ **EXECUTED (v3.5)**
    (`experiments/raw_substrate.py` + `run_raw_substrate.py` +
    `run_event_level_raw.py`; artefacts `outputs/raw_substrate_eval.json`,
@@ -204,9 +208,12 @@ the SCAFFOLD half of item 8 were **executed in v3.5**:
    MLP 0.971/0.445), federated arms collapse (FedAvg 0.875/0.056 with
    0/65 events, FedProx 0.930/0.149, SCAFFOLD 0.768/0.057).
 
-Remaining: fold/seed replication of the leakage-free and raw-substrate
-runs, executing the federated LSTM arm on the owner GPU (one command,
-`python experiments/run_federated_lstm.py` — see item 8), and the
+Remaining: fold/seed replication of the leakage-free, raw-substrate,
+and LSTM runs (the LSTM arms executed at a single seed on a single
+device), the LSTM arms' event-level pass (one command:
+`python experiments/run_event_level_lstm.py` — needs the GPU run's
+`test_probs_lstm.npz`, already on the owner machine, plus `aux/`
+from the bundle), the SCAFFOLD-LSTM arm, and the
 natural-prevalence SMOTE ablation. The event-level figures
 (`outputs/event_level_p5.json`, `outputs/event_level_raw_p5.json`)
 are the operational performance figures, with the single-fold caveat.

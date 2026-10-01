@@ -86,17 +86,23 @@ available; until then, the six-client federation remains a simulation
 of data locality, not a replication of it.
 
 \paragraph{Algorithm coverage.}
-The committed artefacts cover the MLP path; the LSTM path---which
-consumes the raw $60\times24$ windows and matches the temporal
+The MLP path is now evaluated on all three substrates, and the LSTM
+path---which consumes the raw $60\times24$ windows and matches the
+temporal
 architectures that lead centralised SWAN-SF benchmarks
-\cite{hassani2025}---is implemented but not yet evaluated federated,
-and SCAFFOLD (implemented with control variates and crash recovery) is
-disabled by default. Both are near-term experiments: the LSTM is the
-most likely route to closing the gap to the tree-ensemble reference,
-and SCAFFOLD is the natural third point on the drift-correction axis
-between FedAvg and FedProx. Personalised FL (per-client heads over a
-shared backbone) is a further direction: agencies may prefer a global
-model for situational awareness plus a locally adapted model for their
+\cite{hassani2025}---has been evaluated federated on the raw
+substrate (Section~\ref{sec:res-lstm}, owner GPU, single seed): the
+sequence arms do not collapse at natural prevalence, retroactively
+validating them as the route to closing the tree-ensemble gap in
+federated settings. What remains on this axis: the LSTM arms'
+event-level pass (staged: a CPU one-command step over the audit
+metadata), their cleaned-fold pairing, and the SCAFFOLD-LSTM arm
+(its MLP instance is the hardest raw-substrate failure, and the
+AdamW/control-variate confound of
+Section~\ref{sec:discussion} is unresolved). Personalised FL
+(per-client heads over a shared backbone) is a further direction:
+agencies may prefer a global model for situational awareness plus a
+locally adapted model for their
 own asset fleet.
 
 \paragraph{Event-level evaluation.}
@@ -136,10 +142,14 @@ versus centralised question entirely: the centralised arms are
 substrate-robust (logistic regression unchanged to three decimals;
 centralised MLP PR-AUC 0.382$\to$0.445), XGBoost's minority-class
 precision was inflated by the synthetic positives (PR-AUC
-0.457$\to$0.329), and every federated arm degrades sharply on the
-natural-prevalence substrate (FedProx 0.976/0.308$\to$0.930/0.149;
+0.457$\to$0.329), and every federated \emph{MLP} arm degrades sharply
+on the natural-prevalence substrate (FedProx 0.976/0.308$\to$0.930/0.149;
 FedAvg PR-AUC 0.056 and zero events detected; SCAFFOLD, executed
-here for the first time on a real substrate, fails at 0.768/0.057).
+here for the first time on a real substrate, fails at 0.768/0.057)
+---while the sequence arms of Section~\ref{sec:res-lstm}
+substantially restore the federated standing (FedProx-LSTM
+0.970/0.404), relocating the fragility from the federation mechanism
+to the flattened-feature representation.
 What remains open is replication breadth rather than direction:
 fold- and seed-replication of the raw-substrate run, and the
 natural-prevalence \emph{smote} arm, which now has work to do and is
@@ -171,11 +181,16 @@ construction of the temporally-preceding fold; natural-prevalence
 test boundary; event-level evaluation with 65/65 GOES peak
 matches), and the raw-substrate retraining executed item~(5)
 together with the SCAFFOLD half of item~(4) on the natural-prevalence
-benchmark (Section~\ref{sec:res-raw}). What remains queued is
-replication breadth and the sequence arm: fold- and
-seed-replication of the leakage-free and raw-substrate runs, the
-federated LSTM arm (compute; the only item that genuinely benefits
-from owner-side GPU), and the natural-prevalence SMOTE ablation,
+benchmark (Section~\ref{sec:res-raw}), and the LSTM half of
+item~(4) was executed on the owner GPU (Section~\ref{sec:res-lstm}:
+the sequence arms restore the federated standing, FedProx-LSTM
+0.970/0.404, at 2.6\,h wall-clock against an estimated 74\,h of CPU).
+What remains queued is replication breadth and completion: fold- and
+seed-replication of the leakage-free, raw-substrate, and LSTM runs
+(the LSTM arms executed at a single seed on a single device, with
+cross-device AUC jitter of $\pm$0.001--0.005 expected), the LSTM
+arms' event-level pass and cleaned-fold pairing, the SCAFFOLD-LSTM
+arm, and the natural-prevalence SMOTE ablation,
 which is now meaningful but was inert on the pre-balanced cleaned
 variant. Items previously labelled operational preconditions have
 been discharged; the event-level figures of

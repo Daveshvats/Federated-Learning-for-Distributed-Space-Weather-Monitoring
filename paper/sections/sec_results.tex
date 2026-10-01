@@ -259,6 +259,99 @@ SCAFFOLD MLP & 54/65 (83.1\%) & 6.4 & 6.6 & 23.2 \\
 \end{tabular}
 \end{table}
 
+\subsection{The sequence encoder rescues the federated arms}
+\label{sec:res-lstm}
+
+The raw-substrate collapse of Table~\ref{tab:rawsubstr} is a
+statement about the flattened-feature MLP arms, and the second half of
+re-run item~8 asks exactly that question: does the same frozen
+protocol survive natural prevalence when the federated encoder is
+sequential? The LSTM arms were executed on owner-side GPU hardware
+(RTX\,4060 Laptop, cuDNN; 2.6\,h total wall-clock for both
+federated arms plus the pooled comparator, against an estimated
+$\sim$74\,h on the 2-core CPU sandbox---the one experiment where a
+GPU was a practical requirement rather than a convenience). The
+substrate is identical by construction: the runner rebuilds the 3D
+series from the same cached stage-A/B arrays, asserts label equality
+with the frozen 2D split at startup, cross-checks the 144-statistic
+features (maximum difference $4.4\times10^{-4}$), and reuses the
+identical seed-42 Dirichlet shards, so the only degrees of freedom
+are the encoder and the device. The SolarLSTM (219,265 parameters,
+consuming the raw $60\times24$ series directly) is trained under the
+same Fed-Focal loss, prior-shift calibration, and validation-frozen
+threshold machinery as every other arm; SCAFFOLD-LSTM was not
+executed, its MLP instance being the hardest failure on this
+substrate and its control-variate arithmetic under AdamW remaining
+the confound documented in Section~\ref{sec:discussion}.
+
+Table~\ref{tab:lstmraw} reports the outcome alongside each arm's
+frozen MLP counterpart, and the asymmetry of
+Section~\ref{sec:res-raw} inverts. Centrally, the LSTM is the
+\emph{weaker} architecture: 0.962/0.314 against the central MLP's
+0.971/0.445 on the same windows. Federated, the ordering reverses.
+FedAvg-LSTM holds 0.958/0.305 where the FedAvg MLP fell to
+0.875/0.056---a $+0.083$ ROC-AUC and $+0.249$ PR-AUC swing from the
+encoder alone, under identical shards, budgets, and aggregation.
+FedProx-LSTM reaches 0.970/0.404: above its own pooled centralised
+comparator ($+0.008$ ROC, $+0.090$ PR) and above XGBoost's raw
+PR-AUC (0.329). The two contrasts isolate what happened. Between
+federated arms of identical budget and aggregation, the sequence
+encoder removes the natural-prevalence collapse the MLP suffers; the
+load-bearing comparison is budget-matched by construction. Between
+the pooled and federated instances of the same sequence encoder,
+federation costs nothing (FedAvg) or appears to help (FedProx)---but
+the latter margin carries a budget caveat, since the central
+comparator is capped at 30 epochs while the federated arms receive
+500 shard passes, and the cleaned-fold parity experiment moved the
+central MLP by $+0.029$ ROC-AUC under exactly that correction
+(Section~\ref{sec:budget}).
+
+What does not change is at least as important. No federated arm
+exceeds the best centralised baseline on either rank metric
+(FedProx-LSTM sits 0.008/0.044 below logistic regression). The
+frozen-$F_\beta$ thresholds still transfer badly: validation $F_2$
+values of 0.727/0.765/0.593 degrade to test values of
+0.405/0.309/0.499 under the $1.6\times$ validation-to-test
+prevalence shift, while the frozen-FPR operating points still
+realise their targets within band, reproducing (including the same
+conservative drift at the 0.5\% target) the behaviour already
+documented for the MLP arms. Calibration remains the deployability
+boundary: FedProx-LSTM's Brier of 0.011 is the first federated result
+on any substrate to beat the climatology floor (0.013), but its ECE
+of 0.020 is four times the central LSTM's 0.005, and the centralised
+MLP's Brier of 0.010 remains the best of all nine arms executed on
+this substrate. Finally, the FedProx-over-FedAvg stabilisation now
+appears on all three substrates and both encoders (cleaned fold
+0.976 vs 0.906; raw MLP 0.930 vs 0.875; raw LSTM 0.970 vs
+0.958)---the most replicated single finding of this study. The
+event-level pass for these arms is a staged one-command step over
+the same audit metadata used for Table~\ref{tab:eventlevel-raw}
+(the window-level artefacts above are complete without it).
+
+\begin{table}[t]
+\centering
+\caption{Raw-substrate LSTM arms (frozen protocol, identical
+substrate, shards, and evaluation as Table~\ref{tab:rawsubstr};
+owner-GPU execution, seed 42) with each arm's frozen MLP counterpart
+repeated from Table~\ref{tab:rawsubstr} for the
+architecture-versus-federation contrast. Brier and ECE on the
+calibrated test probabilities at natural 1.31\% prevalence.}
+\label{tab:lstmraw}
+\small
+\begin{tabular}{@{}l cc cc c c c@{}}
+\toprule
+ & \multicolumn{2}{c}{\textbf{LSTM arm}} &
+ \multicolumn{2}{c}{\textbf{MLP counterpart}} & & & \\
+\cmidrule(r){2-3} \cmidrule(l){4-5}
+\textbf{Model} & ROC & PR & ROC & PR & Brier & ECE & R@2\%FPR \\
+\midrule
+Centralised & 0.962 & 0.314 & 0.971 & 0.445 & 0.0111 & 0.005 & 0.481 \\
+FedAvg & 0.958 & 0.305 & 0.875 & 0.056 & 0.0112 & 0.007 & 0.431 \\
+FedProx & 0.970 & 0.404 & 0.930 & 0.149 & 0.0106 & 0.020 & 0.525 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \subsection{What survives the leakage-free protocol}
 \label{sec:res-leakfree-discussion}
 
@@ -269,24 +362,32 @@ and leakage-free raw (natural prevalence)---and the surviving claims
 can be tiered across all three. Two claims transfer unchanged to
 \emph{every} substrate: the \emph{deployability boundary} (only
 XGBoost's posteriors survive the prevalence shift on the cleaned
-fold; on the raw substrate the centralised MLP's Brier of 0.010 is
-the best of all arms; no federated arm is calibration-usable on any
-substrate) and the \emph{threshold-transfer failure} at fixed-FPR
+fold; on the raw substrate the centralised MLP's Brier of 0.010
+remains the best of all nine arms, with FedProx-LSTM the sole
+federated result to beat the climatology floor, Brier 0.011 versus
+0.013 at an ECE of 0.020 against the central arms'
+0.005--0.011) and the \emph{threshold-transfer failure} at fixed-FPR
 operating points. FedProx's \emph{ROC stabilisation} over plain
 FedAvg transfers to the cleaned fold (0.976 vs 0.906,
-checkpoint-independent dynamics) but shrinks to 0.930 vs 0.875 on
-the raw substrate, with both arms far below every centralised model.
-Three claims do not transfer beyond the cleaned fold: the
+checkpoint-independent dynamics) and, in diminished form, to the raw
+substrate (0.930 vs 0.875 for the MLP arms; 0.970 vs 0.958 for the
+sequence arms of Section~\ref{sec:res-lstm})---the only claim now
+replicated across all three substrates and both encoders. Three
+claims do not transfer beyond the cleaned fold, and all three are
+statements about the \emph{MLP} arms: the
 federated-versus-centralised ROC gap (0.003 on the cleaned fold,
-0.048 in favour of centralised on raw), FedProx's in-partition
-PR-AUC edge (its raw PR-AUC of 0.149 is a third of the centralised
-MLP's 0.445), and the absolute discrimination levels of the
-federated arms themselves (FedAvg detects zero of 65 events on the
-raw substrate). The multi-seed, sweep, ablation, and client-level
+0.048 in favour of centralised on raw; 0.008 for the sequence arms),
+FedProx's in-partition PR-AUC edge (its raw PR-AUC of 0.149 is a
+third of the centralised MLP's 0.445, though the sequence arm
+reaches 0.404), and the absolute discrimination levels of the
+flattened-feature federated arms themselves (FedAvg-MLP detects zero
+of 65 events on the raw substrate; FedAvg-LSTM does not collapse).
+The multi-seed, sweep, ablation, and client-level
 studies of the following subsections were executed under the
 in-partition protocol and are retained as protocol-stability
 evidence; their leakage-free and raw-substrate counterparts remain
-queued (one fold of each is reported here; fold- and
+queued, as does seed-replication of the single-seed owner-GPU LSTM
+arms (one fold of each is reported here; fold- and
 seed-replication is owner-side compute).
 
 \subsection{Headline comparison on the held-out test set (in-partition protocol)}

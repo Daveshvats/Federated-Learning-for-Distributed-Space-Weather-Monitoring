@@ -123,3 +123,20 @@ corroboration in `sec:res-raw`; the deployability boundary (row 31)
 extends: on the raw substrate the centralised MLP's Brier 0.010 is
 best of all arms and no federated arm is calibration-usable on any
 substrate.
+
+---
+
+## v3.6 federated-LSTM claim updates (2026-10-01)
+
+| # | Claim | Status | Evidence |
+|---|-------|--------|----------|
+| 38 | The raw-substrate federated collapse is a property of federation | **REFUTED (architecture-conditional)** | `outputs/raw_lstm_eval.json` (owner GPU, RTX 4060, 2.6 h; frozen protocol, substrate identity asserted): FedAvg-LSTM 0.958/0.305 vs FedAvg-MLP 0.875/0.056 (+0.083/+0.249 from the encoder alone, identical shards/budgets/aggregation); FedProx-LSTM 0.970/0.404, above its own pooled comparator (0.962/0.314, budget-caveated: central capped at 30 epochs) and XGBoost's raw PR-AUC 0.329. Centrally the LSTM is the weaker architecture (0.962/0.314 vs 0.971/0.445) — the collapse is a property of the flattened-feature MLP arms, not of federation per se |
+| 39 | FedProx-over-FedAvg stabilisation is a cleaned-substrate artifact | REFUTED (most replicated finding) | Stabilisation appears on all three substrates and both encoders: cleaned fold 0.976 vs 0.906; raw MLP 0.930 vs 0.875; raw LSTM 0.970 vs 0.958 (both rank metrics, identical shards/budgets) |
+| 40 | No federated arm is calibration-usable on any substrate | SOFTENED | FedProx-LSTM Brier 0.0106 beats the climatology floor (0.0130) on the raw substrate — the first federated result to do so — but ECE 0.020 is 4x the central LSTM's 0.005 and the centralised MLP's Brier 0.0104 remains best of all nine arms; the deployability boundary (calibration, not detection) stands |
+
+Row updates: rows 34/35 (raw-substrate collapse) now carry the
+architecture qualifier — the MLP arms collapse, the sequence arms do
+not; row 30 (FedProx stabilisation) gains the raw-LSTM replication;
+the conclusion's smart-grid message is re-worded (parity is
+encoder-dependent; no federated arm exceeds the best centralised
+baseline on any substrate).

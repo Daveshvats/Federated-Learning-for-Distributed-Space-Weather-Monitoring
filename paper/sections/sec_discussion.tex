@@ -26,8 +26,13 @@ federated or not, lose to the gradient-boosted reference. The
 federated story that survives is the narrower one this section has
 always argued: under adversarial heterogeneity, proximal
 regularisation keeps the federation converging where plain averaging
-collapses (0.976 vs 0.906, with checkpoint-independent dynamics), and
-it does so without data movement.
+collapses (0.976 vs 0.906, with checkpoint-independent dynamics),
+and it does so without data movement. On the raw substrate the same
+statement is encoder-conditional: the flattened-feature arms collapse
+there under every regulariser studied, while the sequence arms of
+Section~\ref{sec:res-lstm} restore it (FedProx-LSTM 0.970 vs
+FedAvg-LSTM 0.958), relocating the fragility from the federation
+mechanism to the representation the clients share.
 
 \subsection{Why proximal regularisation stabilises the federation}
 
@@ -67,7 +72,19 @@ load-bearing'': the ablation grid shows distribution-aware aggregation
 also stabilises FedAvg substantially (best FedAvg cell 0.963), so the
 defensible statement is that the proximal term was the \emph{most
 consistent} stabiliser among the components studied, under the
-preregistered configuration, on this benchmark.
+preregistered configuration, on this benchmark. The raw-substrate
+LSTM arms extend that evidence across encoders: FedProx-LSTM 0.970
+versus FedAvg-LSTM 0.958 on both rank metrics, with identical
+shards, budgets, and aggregation, makes the stabilisation the only
+finding of this study replicated across all three substrates and
+both architectures. The architecture result itself---the sequence
+encoder removing the natural-prevalence collapse the MLP
+suffers---is measured as a contrast, not explained as a mechanism:
+reading the 60-step temporal profile directly plausibly matters more
+than any pooled 144-statistic summary when every client's local
+positive rate is skewed, but isolating \emph{why} (temporal
+separability versus effective capacity versus optimisation noise)
+would require ablations we leave queued.
 
 \subsection{Operational positioning: an upstream precursor alert}
 

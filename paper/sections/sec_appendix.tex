@@ -151,6 +151,21 @@ MLP 0.971/0.445), federated arms collapse (FedAvg 0.875/0.056, 0/65
 events; FedProx 0.930/0.149; SCAFFOLD 0.768/0.057); event-level:
 central arms 61.5--80\% detection at 0.2--0.3 FA windows/day; claims
 re-tiered across three substrates. \\
+\addlinespace[2pt]
+v3.6 & Federated LSTM arm (item 8, second half) unexecuted on
+owner-side compute; raw-substrate collapse established only for the
+MLP arms, leaving its architecture dependence open. & LSTM arms
+executed on the owner GPU (RTX 4060, 2.6\,h;
+\texttt{run\_federated\_lstm.py},
+\texttt{outputs/raw\_lstm\_eval.json}; substrate identity asserted):
+centrally the LSTM is the weaker architecture (0.962/0.314 vs
+0.971/0.445) but the federated sequence arms do not
+collapse---FedAvg-LSTM 0.958/0.305, FedProx-LSTM 0.970/0.404, above
+its pooled comparator and XGBoost's raw PR-AUC, below logistic
+regression; first federated Brier to beat the climatology floor;
+stabilisation now on three substrates $\times$ two encoders;
+CPU-only event-level runner released; claims re-tiered (the collapse
+is a flattened-feature-MLP property). \\
 \bottomrule
 \end{tabularx}
 \end{table}
