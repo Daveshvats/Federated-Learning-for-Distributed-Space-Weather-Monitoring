@@ -189,9 +189,10 @@ the SCAFFOLD half of item 8 were **executed in v3.5**:
    FedAvg-LSTM 0.958/0.305 (MLP counterpart 0.875/0.056),
    FedProx-LSTM **0.970/0.404**, above its own pooled comparator
    and XGBoost's raw PR-AUC (0.329), below LR (0.978/0.448);
-   FedProx-LSTM Brier 0.011 is the first federated result to beat
-   the climatology floor; FedProx-over-FedAvg stabilisation now
-   replicated on 3 substrates x 2 encoders. The runner
+   the federated sequence arms' Brier beats the climatology floor
+   (FedProx 0.0106 best; FedAvg 0.0112, SCAFFOLD 0.0120 also below
+   the 0.013 floor at v3.8); FedProx-over-FedAvg stabilisation now
+   replicated on every executed substrate x encoder combination. The runner
    (`experiments/run_federated_lstm.py`) is round-resumable,
    device-auto, multi-seed capable (`--seed 43`), and re-runs after
    completion reuse the trained checkpoints (evaluation-only,

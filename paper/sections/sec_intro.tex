@@ -76,8 +76,9 @@ This paper closes that gap. We present a complete, reproducible
 federated framework---implemented, versioned, and released as open
 source---that \emph{simulates} six regional data custodians (labelled
 A--F by region; no real institution participates), each holding a
-non-IID shard of the SWAN-SF benchmark \cite{angryk2020} in its cleaned
-and rebalanced form, and evaluates whether federation can approach the
+non-IID shard of the SWAN-SF benchmark \cite{angryk2020} in both its
+cleaned/rebalanced form and its raw, naturally imbalanced form, and
+evaluates whether federation can approach the
 centralised upper bound without any data movement. The framework is an
 upstream flare-probability component: it emits calibrated M/X flare
 probabilities and fixed-false-positive-rate alerting points that a
@@ -97,9 +98,11 @@ contributions are:
   Dirichlet label-skew partitioning across six simulated regional
   clients, a server-aware Fed-Focal loss \cite{sarkar2020} for extreme
   class imbalance, and optional distribution-aware aggregation and
-  per-client SMOTE oversampling (both studied as ablation arms; the
-  SMOTE arm is inert on this benchmark variant), on top of both FedAvg
-  \cite{mcmahan2017} and FedProx \cite{li2020} training loops
+  per-client SMOTE oversampling (both studied as ablation arms; SMOTE
+  is inert on the cleaned variant and an executed negative at natural
+  prevalence), on top of FedAvg
+  \cite{mcmahan2017}, FedProx \cite{li2020}, and SCAFFOLD
+  \cite{karimireddy2020} training loops
   (Section~\ref{sec:method}).
   \item \textbf{A frozen, leakage-audited evaluation protocol and a
   data-provenance audit of the benchmark export.} The protocol
@@ -129,6 +132,20 @@ contributions are:
   events shows detection is not the deployability boundary---XGBoost's
   false-alarm burden is roughly $7\times$ lower than every neural
   arm's (Section~\ref{sec:res-leakfree}).
+  \item \textbf{A raw-substrate re-execution and the encoder-conditional
+  collapse.} Retraining the identical frozen protocol on the raw,
+  unbalanced benchmark (natural prevalence, no synthetic positives, the
+  release's imputation and normalisation reproduced in-pipeline with
+  train-only parameters) separates the arms decisively: every
+  federated \emph{MLP} arm degrades sharply (FedAvg detects zero of 65
+  events; SCAFFOLD 0.768/0.057) while the same protocol with the
+  sequential SolarLSTM restores the federated standing (FedProx-LSTM
+  0.970/0.404; SCAFFOLD-LSTM the substrate's highest event-level
+  detection, 55/65 at 0.4 false-alarm windows per day), a second seed
+  holds all four sequence arms within $\pm$0.005 ROC-AUC, and
+  per-client SMOTE at natural prevalence is a clean negative---so the
+  balanced-substrate standing is a property of the flattened-feature
+  MLP, not of federation per se (Sections~\ref{sec:res-raw}--\ref{sec:res-lstmrep}).
   \item \textbf{An in-partition data-locality study, disclosed as
   such.} On the same-partition protocol (331{,}185 test windows,
   1.88\% prevalence) whose instance overlap the audit quantified,
@@ -149,8 +166,8 @@ contributions are:
 \end{enumerate}
 
 We are explicit about what is \emph{not} claimed: per-client SMOTE
-contributes nothing on this benchmark variant (zero synthetic samples;
-reported as a null result, not a contribution); the verified property
+contributes nothing on either substrate (zero synthetic samples on
+the cleaned variant; an executed negative at natural prevalence); the verified property
 is data locality, not cryptographic privacy; the six clients are
 simulated, not real agencies; and the downstream
 flare$\to$CME$\to$storm$\to$GIC chain is discussed as future

@@ -52,15 +52,19 @@ Section~\ref{sec:budget}); (vi)\ the calibration-comparison harness
 validation-fit and single-pass test evaluation;
 Section~\ref{sec:res-calib}); and the $\alpha{=}5.0$ promotion run at
 the full 50-round protocol (negative result; retained
-$\alpha{=}1.0$; Section~\ref{sec:fedconfig}). The remaining extensions
-are released and awaiting full-data execution, blocked on data that
-the cleaned export does not carry: (i)\ a region-disjoint
-train/validation split generator that partitions by active-region
-identifier when available (the cleaned export lacks HARP/AR
-identifiers, so the committed split remains the stratified
-carve-out); and (v)\ an event-level evaluation module (detection
-rate, missed events, duplicate alerts, warning lead time, alert rate
-per day; requires event keys absent from the cleaned export).
+$\alpha{=}1.0$; Section~\ref{sec:fedconfig}). The remaining
+extensions are no longer blocked: (v)\ the event-level evaluation
+module (detection rate, missed events, duplicate alerts, warning lead
+time, alert rate per day) was unblocked by the raw-metadata audit of
+Section~\ref{sec:provenance}---event keys and GOES peak times
+recovered from the raw benchmark---and has been executed on the
+trained models of both substrates
+(Tables~\ref{tab:eventlevel} and~\ref{tab:eventlevel-raw}); and
+(i)\ the region-disjoint train/validation split generator is released
+and awaits a within-fold study design (the temporally-preceding fold
+is already region-disjoint by construction,
+Section~\ref{sec:provenance}, so its remaining use is
+within-fold validation work).
 \end{itemize}
 
 \subsection{Baselines}

@@ -495,14 +495,15 @@ synthetic in its positive class.
    aggregation) and FedProx-LSTM **0.970/0.404**, above its own pooled
    comparator (budget-caveated: central capped at 30 epochs vs 500
    shard passes) and above XGBoost's raw PR-AUC (0.329), still below
-   logistic regression (0.978/0.448). FedProx-LSTM's Brier 0.011 is
-   the first federated result on any substrate to beat the
-   climatology floor (0.013); its ECE (0.020) is 4x the central
+   logistic regression (0.978/0.448). The federated sequence arms'
+   Brier beats the climatology floor (0.013; FedAvg 0.0112, FedProx
+   0.0106, SCAFFOLD 0.0120 at v3.8, vs every federated MLP arm at or
+   above it); FedProx-LSTM's ECE (0.020) is 4x the central
    LSTM's. Threshold-transfer failure persists (val F2 0.727/0.765/
    0.593 -> test 0.405/0.309/0.499); frozen-FPR points realise
    targets within band incl. the same conservative 0.5% drift as the
-   MLP arms. FedProx-over-FedAvg stabilisation now replicated on all
-   three substrates x both encoders (0.976/0.906, 0.930/0.875,
+   MLP arms. FedProx-over-FedAvg stabilisation now replicated on every
+   executed substrate x encoder combination (0.976/0.906, 0.930/0.875,
    0.970/0.958). **The event-level pass is now EXECUTED (v3.7**,
    see the sixth addendum below: FedAvg-LSTM 35/65 events vs the
    MLP arm's 0/65; FedProx-LSTM 49/65 (75.4%) at 0.4 FA windows/day,

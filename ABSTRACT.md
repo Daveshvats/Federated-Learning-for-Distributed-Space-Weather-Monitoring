@@ -186,9 +186,9 @@ the LSTM is the weaker architecture (0.962/0.314 vs central MLP
 0.971/0.445) but the federated sequence arms do NOT collapse at
 natural prevalence — FedAvg-LSTM 0.958/0.305 (MLP counterpart
 0.875/0.056), FedProx-LSTM 0.970/0.404, above its pooled comparator
-(budget-caveated) and XGBoost's raw PR-AUC, below LR; FedProx-LSTM's
-Brier 0.011 is the first federated result to beat the climatology
-floor. The event-level pass (v3.7, executed offline on CPU from the
+(budget-caveated) and XGBoost's raw PR-AUC, below LR; the federated
+sequence arms' Brier beats the climatology floor (FedProx 0.0106
+best). The event-level pass (v3.7, executed offline on CPU from the
 GPU run's stored test probabilities over the audit metadata,
 `outputs/event_level_raw_lstm_p5.json`) completes the rescue: where
 FedAvg-MLP detects 0/65 events, FedAvg-LSTM detects 35 (53.8%) at

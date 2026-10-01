@@ -81,8 +81,9 @@ distribution-aware
 aggregation exceeds the FedProx headline ROC-AUC, recall-at-FPR
 figures are window-level statistics over correlated windows,
 five-seed confidence intervals quantify seed variability only, and
-the leakage-free fold is a single fold and seed (fold- and
-seed-replication is queued owner-side compute). Two
+the leakage-free fold is a single fold and seed (fold-replication
+remains queued owner-side compute; the raw-substrate seed
+replication is discharged in Section~\ref{sec:res-lstmrep}). Two
 formerly listed caveats were resolved by executed re-runs: the
 optimisation-budget confound (the budget-matched 500-epoch re-run of
 Section~\ref{sec:budget} shows the in-partition FedProx gap survives
@@ -104,17 +105,17 @@ sequence arms, and fold-replication breadth; the SCAFFOLD-LSTM arm,
 the seed-43 replication, and the natural-prevalence balancing
 ablation queued in earlier revisions have since been executed
 (Section~\ref{sec:res-lstmrep}: the four-arm federation matrix is
-complete, every ranking result replicates within $\pm$0.005
-ROC-AUC, and per-client SMOTE is a clean negative).
+complete, every arm's ROC-AUC replicates within $\pm$0.005, and
+per-client SMOTE is a clean negative).
 An independent re-execution from the public, byte-verified dataset
 artefacts reproduces every in-partition headline metric exactly
-(Section~\ref{sec:repro}); eight items of the re-run
+(Section~\ref{sec:repro}); eleven items of the re-run
 programme---the frozen-FPR report, the calibration arms, the
-untouched holdouts, the budget-matched and $\alpha{=}5.0$ re-runs, the
-raw-metadata provenance audit, the event-level/leakage-free
-evaluation on the temporally-preceding fold, and the raw-substrate
-retraining with the SCAFFOLD arm, plus the federated LSTM
-arms, their seed-43 replication, and the natural-prevalence SMOTE
+untouched holdouts, the budget-matched and $\alpha{=}5.0$ re-runs,
+the raw-metadata provenance audit, the event-level/leakage-free
+evaluation on the temporally-preceding fold, the raw-substrate
+retraining with the SCAFFOLD arm, the federated LSTM arms, their
+seed-43 replication, and the natural-prevalence SMOTE
 ablation---have
 since been executed with results in Section~\ref{sec:results}; the
 remaining
@@ -135,8 +136,8 @@ flattened-feature MLP every federated configuration is strictly
 dominated by simple centralised baselines, while with the sequence
 encoder the best federated arm (FedProx-LSTM, 0.970/0.404) comes
 within 0.008 ROC-AUC and 0.044 PR-AUC of the best centralised
-baseline and is the first federated result whose Brier beats the
-climatology floor. No federated arm exceeds the best centralised
+baseline, and the federated sequence arms are the only federated
+results whose Brier beats the climatology floor. No federated arm exceeds the best centralised
 baseline on any substrate, however, so the case for federating this
 problem still rests entirely on the
 data-locality constraint, not on predictive performance. For the

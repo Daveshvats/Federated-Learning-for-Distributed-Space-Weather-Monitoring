@@ -173,8 +173,9 @@ centrally the LSTM is the weaker architecture (0.962/0.314 vs
 0.971/0.445) but the federated sequence arms do not
 collapse---FedAvg-LSTM 0.958/0.305, FedProx-LSTM 0.970/0.404, above
 its pooled comparator and XGBoost's raw PR-AUC, below logistic
-regression; first federated Brier to beat the climatology floor;
-stabilisation now on three substrates $\times$ two encoders;
+regression; the federated sequence arms' Brier beats the
+climatology floor; stabilisation observed on every executed
+substrate--encoder combination;
 CPU-only event-level runner released; claims re-tiered (the collapse
 is a flattened-feature-MLP property). \\
 \addlinespace[2pt]

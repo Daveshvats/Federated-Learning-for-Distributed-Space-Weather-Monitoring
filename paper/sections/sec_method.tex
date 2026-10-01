@@ -132,10 +132,10 @@ temporal mean (peaks, volatility, and rate of change are precisely the
 flare-relevant quantities) while remaining compatible with
 weight-averaged federation and with the centralised baselines. In the
 LSTM path, the raw $\R^{60\times24}$ tensor is consumed directly by a
-recurrent model; this path is fully implemented in the released code
-but the committed artefacts analysed here correspond to the MLP
-execution, and we flag the LSTM evaluation as future work
-(Section~\ref{sec:limitations}).
+recurrent model; this path was executed federated on the raw
+substrate for all four arms plus the pooled comparator
+(Section~\ref{sec:res-lstm}), with its cleaned-fold pairing remaining
+future work (Section~\ref{sec:limitations}).
 
 \subsection{Non-IID partitioning into regional observatories}
 
@@ -207,9 +207,13 @@ we hypothesise is decisive under the label skew of
 Figure~\ref{fig:partition}. \textbf{SCAFFOLD} \cite{karimireddy2020}:
 variance reduction via client and server control variates; it is
 implemented with the SGD-based update required for exactness of the
-control-variate correction, but is disabled in the released
-configuration pending stability work, and we exclude it from the
-reported comparison (Section~\ref{sec:appendix}).
+control-variate correction (AdamW's adaptive steps would invalidate
+the correction terms). It was held out of the cleaned-substrate
+headline configuration for stability reasons and is not run on the
+cleaned fold, but it is executed on the raw substrate for both
+encoders, where its MLP instance is the hardest failure and its
+sequence instance completes the four-arm federation matrix
+(Sections~\ref{sec:res-raw} and~\ref{sec:res-lstm}).
 
 Aggregation is \emph{plain size-weighted averaging} in the frozen
 headline configuration ($\rho_k = n_k/n$, the vanilla FedAvg
@@ -261,9 +265,9 @@ which renders SMOTE inert---the configured oversampling ratio produces
 zero synthetic samples. The balancing question is therefore
 inapplicable to this benchmark variant, and we report it as a null
 result rather than a contribution (Section~\ref{sec:res-ablation});
-SMOTE is a live arm for the raw-substrate programme, where natural
-prevalence finally gives it work to do
-(Section~\ref{sec:limitations}).
+on the raw substrate, where natural prevalence gives it work to do,
+the per-client SMOTE ablation has since been executed and is
+likewise a clean negative (Section~\ref{sec:res-lstmrep}).
 
 \subsection{Threshold protocol for safety-critical recall}
 \label{sec:thresholding}
@@ -287,9 +291,10 @@ $(1-f)$-quantile of \emph{validation negative scores}, a quantity that
 uses no test information whatsoever; the realised test behaviour at
 each frozen threshold (achieved FPR, recall, precision, alert rate) is
 reported in the same single test pass. The negative-quantile rule is
-numerically validated in the released test suite, and a natural-
-prevalence validation split, the ideal substrate for this protocol, is
-part of the queued protocol re-run (Section~\ref{sec:experiments}).
+numerically validated in the released test suite, and the
+raw-substrate retraining of Section~\ref{sec:res-raw} supplies the
+natural-prevalence validation split that is the ideal substrate for
+this protocol.
 ROC-AUC and PR-AUC, being threshold-free, are reported independently.
 
 \subsection{Threat model and security posture}

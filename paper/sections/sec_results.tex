@@ -141,8 +141,8 @@ FedProx MLP & 65/65 (100\%) & 11.9 & 12.1 & 23.4 \\
 
 The leakage-free fold of Section~\ref{sec:res-leakfree} still trains
 on the cleaned export---RUS--Tomek rebalanced, TimeGAN-augmented,
-pre-normalised. The queued raw-benchmark experiment (item~9 of the
-re-run programme) asks the complementary question: does anything in
+pre-normalised. The raw-benchmark retraining (re-run item~9,
+executed in this revision) asks the complementary question: does anything in
 the comparison survive when the frozen protocol is trained directly
 on the \emph{raw} SWAN-SF partitions at their natural class
 prevalence (2.05\% across training partitions 1--4), with no
@@ -331,20 +331,26 @@ central MLP by $+0.029$ ROC-AUC under exactly that correction
 What does not change is at least as important. No federated arm
 exceeds the best centralised baseline on either rank metric
 (FedProx-LSTM sits 0.008/0.044 below logistic regression). The
-frozen-$F_\beta$ thresholds still transfer badly: validation $F_2$
-values of 0.727/0.765/0.593 degrade to test values of
-0.405/0.309/0.499 under the $1.6\times$ validation-to-test
-prevalence shift, while the frozen-FPR operating points still
-realise their targets within band, reproducing (including the same
-conservative drift at the 0.5\% target) the behaviour already
-documented for the MLP arms. Calibration remains the deployability
-boundary: FedProx-LSTM's Brier of 0.011 is the first federated result
-on any substrate to beat the climatology floor (0.013), but its ECE
-of 0.020 is four times the central LSTM's 0.005, and the centralised
-MLP's Brier of 0.010 remains the best of all nine arms executed on
-this substrate. Finally, the FedProx-over-FedAvg stabilisation now
-appears on all three substrates and both encoders (cleaned fold
-0.976 vs 0.906; raw MLP 0.930 vs 0.875; raw LSTM 0.970 vs
+frozen-$F_\beta$ thresholds transfer badly for three of the four
+arms: validation $F_2$ values of 0.727/0.765/0.593 degrade to test
+values of 0.405/0.309/0.499 under the $1.6\times$ validation-to-test
+prevalence shift, while SCAFFOLD-LSTM is the exception---its
+validation $F_2$ of 0.530 lands at 0.528 on test at a recall-heavy
+operating point (test recall 0.737)---and the frozen-FPR operating
+points still realise their targets within band, reproducing
+(including the same conservative drift at the 0.5\% target) the
+behaviour already documented for the MLP arms. Calibration remains
+the deployability boundary: all three federated sequence arms beat
+the raw-substrate climatology floor of 0.013 (FedAvg 0.0112,
+FedProx 0.0106, SCAFFOLD 0.0120, against every federated MLP arm at
+or above it, 0.013--0.137), but FedProx-LSTM's ECE of 0.020 is four
+times the central LSTM's 0.005, SCAFFOLD-LSTM carries the worst
+sequence-encoder calibration (0.035), and the centralised MLP's
+Brier of 0.010 remains the best of all ten arms executed on this
+substrate. Finally, the FedProx-over-FedAvg stabilisation now
+appears on every substrate--encoder combination executed
+(in-partition MLP 0.954 vs 0.575; cleaned fold 0.976 vs 0.906; raw
+MLP 0.930 vs 0.875; raw LSTM 0.970 vs
 0.958, replicated at seed 43 as 0.965 vs 0.961)---the most
 replicated single finding of this study. The
 event-level pass (bottom block of Table~\ref{tab:eventlevel-raw})
@@ -410,7 +416,9 @@ device, and the replication caveat that followed them is discharged
 by the second owner-GPU batch: all four arms re-executed at seed 43
 (model initialisation and the Dirichlet shard draw reseeded, the
 frozen validation carve kept identical). The ranking structure
-replicates exactly (Table~\ref{tab:lstmrep}, middle columns).
+replicates (Table~\ref{tab:lstmrep}, middle columns)---the seed-42
+FedProx/SCAFFOLD statistical tie (0.970 each) resolving into
+SCAFFOLD's narrow lead at seed 43.
 ROC-AUC moves by at most 0.005 on any arm (FedAvg
 0.958$\to$0.961, FedProx 0.970$\to$0.965, SCAFFOLD
 0.970$\to$0.968, central 0.962$\to$0.962)---inside the device and
@@ -460,14 +468,15 @@ substitute for the encoder. Per-client SMOTE, oversampling each
 shard's minority to a 0.25 minority-to-majority ratio on the
 flattened $60\times24$ series, was run for the two production
 federated arms at seed 42 (Table~\ref{tab:lstmrep}, right columns).
-FedAvg is unchanged (0.961/0.307 against 0.958/0.305 natural;
-event detection 35$\to$40 of 65); FedProx is actively degraded:
+FedAvg is unchanged at window level (0.961/0.307 against 0.958/0.305
+natural, with event detection even edging up, 35$\to$40 of 65);
+FedProx is actively degraded:
 0.946/0.288 against 0.970/0.404, a $-0.116$ PR-AUC loss, with
 event detection falling 49$\to$37 of 65. The result completes the
 cleaned-fold SMOTE null (Section~\ref{sec:res-ablation}: inert
 there because the substrate was pre-balanced) at natural
-prevalence, where it has work to do: oversampling does not rescue
-the collapsed arms and costs the strongest arm 0.116 of its 0.404
+prevalence, where it has work to do: oversampling is no substitute
+for the encoder and costs the strongest arm 0.116 of its 0.404
 PR-AUC. This is consistent with the loss-stacking analysis of
 Section~\ref{sec:discussion}---SMOTE, the focal $\alpha$, and
 class-rate-aware aggregation all adjust the same effective
@@ -486,16 +495,18 @@ can be tiered across all three. Two claims transfer unchanged to
 \emph{every} substrate: the \emph{deployability boundary} (only
 XGBoost's posteriors survive the prevalence shift on the cleaned
 fold; on the raw substrate the centralised MLP's Brier of 0.010
-remains the best of all nine arms, with FedProx-LSTM the sole
-federated result to beat the climatology floor, Brier 0.011 versus
-0.013 at an ECE of 0.020 against the central arms'
+remains the best of all ten arms, with the three federated sequence
+arms the only federated results to beat the climatology floor
+(Brier 0.011--0.012 versus 0.013, FedProx-LSTM the best of them at
+an ECE of 0.020 against the central arms'
 0.005--0.011) and the \emph{threshold-transfer failure} at fixed-FPR
 operating points. FedProx's \emph{ROC stabilisation} over plain
 FedAvg transfers to the cleaned fold (0.976 vs 0.906,
 checkpoint-independent dynamics) and, in diminished form, to the raw
 substrate (0.930 vs 0.875 for the MLP arms; 0.970 vs 0.958 for the
 sequence arms of Section~\ref{sec:res-lstm})---the only claim now
-replicated across all three substrates and both encoders. Three
+observed on every substrate executed and on both encoders wherever
+both were run. Three
 claims do not transfer beyond the cleaned fold, and all three are
 statements about the \emph{MLP} arms: the
 federated-versus-centralised ROC gap (0.003 on the cleaned fold,
@@ -510,9 +521,9 @@ The multi-seed, sweep, ablation, and client-level
 studies of the following subsections were executed under the
 in-partition protocol and are retained as protocol-stability
 evidence; their leakage-free and raw-substrate counterparts remain
-queued, as does seed-replication of the single-seed owner-GPU LSTM
-arms (one fold of each is reported here; fold- and
-seed-replication is owner-side compute).
+queued, though the sequence arms' seed replication is now discharged
+(Section~\ref{sec:res-lstmrep}; fold-replication remains owner-side
+compute).
 
 \subsection{Headline comparison on the held-out test set (in-partition protocol)}
 
@@ -1005,6 +1016,9 @@ no ranking skill relative to a pooled MLP of the same class \emph{in
 this study}; no raw magnetogram left any simulated client; and the
 remaining gap to the tree-ensemble reference is an architecture-budget
 question, not a data-locality question. What the study does \emph{not}
-establish is that these numbers survive region-disjoint splits,
-natural-prevalence validation, or budget-matched training---each queued
-in Section~\ref{sec:limitations}.
+establish is that these in-partition numbers generalise: budget
+parity and natural-prevalence retraining have both since been
+executed (the gap survives budget parity, Section~\ref{sec:budget},
+but is substrate- and encoder-conditional,
+Section~\ref{sec:res-raw}), and within-fold region-disjoint
+validation remains the open item (Section~\ref{sec:limitations}).

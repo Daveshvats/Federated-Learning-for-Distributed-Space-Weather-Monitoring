@@ -41,7 +41,9 @@ What remains open: the remaining three folds, leakage-free multi-seed
 and ablation replication, and the synthetic-share question---85.7--90\%
 of training positives are TimeGAN-generated windows, a substrate
 property that all published results on this export inherit and that
-raw-benchmark retraining would have to revisit.
+raw-benchmark retraining would have to revisit---the raw-substrate
+contrast of Section~\ref{sec:res-raw} addresses it only indirectly
+(its positives are raw by construction).
 
 \paragraph{Threshold transfer under prevalence shift.}
 The frozen protocol selects $F_2$-optimal thresholds on validation
@@ -56,24 +58,33 @@ that is protocol leakage. The remedies are the frozen-FPR
 operating-point protocol (implemented and unit-tested), prior
 correction using an \emph{estimated} deployment prevalence from
 unlabelled data, or a natural-prevalence validation carve-out (the
-harness for all of which is implemented and smoke-validated). Until
-the natural-prevalence re-run lands, the threshold-conditional test
-metrics (precision, recall, F1) should be read as documenting the
+harness for all of which is implemented and smoke-validated). The
+natural-prevalence re-run has since landed
+(Section~\ref{sec:res-raw}): its validation carve is likewise
+natural, so its decision layer does not sit in the almost-always-alert
+regime, though its frozen $F_2$ thresholds still transfer imperfectly
+under the residual $1.6\times$ shift. The in-partition
+threshold-conditional test metrics (precision, recall, F1) of the
+balanced substrates should still be read as documenting the
 decision layer's failure mode, not as skill estimates, and no
-probability from the neural models should be treated as
+probability from the neural models of the balanced-prevalence
+substrates should be treated as
 deployment-grade.
 
 \paragraph{Client-level evaluation semantics.}
-The per-client comparison of Section~\ref{sec:res-clients} evaluates
-each client's local model on a 20\% holdout of its own shard, but the
-federated global models were trained on the \emph{full} shards,
-including that holdout. The global models' per-client scores are
-therefore within-distribution rather than clean generalisation
-estimates, i.e.\ optimistic for the federated side. The comparison
-remains meaningful directionally, and the untouched-holdout evaluation
-mode---each client reserves a shard fraction that \emph{no} federated
-model ever trains on---is implemented and unit-tested; executing it
-requires retraining, which is queued below.
+The legacy per-client comparison evaluated each client's local model
+on a 20\% holdout of its own shard while the federated global models
+trained on the \emph{full} shards, so the global models' per-client
+scores were within-distribution rather than clean generalisation
+estimates, i.e.\ optimistic for the federated side. That concern is
+discharged: the untouched-holdout evaluation---every client's shard
+split 80/20 \emph{before} training, both federated arms retrained
+from scratch on the 80\% portions, and all models evaluated once on
+holdouts no model had seen---is executed and is the protocol behind
+Figure~\ref{fig:clients} and Section~\ref{sec:res-clients}. What
+remains open on this axis is substrate breadth: the executed study
+covers the cleaned, in-partition setting, and its raw-substrate
+counterpart is queued.
 
 \paragraph{Partition realism.}
 Shard disjointness is now guaranteed by construction (index-level
@@ -98,8 +109,8 @@ validating them as the route to closing the tree-ensemble gap in
 federated settings. The SCAFFOLD-LSTM arm has since been executed
 (0.970/0.294 window-level; 55/65 events at 0.41 false-alarm windows
 per day), recovering the hardest raw-substrate MLP failure, and a
-second-seed replication confirms every ranking result within
-$\pm$0.005 ROC-AUC (Section~\ref{sec:res-lstmrep}). What remains on
+second-seed replication confirms every arm's ROC-AUC within
+$\pm$0.005 (Section~\ref{sec:res-lstmrep}). What remains on
 this axis: their cleaned-fold
 pairing. Personalised FL
 (per-client heads over a shared backbone) is a further direction:
@@ -117,11 +128,13 @@ are false, and a detected event can generate a burst of duplicate
 alerts. The event-level evaluation module (detection rate, missed
 events, alerts per detected event, duplicate-alert rate with cooldown
 deduplication, warning lead time, alert rate per day) is implemented,
-unit-tested, and documented for CLI use; executing it on the trained
-models requires event grouping keys and timestamps, which---like
-region identifiers---must be recovered from the raw SWAN-SF metadata.
-Until then, all recall and FPR figures in this paper carry the
-window-semantics caveat stated in Table~\ref{tab:recallfpr}'s caption.
+unit-tested, and---after the raw-metadata audit recovered the event
+grouping keys and GOES peak times---executed on the trained models of
+both substrates (Tables~\ref{tab:eventlevel}
+and~\ref{tab:eventlevel-raw}). The window-level recall and FPR
+figures elsewhere in this paper still carry the window-semantics
+caveat stated in Table~\ref{tab:recallfpr}'s caption, and the
+event-level results themselves are single-fold.
 
 \paragraph{Benchmark-construction effects and the raw-benchmark experiment.}
 The cleaned variant's training partitions are pre-balanced (RUS,

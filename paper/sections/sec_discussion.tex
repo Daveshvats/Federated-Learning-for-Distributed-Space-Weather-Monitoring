@@ -76,8 +76,8 @@ preregistered configuration, on this benchmark. The raw-substrate
 LSTM arms extend that evidence across encoders: FedProx-LSTM 0.970
 versus FedAvg-LSTM 0.958 on both rank metrics, with identical
 shards, budgets, and aggregation, makes the stabilisation the only
-finding of this study replicated across all three substrates and
-both architectures. The architecture result itself---the sequence
+finding of this study observed on every substrate executed and on
+both encoders wherever both were run. The architecture result itself---the sequence
 encoder removing the natural-prevalence collapse the MLP
 suffers---is measured as a contrast, not explained as a mechanism:
 reading the 60-step temporal profile directly plausibly matters more
@@ -104,8 +104,8 @@ false-positive budget, FedProx's ranking recovers 51\% of positive
 windows (recall 0.506). Two cautions apply before reading that as an
 operational detection rate: the figure is a window-level curve
 statistic over correlated sliding windows, not an event-level
-detection rate (the event-level evaluation protocol is released and
-queued), and the decision threshold required to operate at that FPR
+detection rate (the event-level evaluations on both substrates are
+reported in Tables~\ref{tab:eventlevel} and~\ref{tab:eventlevel-raw}), and the decision threshold required to operate at that FPR
 budget must be calibrated on natural-prevalence data before
 deployment---the re-executed frozen-FPR report quantifies how far
 short validation-frozen thresholds fall, realising 20--50\% test FPR

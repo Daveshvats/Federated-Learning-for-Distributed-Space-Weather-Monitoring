@@ -173,8 +173,9 @@ substrate's highest detection (55/65) at 0.4 false-alarm windows
 per day---so the balanced-substrate
 standing is a property of the flattened-feature
 MLP, not of federation per se. A second-seed replication
-reproduces every sequence arm's ranking within $\pm$0.005 ROC-AUC,
-and per-client SMOTE at natural prevalence is a clean negative
+holds every sequence arm within $\pm$0.005 ROC-AUC with the
+qualitative structure unchanged, and per-client SMOTE at natural
+prevalence is a clean negative
 (unchanged for FedAvg, $-0.116$ PR-AUC for FedProx); the case for
 federating this problem rests on data locality, not performance. Plain FedAvg diverges under the
 preregistered headline configuration (validation AUC $0.99\to0.05$
