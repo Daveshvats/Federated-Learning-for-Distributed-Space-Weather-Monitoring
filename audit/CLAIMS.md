@@ -173,3 +173,15 @@ Row updates: rows 34/35/38/43 (v3.6/v3.7 collapse/rescue/fresh-hold
 claims) now carry the v3.8 four-arm + two-seed quantifiers; the
 paper's Sec 6.5/6.6, abstract, and conclusion are the narrative
 counterparts of rows 44–48.
+
+| 49 | BN running statistics are never transported in the shipped implementation | **CONFIRMED (code + artefact)** | `model.py get_weights/set_weights` move `parameters()` only; both frozen checkpoints carry `num_batches_tracked=0`, `running_var=1` on every BN layer after 50 rounds (`experiments/run_bn_diagnostic.py` Phase A) |
+| 50 | The shipped FedAvg artefact is the round-20 state, selected by a saturated monitor | **CONFIRMED** | val F1 ties at 2p/(1+p)=0.6565 (p=0.4887) rounds 5–15; 0.6588 at r20 where val ROC already collapsed 0.993→0.541; strict-`>` rule restores r20 over healthy r5 (Phase A/C) |
+| 51 | The FedAvg "divergence" is an evaluation-path artefact; weights retain ~0.95 ROC information at every round | **CONFIRMED** | faithful re-run (history ±0.01 ROC, r20 restore reproduced); test ROC of identical weights: r5 0.950/0.946/0.885, r20 0.575/0.951/0.931, r50 0.098/0.953/0.935 under init/batch-stats/transported-buffers (`outputs/bn_diagnostic.json`) |
+| 52 | Without BatchNorm neither algorithm diverges and the FedAvg–FedProx gap largely disappears | **CONFIRMED (controlled experiment)** | identical protocol, BN→Identity (28,929 params): both stable, val F1 0.97–0.98 (no tie), test ROC FedAvg 0.913→0.873, FedProx 0.949→0.871; gap ≤0.036 ROC any round, ≤0.002 at r50 (`outputs/nobn_control.json`) |
+| 53 | "First federated solar flare prediction" claims are retired; scope repositioned | **EXECUTED** | Fu et al. Research Square preprint (2023-07-10, "Soalr Flare Forecasting" [sic]) cited in related work + bib; claims narrowed to first federated evaluation on SWAN-SF, first provenance audit, first leakage-free re-evaluation; zhao2018 bib corrected to arXiv:1806.00582 |
+| 54 | Interpretation frozen before the v3.9 rewrite | **EXECUTED** | `docs/INTERPRETATION_FREEZE.md` locks facts F1–F6 and interpretations I1–I6; the paper conforms to the memo |
+
+Row updates: rows 49–54 are the v3.9 audit layer; the paper's
+Sec 6.9/6.10 (BatchNorm-transport diagnostic; controlled no-BN
+experiment), the rewritten convergence/multiseed/discussion/conclusion
+passages, and the 257-word abstract are the narrative counterparts.

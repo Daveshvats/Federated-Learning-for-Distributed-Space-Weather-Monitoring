@@ -1,10 +1,8 @@
 \documentclass[11pt,a4paper]{article}
 
 % ════════════════════════════════════════════════════════════════════
-%  Federated Learning for Data-Locality-Preserving Distributed
-%  Space Weather Monitoring: A Solar-Flare Prediction Component
-%  for Grid-Resilience Pipelines (v3.8, four-arm federation matrix
-%  complete: SCAFFOLD-LSTM, seed replication, SMOTE ablation)
+%  Federated Solar-Flare Prediction on SWAN-SF: A Provenance,
+%  Leakage, and Evaluation-Protocol Audit (v3.9)
 %  arXiv-preprint-style single-column manuscript
 % ════════════════════════════════════════════════════════════════════
 
@@ -43,9 +41,8 @@
     bookmarks=true,
     bookmarksnumbered=true,
     unicode=true,
-    pdftitle={Federated Learning for Data-Locality-Preserving
-              Distributed Space Weather Monitoring: A Solar-Flare
-              Prediction Component for Grid-Resilience Pipelines},
+    pdftitle={Federated Solar-Flare Prediction on SWAN-SF: A
+              Provenance, Leakage, and Evaluation-Protocol Audit},
     pdfauthor={Deepanshu Balhara, Davesh Vats},
     pdfsubject={Federated Learning, Solar Flare Prediction, Smart Grid
                 Protection, Space Weather},
@@ -74,11 +71,10 @@
 \newcommand{\norm}[1]{\left\lVert #1 \right\rVert}
 \newcommand{\Fbeta}{F_{\beta}}
 
-\title{Federated Learning for Data-Locality-Preserving Distributed
-Space Weather Monitoring: A Solar-Flare Prediction Component for
-Grid-Resilience Pipelines}
+\title{Federated Solar-Flare Prediction on SWAN-SF: A Provenance,
+Leakage, and Evaluation-Protocol Audit}
 \author{Deepanshu Balhara \and Davesh Vats}
-\date{September 2026}
+\date{October 2026}
 
 \begin{document}
 
@@ -89,10 +85,8 @@ Grid-Resilience Pipelines}
 
 \begin{center}
     {\color{black!85}\rule{\textwidth}{0.4pt}}\\[2.2em]
-    {\LARGE\bfseries Federated Learning for Data-Locality-Preserving\\[0.35em]
-     Distributed Space Weather Monitoring:\\[0.35em]
-     A Solar-Flare Prediction Component\\[0.35em]
-     for Grid-Resilience Pipelines\par}
+    {\LARGE\bfseries Federated Solar-Flare Prediction on SWAN-SF:\\[0.35em]
+     A Provenance, Leakage, and Evaluation-Protocol Audit\par}
     \vspace{1.6em}
     {\large Deepanshu Balhara\textsuperscript{1} \quad and \quad
      Davesh Vats\textsuperscript{2}\par}
@@ -101,7 +95,7 @@ Grid-Resilience Pipelines}
     % NOTE FOR AUTHORS: replace the affiliation line above with your
     % institutional affiliations and contact e-mails before posting.
     \vspace{1.1em}
-    {\small September 2026\par}
+    {\small October 2026\par}
     \vspace{1.4em}
     {\color{black!85}\rule{\textwidth}{0.4pt}}
 \end{center}
@@ -112,102 +106,41 @@ Grid-Resilience Pipelines}
 \begin{minipage}{0.92\textwidth}
 \footnotesize
 \textbf{Abstract ---}
-The vulnerability of modern power grids to geomagnetically induced
-currents (GICs), triggered by M- and X-class solar flares, presents a
-critical and recurring threat to bulk electric infrastructure; the 1989
-Qu\'ebec system collapse remains the canonical demonstration of how a
-single geomagnetic storm can disable an entire provincial grid.
-Effective early warning therefore requires predictive models trained
-on magnetogram-derived feature histories, and the framework developed
-here targets a deployment scenario in which participating institutions
-impose data-locality or data-sharing constraints that prevent pooling
-raw observations. The present study \emph{simulates} that constraint on
-the public SWAN-SF benchmark; it does not demonstrate that any specific
-agency's data cannot be pooled. We present, to the best of our
-knowledge and per a documented search protocol
-(Section~\ref{sec:related}), the first federated treatment of solar
-flare prediction: six \emph{simulated} regional clients---hypothetical
-custodians labelled by region, not participating institutions---hold
-disjoint, audited Dirichlet-skewed shards of the benchmark. Each client
-trains a local neural model on 144 statistical features derived from 24
-photospheric magnetic-field parameters and transmits only weight
-updates. All results are produced under a frozen evaluation protocol:
-an immutable train/validation/test contract, calibration and threshold
-selection on validation only, a runtime leakage audit, and single-pass
-test evaluation. A data-provenance audit against the raw benchmark
-(Harvard Dataverse; every cleaned window aligned to its raw instance
-by normalization-invariant matching, 98.7--100\% verification with
-100\% label agreement) then found that the cleaned export's
-same-partition train/test pairing shares instances: the test export of
-each partition contains \emph{all} raw instances while the training
-export is a rebalanced subset of the same instances, so 100\% of the
-flaring test windows (6{,}234) and 99.998\% of verified training
-windows were also test windows, and 85.7--90\% of training positives
-are TimeGAN-synthetic. The study therefore re-evaluates every headline
-claim on a leakage-free fold that follows the benchmark's intended
-temporally-preceding protocol (training partitions 1--4, single-pass
-test on partition 5, natural 1.31\% prevalence, identical frozen
-protocol). On that fold, discrimination generalises for all arms
-(ROC-AUC 0.906--0.978), the in-partition federated-versus-centralised
-gap disappears (FedProx 0.976 / PR 0.308 vs centralised MLP of
-identical architecture 0.973 / 0.382), and FedProx retains a ROC
-stabilisation over plain FedAvg (0.976 vs 0.906) whose val-curve
-dynamics are checkpoint-independent, although FedAvg's PR-AUC is
-higher (0.370 vs 0.308). Finally, retraining the identical frozen
-protocol on the RAW, unbalanced benchmark (natural 2.05\% training
-prevalence, no synthetic positives, the release's FPCKNN imputation
-and LSBZM normalisation reproduced in-pipeline with train-only
-parameters, verified against the released export) separates the arms
-decisively: the centralised baselines are substrate-robust (LR
-unchanged at 0.978; centralised MLP PR 0.445) while every federated
-\emph{MLP} arm degrades sharply (FedProx 0.930/0.149; FedAvg detects
-zero of 65 events; SCAFFOLD fails at 0.768/0.057). The collapse is
-encoder-conditional: under the same protocol the sequential SolarLSTM
-(owner GPU) does not collapse---FedAvg-LSTM 0.958/0.305 against its
-MLP counterpart's 0.875/0.056, FedProx-LSTM 0.970/0.404, above its
-pooled comparator though below logistic regression, and at event
-level FedAvg-LSTM detects 35/65 events where its MLP counterpart
-detects zero while FedProx-LSTM's 49/65 comes at a
-centralised-level false-alarm rate and SCAFFOLD-LSTM posts the
-substrate's highest detection (55/65) at 0.4 false-alarm windows
-per day---so the balanced-substrate
-standing is a property of the flattened-feature
-MLP, not of federation per se. A second-seed replication
-holds every sequence arm within $\pm$0.005 ROC-AUC with the
-qualitative structure unchanged, and per-client SMOTE at natural
-prevalence is a clean negative
-(unchanged for FedAvg, $-0.116$ PR-AUC for FedProx); the case for
-federating this problem rests on data locality, not performance. Plain FedAvg diverges under the
-preregistered headline configuration (validation AUC $0.99\to0.05$
-after round 20; the in-partition multiseed, sweep, ablation and
-client-level studies are retained as protocol-stability evidence and
-explicitly not as generalisation estimates). Cross-model SHAP analysis
-shows both the centralised and federated models concentrate decisions
-on current helicity, the R-value flux-emergence proxy, and
-Lorentz-force terms. We document a threshold-transfer failure that
-persists leakage-free under the prevalence shift and report
-prevalence-robust recall-at-FPR discrimination statistics; an
-event-level evaluation on 65 physical M/X-class events (raw-benchmark
-event keys, 1-hour alert cooldown) shows all arms detect 98.5--100\%
-of events with a 23.4-hour median lead time to flare peak, while
-XGBoost's false-alarm burden (1.7 windows/day) is roughly $7\times$
-lower than every neural arm's---the deployability boundary on this
-benchmark is calibration, not detection. An independent re-execution
-from the public dataset artefacts (byte-verified against the SHA-256
-data manifest) reproduces every in-partition headline metric exactly;
-in the same session a five-arm calibration comparison shows that
-\emph{no} validation-fit calibrator survives the prior shift, and an
-untouched-holdout study confirms that the proximal-stabilised global
-model matches local-only performance for every simulated client while
-clearly aiding the two smallest. The verified property is data locality, not
-cryptographic privacy, and the model is an upstream flare-probability
-component: the flare$\to$CME$\to$storm$\to$GIC chain and SCADA
-integration remain future work.
+Grid-resilience operators need flare-probability components trained on
+magnetogram histories, and data-locality constraints can preclude
+pooling the underlying observations. We audit what actually happens
+when federated learning meets the public SWAN-SF benchmark. Six
+\emph{simulated} regional clients hold disjoint Dirichlet-skewed shards
+of the cleaned benchmark under a frozen protocol: immutable splits,
+validation-only selection and calibration, a runtime leakage audit, and
+single-pass test evaluation. A provenance audit against the raw
+benchmark (normalisation-invariant instance matching, 98.7--100\%
+coverage, 100\% label agreement) shows the cleaned export's
+same-partition train/test pairing shares instances: every flaring test
+window (6{,}234) also appears in training, and 85.7--90\% of training
+positives are TimeGAN-synthetic. On a leakage-free fold (training
+partitions 1--4, single-pass test on partition 5) discrimination
+generalises for all arms (ROC-AUC 0.906--0.978) and the
+federated-versus-centralised gap disappears. A BatchNorm-transport
+diagnostic then shows the in-partition FedAvg collapse (test ROC-AUC
+0.575) to be an evaluation artefact: the same weights score 0.951 under
+correct normalisation, FedAvg's weights never lose discriminative
+content (0.953 at round 50), and a controlled no-BatchNorm run leaves
+both FedAvg and FedProx stable and near-identical --- the published
+algorithm gap is substantially mediated by untransported BN statistics,
+a saturated validation monitor, and the checkpoint rule that monitor
+feeds. On the raw, unbalanced substrate the outcome is
+encoder-conditional: federated MLP arms degrade while LSTM arms recover
+(FedProx-LSTM 0.970/0.404). Calibration, not detection, is the
+deployability boundary. Prior federated flare forecasting exists (Fu et
+al., 2023 preprint); this is the first federated evaluation on SWAN-SF
+and the first with a provenance audit. An independent byte-verified
+re-execution reproduces every headline metric.
 
 \vspace{0.55em}
 \noindent\textbf{Keywords:} federated learning; solar flare prediction;
-smart grid; geomagnetically induced currents; FedProx; space weather;
-SWAN-SF; non-IID data; class imbalance; data locality
+SWAN-SF; data provenance; evaluation audit; BatchNorm; non-IID data;
+class imbalance; data locality
 
 \vspace{0.55em}
 \noindent\footnotesize Source code and all experimental artefacts:

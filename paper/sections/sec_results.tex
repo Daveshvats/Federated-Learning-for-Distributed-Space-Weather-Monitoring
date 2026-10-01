@@ -19,7 +19,7 @@ dataset artefacts reproduces every test metric of every model exactly
 client-holdout results below were produced in that re-execution
 session.
 
-\textbf{Protocol disclosure (v3.4).} The data-provenance audit of
+\textbf{Protocol disclosure.} The data-provenance audit of
 Section~\ref{sec:provenance} established that the in-partition
 train/test pairing used by the shipped headline protocol shares
 instances between the training pool and the test set---including
@@ -58,11 +58,14 @@ is \emph{higher} than FedProx's (0.308). The nuance is in the
 checkpoint dynamics: plain FedAvg's validation F1 collapsed to zero by
 round 40 and the protocol restored its round-35 checkpoint (validation
 F1 0.915), so its leakage-free outcome depends on which round the
-validation monitor happened to freeze; FedProx's validation F1 never
-collapsed (0.654 at every logged round of the same run), so its
-outcome is checkpoint-independent. Stability,
-not peak discrimination, remains the differentiator between the two
-federated algorithms.
+validation monitor happened to freeze. We no longer describe either
+arm's outcome as checkpoint-independent: the BatchNorm diagnostic of
+Section~\ref{sec:res-bn} shows the validation F1 monitor saturates at
+the all-positive value $2p/(1+p)$ whenever the evaluated probabilities
+saturate, and the checkpoint rule then acts on a saturated
+signal---FedProx's apparent safety on this fold is that its evaluated
+probabilities never crossed that regime, not that its artefact is
+selection-invariant.
 
 \begin{table}[t]
 \centering
@@ -96,7 +99,9 @@ natural-test interface rather than overlap artifacts: the
 validation-frozen FPR operating points are violated by every arm
 (e.g.\ XGBoost realises 15.3\% FPR at the frozen 2\% target; FedProx
 49.4\%), and only XGBoost's posteriors remain usable (Brier 0.055,
-ECE 0.101 versus 0.271--0.544 for the neural arms). The
+ECE 0.101 versus 0.127--0.544 for the neural arms; FedAvg's 0.127
+sits closest but is still an order of magnitude above the 0.013
+climatology floor). The
 prior-shift-corrected neural posteriors are not repairable by
 threshold re-freezing on this fold either.
 
@@ -293,7 +298,7 @@ are the encoder and the device. The SolarLSTM (219,265 parameters,
 consuming the raw $60\times24$ series directly) is trained under the
 same Fed-Focal loss, prior-shift calibration, and validation-frozen
 threshold machinery as every other arm. The one arm still unexecuted
-at v3.6---SCAFFOLD-LSTM, whose MLP instance is the hardest failure
+in the second owner-GPU batch---SCAFFOLD-LSTM, whose MLP instance is the hardest failure
 on this substrate---was subsequently run in a second owner-GPU batch
 together with the seed-43 replication and the SMOTE ablation
 reported below, under the client-side fixed-step SGD that the
@@ -411,7 +416,7 @@ SCAFFOLD & 0.970 & 0.294 & 0.768 & 0.057 & 0.0120 & 0.035 & 0.521 \\
 ablation}
 \label{sec:res-lstmrep}
 
-The v3.6 sequence arms executed at a single seed on a single
+The sequence arms executed at a single seed on a single
 device, and the replication caveat that followed them is discharged
 by the second owner-GPU batch: all four arms re-executed at seed 43
 (model initialisation and the Dirichlet shard draw reseeded, the
@@ -500,13 +505,14 @@ arms the only federated results to beat the climatology floor
 (Brier 0.011--0.012 versus 0.013, FedProx-LSTM the best of them at
 an ECE of 0.020 against the central arms'
 0.005--0.011) and the \emph{threshold-transfer failure} at fixed-FPR
-operating points. FedProx's \emph{ROC stabilisation} over plain
-FedAvg transfers to the cleaned fold (0.976 vs 0.906,
-checkpoint-independent dynamics) and, in diminished form, to the raw
-substrate (0.930 vs 0.875 for the MLP arms; 0.970 vs 0.958 for the
-sequence arms of Section~\ref{sec:res-lstm})---the only claim now
-observed on every substrate executed and on both encoders wherever
-both were run. Three
+operating points. FedProx's \emph{ROC stabilisation} over plain FedAvg---a composite
+of genuine early-round optimisation benefit and compatibility with the
+shipped evaluation path (Sections~\ref{sec:res-bn}--\ref{sec:res-nobn})---transfers
+to the cleaned fold (0.976 vs 0.906) and, in diminished form, to the
+raw substrate (0.930 vs 0.875 for the MLP arms; 0.970 vs 0.958 for
+the sequence arms of Section~\ref{sec:res-lstm}); it is the only
+claim now observed on every substrate executed and on both encoders
+wherever both were run. Three
 claims do not transfer beyond the cleaned fold, and all three are
 statements about the \emph{MLP} arms: the
 federated-versus-centralised ROC gap (0.003 on the cleaned fold,
@@ -571,12 +577,16 @@ underperform its pooled counterpart (0.888, 0.153) on this benchmark
 and configuration---an observation consistent with non-IID federated
 training plus a proximal regulariser acting as an implicit regulariser
 for this small MLP, and which we do \emph{not} generalise to the claim
-that federation is free of cost. \textbf{(ii)~FedAvg and FedProx are
-not interchangeable.} Plain FedAvg diverges during training
-(Section~\ref{sec:res-conv}) and its best-validation checkpoint
-reaches only 0.575 ROC-AUC; the proximal term is the difference
-between a usable and a degenerate global model \emph{under the
-preregistered configuration}. \textbf{(iii)~Against the strongest
+that federation is free of cost. \textbf{(ii)~The shipped evaluation separates FedAvg and FedProx,
+but the separation is largely an evaluation-path property.} Plain
+FedAvg's shipped trajectory drifts (Section~\ref{sec:res-conv}) and
+its best-validation checkpoint reaches 0.575 ROC-AUC as evaluated;
+Sections~\ref{sec:res-bn}--\ref{sec:res-nobn} show the same weights
+carry 0.951 under correct normalisation and that neither algorithm
+diverges without BatchNorm, so the proximal term is the difference
+between compatibility and incompatibility with the shipped evaluation
+path \emph{under the frozen-protocol configuration}, plus a modest
+early-round optimisation benefit. \textbf{(iii)~Against the strongest
 reference,} FedProx retains $97.7\%$ of XGBoost's ROC-AUC and $62\%$
 of its PR-AUC. \textbf{(iv)~The $\tau^\ast$ column exposes a
 protocol-honest failure}: thresholds optimised for $F_2$ at the
@@ -598,7 +608,9 @@ operating points instead.
     \caption{ROC curves on the held-out test set. FedProx (AUC 0.954)
     tracks the centralised XGBoost reference (0.977) across the
     low-false-positive region; the centralised MLP (0.888) sits between
-    them; FedAvg (0.575) has lost most ranking information.}
+    them; FedAvg (0.575) evaluates far below its weights' actual
+    information content (Section~\ref{sec:res-bn}: 0.951 under correct
+    normalisation).}
     \label{fig:roc}
 \end{figure}
 
@@ -644,10 +656,12 @@ the same ordering under prevalence-sensitive scoring (XGBoost 0.493,
 FedProx 0.307, FedAvg 0.199): in the high-precision region the federated
 model pays a real ranking price relative to the ensemble, even though it
 beats its own architecture's pooled baseline. Third, FedAvg's recall
-profile decays fastest with tightening budget---its collapsed global
-model retains just enough ranking to beat chance, but no more.
+profile decays fastest with tightening budget---\emph{as evaluated}.
+Section~\ref{sec:res-bn} shows this to be a property of the evaluation
+path, not of the weights: the same checkpoint holds 0.951 ROC-AUC of
+ranking information under correct normalisation.
 
-\subsection{Convergence behaviour: divergence and its suppression}
+\subsection{Convergence behaviour: the evaluated drift and its suppression}
 \label{sec:res-conv}
 
 \begin{figure}[t]
@@ -657,35 +671,190 @@ model retains just enough ranking to beat chance, but no more.
     \end{adjustbox}
     \caption{Validation-monitored convergence over 50 rounds
     (validation F1 at the development threshold and ROC-AUC every five
-    rounds). Plain FedAvg is stable for $\sim$20 rounds, then diverges
-    catastrophically (AUC $0.99 \to 0.05$ by round 25); the best-val
-    checkpoint rule of Section~\ref{sec:experiments} is what makes the
-    final FedAvg model usable at all. FedProx ($\mu{=}0.01$) is stable
-    for the entire run.}
+    rounds), as evaluated by the shipped server-side path. Plain
+    FedAvg's evaluated AUC drifts from $0.99$ to $0.05$ after round 20;
+    FedProx ($\mu{=}0.01$) stays at $\sim$0.99 throughout.
+    Section~\ref{sec:res-bn} shows this trajectory measures
+    normalisation compatibility, not information content: the same
+    FedAvg weights carry $\sim$0.95 test ROC-AUC under correct
+    normalisation at every round.}
     \label{fig:convergence}
 \end{figure}
 
-Figure~\ref{fig:convergence} documents the single most consequential
-empirical finding of this revision. Plain FedAvg under the six-client
-Dirichlet partition is not merely slower to converge---it
-\emph{diverges}: after approximately twenty rounds of healthy validation
-AUC ($\approx 0.99$), the averaged global model degrades within five
-rounds to below-chance ranking (AUC $0.05$--$0.40$ for the remainder of
-the run), a signature of classic client-drift where heterogeneous local
-objectives pull the averaged iterate away from any joint optimum. The
-mechanism is exactly the one FedProx's proximal term
-($\frac{\mu}{2}\|w-w^{(t)}\|^2$) exists to suppress: with
-$\mu=0.01$, validation AUC remains at $0.99\pm0.01$ for all fifty
-rounds. Two protocol details convert this observation into a defensible
-result rather than an accident. First, monitoring happens on validation
-only (the v2.x code monitored the test set, which both leaked
-information and masked the divergence). Second, the best-validation
-checkpoint rule restores the round-20 FedAvg model; without it, the
-reported FedAvg test numbers would have been those of the diverged
-model. We emphasise that the FedAvg collapse is seed- and
-configuration-dependent (Section~\ref{sec:res-multiseed}), but the
-stabilising effect of the proximal term was consistent on every seed we
-ran.
+Figure~\ref{fig:convergence} documents the trajectory that organised
+this revision's in-partition narrative for three versions of the paper:
+plain FedAvg under the six-client Dirichlet partition is not merely
+slower to converge---as \emph{evaluated by the shipped server-side
+path}, it drifts from healthy validation AUC ($\approx 0.99$) to
+below-chance ranking (AUC $0.05$--$0.40$) after round 20, while FedProx
+($\mu = 0.01$) holds $0.99 \pm 0.01$ for all fifty rounds. Two
+protocol details made the observation defensible rather than
+accidental: monitoring happens on validation only (an earlier revision
+monitored the test set, which both leaked information and masked the
+drift), and the best-validation checkpoint rule restored the round-20
+FedAvg state. The diagnostic of the next two subsections, however,
+re-attributes the phenomenon: the drift is a property of the
+\emph{evaluation path}---BatchNorm statistics that the implementation
+never transports---and the proximal term's stabilisation is, in large
+part, stabilisation of \emph{compatibility with that evaluation path}.
+The multiseed evidence (Section~\ref{sec:res-multiseed}) shows the
+shipped-eval drift is reproducible across seeds; it does not
+distinguish the two attributions, because every seed was evaluated the
+same way.
+
+
+\subsection{BatchNorm-transport diagnostic: decomposing the collapse}
+\label{sec:res-bn}
+
+The client models contain three \texttt{BatchNorm1d} layers, and local
+training updates their running statistics with every batch. The
+federation, however, transports \emph{parameters only}:
+\texttt{get\_weights}/\texttt{set\_weights} move
+\texttt{model.parameters()}, and running statistics are buffers, not
+parameters. The server-side global model therefore evaluates with
+whatever buffers it holds---and since the server never executes
+training-mode forward passes, those buffers remain at initialisation
+forever. Both shipped checkpoints confirm this directly: every BN layer
+carries \texttt{num\_batches\_tracked} $= 0$, \texttt{running\_mean}
+$= 0$, \texttt{running\_var} $= 1$ after the full 50-round run. In
+eval mode with init buffers, each BN layer degenerates to the fixed
+affine map $x \gamma + \beta$; the further the trained weights drift
+from the region where pre-BN activations are standardised, the less
+valid that map becomes. This is not FedBN-style per-client local statistics---nothing is
+averaged, nothing is transported; the statistics are simply absent.
+
+The saturated validation monitor is the second half of the mechanism.
+With init buffers, the evaluated probabilities squeeze into a narrow
+band around the 0.35 development threshold (round 20 on validation:
+$[0.337, 0.374]$; round 50: $[0.219, 0.232]$), so predictions are
+all-positive (then all-negative) and validation $F_1$ pins to the
+closed-form all-positive value $2p/(1{+}p) = 0.6565$ at the validation
+prevalence $p = 0.4887$. Because the strict-inequality best-checkpoint
+rule restores the first round that exceeds the tie, and precision
+drifted marginally upward (0.489 to 0.491) while the ranking collapsed,
+the rule restored the \emph{round-20} state---where validation ROC-AUC
+had already fallen from 0.993 to 0.541---over the healthy round-5
+state. FedProx's monitor tied at 0.6565 from round 5 onward and its
+ranking never collapsed, so the same rule was harmless for it. The
+monitor was not merely uninformative; it was adversarial.
+
+Table~\ref{tab:bndiag} decomposes the published FedAvg numbers. We
+re-ran the frozen 50-round FedAvg protocol faithfully (validation
+trajectory matches the frozen history within $\pm 0.01$ ROC-AUC at
+every logged round; the checkpoint rule restores round 20 exactly) and
+evaluated the identical global weights at rounds 5, 20, and 50 under
+four BN treatments: (A)~the shipped init buffers; (B)~exact per-client
+statistics pooled by the law of total variance (an optimistic
+recalibration oracle); (C)~per-batch statistics at evaluation time
+(adaptive normalisation; a diagnostic of information content, not a
+deployable protocol); and (D)~the element-wise weighted average of the
+running statistics that local training actually produced in that
+round---precisely what a buffer-transporting implementation would
+evaluate.
+
+\begin{table}[t]
+\centering
+\caption{Test ROC-AUC / PR-AUC of the identical FedAvg global weights
+under four BatchNorm treatments (frozen protocol, seed 42; faithful
+re-run, \texttt{bn\_diagnostic.json}). Round 20 is the state the
+shipped checkpoint rule returned. Arm D is what a buffer-transporting
+implementation would have evaluated.}
+\label{tab:bndiag}
+\small
+\begin{tabular}{@{}l c c c@{}}
+\toprule
+\textbf{BN treatment} & \textbf{Round 5} & \textbf{Round 20} & \textbf{Round 50} \\
+\midrule
+A: init buffers (shipped) & 0.950 / 0.264 & 0.575 / 0.199 & 0.098 / 0.010 \\
+B: recalibrated (pooled) & 0.786 / 0.044 & 0.893 / 0.099 & 0.881 / 0.086 \\
+C: batch statistics & 0.946 / 0.328 & 0.951 / 0.329 & 0.953 / 0.288 \\
+D: transported round buffers & 0.885 / 0.157 & 0.931 / 0.194 & 0.935 / 0.209 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Three facts follow. First, \emph{FedAvg's weights never lost
+discriminative content}: under batch statistics the round-50 state---whose
+shipped evaluation is 0.098, below chance---holds 0.953 ROC-AUC and
+0.288 PR-AUC, and arm D holds 0.935 / 0.209. The published 0.575 is a
+statement about the round-20 weights' compatibility with init buffers,
+not about what FedAvg learned. Second, \emph{the FedProx artefact is
+equally protocol-dependent}: its returned round-5 weights score
+0.954 / 0.307 under init buffers but 0.757 / 0.040 under pooled
+recalibration and 0.951 / 0.333 under batch statistics. Under batch
+statistics the two algorithms' artefacts are statistically
+indistinguishable (0.951 vs.\ 0.951 ROC-AUC; 0.329 vs.\ 0.333
+PR-AUC). Third, arm B degrades both artefacts relative to arms A and
+C---pooled statistics inflate variance across heterogeneous clients,
+so no single pooled normalisation matches any deployment
+distribution---which is why arm D (the transport an implementation
+would actually perform) is the relevant fix and recovers 0.931--0.935
+ROC-AUC for FedAvg.
+
+The reading we freeze is that three independent mechanisms---untransported
+BN statistics, a thresholded metric that saturates under them, and a
+checkpoint rule that consumes the saturated metric---composed to
+manufacture a large, reproducible, spurious algorithm gap. Each is
+individually mundane; their composition produced the single most
+consequential ``finding'' of this paper's in-partition narrative for
+three revisions. We report this as an evaluation-protocol failure mode
+in its own right: FL evaluation stacks that transport parameters but
+not buffers, monitor with thresholded metrics, and select checkpoints
+on those metrics can manufacture algorithm comparisons that survive
+seed replication and ablation grids.
+
+\subsection{Controlled no-BatchNorm experiment}
+\label{sec:res-nobn}
+
+The diagnostic above establishes that the \emph{evaluated} collapse is
+an artefact, but not whether the \emph{training dynamics} themselves
+depend on the BN implementation. We therefore re-ran the identical
+frozen protocol (data, partition, seeds, rounds, loss, aggregation,
+monitoring, and checkpoint rule) with the three \texttt{BatchNorm1d}
+layers replaced by identity (28{,}929 parameters vs.\ 29{,}377;
+\texttt{nobn\_control.json}). With no BN layers there are no buffers,
+weight transport is exact, and the shipped evaluation path is the
+ground truth. Per-round test evaluation is disclosed here as a
+controlled diagnostic; no test-based selection occurs---the shipped
+best-validation rule alone determines the reported artefact.
+
+\begin{table}[t]
+\centering
+\caption{No-BatchNorm control (frozen protocol, seed 42, 50 rounds,
+BatchNorm$\to$Identity): test ROC-AUC / PR-AUC at selected rounds plus
+the shipped best-validation checkpoint. Neither algorithm diverges;
+the shipped FedAvg--FedProx gap does not survive BN removal.}
+\label{tab:nobn}
+\small
+\begin{tabular}{@{}l c c c c@{}}
+\toprule
+\textbf{Algorithm} & \textbf{Round 5} & \textbf{Round 20} &
+\textbf{Round 50} & \textbf{Selected ckpt} \\
+\midrule
+FedAvg, no BN & 0.913 / 0.199 & 0.874 / 0.148 & 0.873 / 0.108 & 0.858 / 0.108 (r40) \\
+FedProx, no BN & 0.949 / 0.286 & 0.900 / 0.175 & 0.871 / 0.128 & 0.871 / 0.128 (r50) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The answer is unambiguous: \emph{without BN, neither algorithm
+diverges}. Validation $F_1$ sits at 0.97--0.98 for both algorithms at
+every logged round (the all-positive tie disappears; the monitor
+becomes informative), validation ROC-AUC stays at $0.999$, and the
+test trajectories decay mildly (FedAvg 0.913 $\to$ 0.873; FedProx
+0.949 $\to$ 0.871) rather than collapsing. The shipped 0.379 ROC-AUC
+gap between the two artefacts shrinks to at most 0.036 at any round
+and 0.002 at round 50. FedProx retains a genuine but modest
+early-round benefit (round 5: 0.949 vs.\ 0.913 ROC-AUC, 0.286
+vs.\ 0.199 PR-AUC), consistent with the proximal term improving early
+optimisation; that benefit then decays at the same rate as FedAvg's.
+Meanwhile the BN architecture itself is genuinely useful under correct
+normalisation (arm C: 0.329 PR-AUC at round 20 vs.\ 0.148--0.175
+no-BN at round 20), so the correct engineering conclusion is BN plus
+buffer transport, not BN removal. Mild test-side decay in both no-BN
+arms confirms that client drift is real---it degrades generalisation
+gradually---but it does not, on its own, produce catastrophic
+divergence under this partition.
 
 \subsection{Calibration and the threshold-transfer failure}
 \label{sec:res-calib}
@@ -823,18 +992,24 @@ seeds can yield), and its ROC-AUC confidence interval is
 $2.7\times$ narrower. The $F_1$ difference is not significant
 ($p = 0.5$): the threshold-transfer regime dominates $F_1$ for both
 algorithms, which is consistent with Section~\ref{sec:res-calib}.
-What the five-seed study supports is the \emph{stability} claim of
-this paper: FedProx's superiority over FedAvg under the preregistered
-configuration is sign-consistent across every seed and statistically
-significant. What it does not support is broad generalisation: five
-seeds is a small sample, the confidence intervals quantify
-\emph{seed-to-seed variability} of this fixed configuration, not the
-uncertainty of future observations or of other partitions, and
-Section~\ref{sec:res-ablation} shows the gap narrows when FedAvg is
-assisted by distribution-aware aggregation. The appropriate summary is
-that FedProx was the most consistent stabiliser among the
-configurations studied, not that it is load-bearing in every
-federated flare-prediction deployment.
+What the five-seed study supports is a reproducibility claim about
+the shipped pipeline: FedProx's superiority over FedAvg under the
+frozen-protocol configuration is sign-consistent across every seed and
+statistically significant. What it does not support is broad
+generalisation, and---after Sections~\ref{sec:res-bn}
+and~\ref{sec:res-nobn}---it must be read as a statement about the
+composite (training $\times$ stale-buffer evaluation $\times$
+saturated-monitor checkpointing), not about the algorithms in
+isolation: every seed was evaluated through the same never-transported
+BN statistics, and the no-BN control shows the underlying optimisation
+gap is small. Five seeds is a small sample, the confidence intervals
+quantify \emph{seed-to-seed variability} of this fixed configuration,
+not the uncertainty of future observations or of other partitions, and
+Section~\ref{sec:res-ablation} shows the shipped-eval gap narrows when
+FedAvg is assisted by distribution-aware aggregation. The appropriate
+summary is that FedProx was the most consistent stabiliser \emph{of the
+shipped evaluation path} among the configurations studied, not that it
+is load-bearing in every federated flare-prediction deployment.
 
 \subsection{Component attribution: the 24-cell ablation grid}
 \label{sec:res-ablation}
@@ -987,12 +1162,23 @@ bandwidth overhead were \emph{not} measured: the experiments ran
 in-process on a single CPU container, with no real network. Enabling
 secure aggregation would add a bounded multiplicative factor (mask
 material per client per round), quantified in the deployment notes but
-not evaluated here (Section~\ref{sec:threatmodel}). Even the
-uncompressed exchange is negligible relative to the data volume of raw
-SHARP-era magnetograms (tens of MB per window), which is the
-quantitative sense in which federated learning is
-communication-cheap \emph{in bandwidth} for this application; latency
-and availability engineering remain deployment work.
+not evaluated here (Section~\ref{sec:threatmodel}).
+
+\paragraph{Honest scaling against the data actually centralised.}
+The relevant comparison is not raw magnetograms (our pipeline never
+ships unprocessed data) but the feature arrays the centralised
+alternative would need to receive once. On the cleaned substrate the
+entire training feature set is $82{,}121 \times 144$ float32 values
+(47.3~MB): the cohort's 50-round parameter exchange (70.5~MB) is
+\emph{1.5 times larger}, so no bandwidth saving accrues for a single
+training cycle at this model size --- communication frugality here is
+a property of the 12-minute observation cadence and repeated
+retraining cycles, not of one run. On the raw 3D substrate the
+ordering reverses: centralising the training windows
+($214{,}888 \times 60 \times 24$ float32, $\approx$1.24~GB) exceeds
+the LSTM cohort's lifetime exchange ($\approx$130~MB) by an order of
+magnitude. Latency and availability engineering remain deployment
+work.
 
 \subsection{Data-locality cost analysis}
 

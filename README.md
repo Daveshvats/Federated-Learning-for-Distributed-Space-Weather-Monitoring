@@ -2,19 +2,34 @@
 
 Federated solar-flare prediction on the SWAN-SF benchmark under simulated
 cross-silo, non-IID partitioning — with a **leakage-audited, validation-only
-selection protocol**.
+selection protocol** and a **v3.9 evaluation-protocol audit** (BatchNorm
+transport, checkpoint selection, novelty repositioning).
 
-> **Branch**: `improvements` (v3.1). The `main` branch preserves the
+> **Branch**: `improvements`. The `main` branch preserves the
 > original v2.x pipeline and its committed figures. Every headline number
 > produced before v3.0 used a flawed protocol (see `audit/BUG_REGISTER.md`)
 > and must be regenerated with the code on this branch.
 >
-> **v3.1 (review-2 response)**: protocol hardening for the second external
-> review — see `docs/REVIEW2_RESPONSE.md` for the complete 25-finding
-> mapping. Headline numbers are unchanged (frozen seed-42 artefacts); the
-> revision ships new protocol code (all unit-tested, 78/78 checks), a
-> revised manuscript (v3.2, `paper/main.pdf`), neutral client labels, a
-> threat-model table, and a documented literature-search protocol.
+> **v3.9 (evaluation-protocol audit)**: the shipped FL implementation
+> never transports BatchNorm running statistics, and the saturated
+> validation monitor selected a collapse-round FedAvg checkpoint — the
+> published FedAvg-vs-FedProx gap is substantially an evaluation-path
+> artefact (same weights: 0.575 shipped vs 0.951 correctly normalised;
+> no-BN control: both algorithms stable and near-identical).
+> Interpretation frozen in `docs/INTERPRETATION_FREEZE.md` before the
+> rewrite; artefacts `outputs/bn_diagnostic.json` +
+> `outputs/nobn_control.json`; manuscript retitled
+> *Federated Solar-Flare Prediction on SWAN-SF: A Provenance, Leakage,
+> and Evaluation-Protocol Audit* (abstract 781→257 words; Fu et al. 2023
+> cited, first-to-federate claims retired; Fig. 2 regenerated from the
+> realised partition; zhao2018 bib corrected).
+>
+> **v3.1–v3.8 (review-2 response + executed re-run programme)**: see
+> `docs/REVIEW2_RESPONSE.md` for the complete mapping. Headline frozen
+> seed-42 numbers are unchanged throughout; the revisions ship protocol
+> code (78/78 checks), executed re-runs, the provenance/leakage-free
+> evaluation, the raw-substrate and LSTM arms, SCAFFOLD, seed
+> replication, and the SMOTE ablation.
 
 ## What this repo demonstrates
 
@@ -62,6 +77,10 @@ python experiments/run_calibration_comparison.py      # calibration arms (v3.3: 
 python experiments/run_client_holdout.py              # untouched-holdout client eval (v3.3: executed)
 python experiments/run_budget_matched.py              # 500-epoch budget-matched centralised (v3.3: executed)
 python experiments/run_alpha_promotion.py             # alpha=5.0 promotion run (v3.3: executed, negative)
+python experiments/run_bn_diagnostic.py A,B           # BN buffer-state audit + treatment arms (v3.9)
+python experiments/run_bn_diagnostic.py C             # faithful FedAvg re-run with per-round capture (v3.9, resumable)
+python experiments/run_nobn_control.py fedavg         # controlled no-BN FedAvg (v3.9, resumable)
+python experiments/run_nobn_control.py fedprox        # controlled no-BN FedProx (v3.9, resumable)
 python experiments/run_partition_disjoint.py           # leakage-free fold P1-4 -> P5 (v3.4: executed)
 python experiments/run_event_level.py --input outputs/event_scores.json  # v3.1
 python experiments/run_federated_lstm.py               # LSTM arms on the raw substrate (v3.6: EXECUTED on owner GPU)

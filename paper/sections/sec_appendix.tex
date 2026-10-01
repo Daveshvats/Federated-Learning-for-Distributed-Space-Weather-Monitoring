@@ -17,7 +17,7 @@ reimplementation would likely rediscover the hard way.
 \setlength{\LTcapwidth}{\textwidth}
 \begin{longtable}{@{}p{0.09\textwidth} >{\raggedright\arraybackslash}p{0.42\textwidth} >{\raggedright\arraybackslash}p{0.43\textwidth}@{}}
 \caption{Documented stability fixes and protocol revisions across
-framework versions (v2.1--v3.8), as recorded in the released source.}
+framework versions (v2.1--v3.9), as recorded in the released source.}
 \label{tab:evolution}\\
 \toprule
 \textbf{Version} & \textbf{Diagnosed failure mode} & \textbf{Fix} \\
@@ -64,7 +64,8 @@ skip re-normalisation of cleaned data; generic-index features with
 analytic decoding. \\
 \addlinespace[2pt]
 v2.6 & $\alpha\!=\!0.5$ partitions produced 3\%--99\% local flare
-rates, destabilising aggregation; 3 local epochs starved LSTM
+rates as then observed (0.3\%--99.8\% re-measured under the frozen
+seed in v3.9), destabilising aggregation; 3 local epochs starved LSTM
 temporal learning; mixup on 3D sequences created unrealistic
 interpolations. & Dirichlet $\alpha\!\to\!1.0$; local epochs
 $3\!\to\!10$; learning rate $10^{-3}\!\to\!5\times10^{-4}$; mixup and
@@ -212,6 +213,20 @@ ablation a clean negative (FedAvg 0.961/0.307 unchanged, FedProx
 \texttt{raw\_lstm\_smote.json} and their event-level JSONs;
 Tables \ref{tab:lstmraw}--\ref{tab:lstmrep}
 extended. \\
+\addlinespace[2pt]
+v3.9 & External review identified the ``FedAvg diverges'' narrative as
+suspicious; the shipped checkpoints' BatchNorm layers carried
+\texttt{num\_batches\_tracked}$=0$---running statistics never
+transported. Diagnostic: same weights, four BN treatments
+(\texttt{bn\_diagnostic.json}); controlled no-BN re-run
+(\texttt{nobn\_control.json}); saturation of the validation monitor
+derived in closed form; figure~2 regenerated from the realised
+partition (was an independent Dirichlet draw); reference \cite{zhao2018}
+corrected; Fu et al.\ \cite{fu2023} cited, retiring first-to-federate
+claims; abstract compressed 781$\to$257 words. & Interpretation frozen
+(\texttt{docs/INTERPRETATION\_FREEZE.md}) before the rewrite; the
+divergence re-attributed to the evaluation path;
+Sections~\ref{sec:res-bn}--\ref{sec:res-nobn} added. \\
 \end{longtable}
 \endgroup
 

@@ -92,10 +92,17 @@ the pooled distribution is precisely what no participant can inspect.
 
 Two research threads---physics-grounded flare prediction and
 heterogeneity-robust federated learning---have developed largely
-independently, and we are not aware of any prior work that joins them.
-Because the first-FL-treatment claim is a factual statement about the
-literature, we document the search protocol behind it rather than
-relying on ``to the best of our knowledge''. The search was last
+independently, and one prior work joins them: Fu, Wan, Huang, Han, and
+Peng posted ``Federated Transfer Learning for Soalr Flare Forecasting''
+[title sic] to Research Square on 10~July~2023, formatted for
+\emph{Solar Physics}~\cite{fu2023}. That preprint applies federated
+transfer learning to flare forecasting on its own data substrate; it
+remains unrefereed, and we found no evidence of formal journal
+publication as of this revision. It does not evaluate SWAN-SF, reports
+no provenance audit, and, to our knowledge, no follow-up has appeared.
+Because novelty claims are factual statements about the literature, we
+document the search protocol behind ours rather than relying on ``to
+the best of our knowledge''. The search was last
 repeated on 29~September 2026 across general web, arXiv, NASA ADS,
 and publisher indexes (ScienceDirect, IEEE) reached through a web
 search engine, using four query strings: (i)~\emph{federated learning
@@ -112,15 +119,20 @@ weather forecasting, or federated computing on spacecraft without a
 scientific forecasting task (the categories returned by query~ii).
 Screening the 30 records returned by the four queries yielded
 \emph{zero} in-scope records; the raw result listings are committed
-with the repository (\texttt{docs/lit\_search/}). We note two
-limitations of this protocol: web-engine coverage of grey literature
-is incomplete, and the screening was single-reviewer, so a
-PRISMA-style dual-screened log remains queued repository work. Within
-those limits, the present work is the first federated treatment of
-solar flare prediction, the first FL framework evaluated on the
-SWAN-SF benchmark, and the first to quantify the cost of the
-data-locality constraint---the gap between federated and centralised
-skill---specifically for a safety-critical smart-grid application. In
-doing so it also contributes a rarely documented artifact: an honest
-engineering log of the failure modes encountered when FL meets a
-severely imbalanced physical-science benchmark (Appendix~\ref{sec:appendix}).
+with the repository (\texttt{docs/lit\_search/}). That screening
+\emph{missed} the Fu et al.\ preprint above---exactly the
+grey-literature coverage limitation this section flags---and the
+preprint surfaced only in a targeted verification pass during the
+present revision. We note two further limitations of this protocol:
+web-engine coverage of preprint servers is incomplete, and the
+screening was single-reviewer, so a PRISMA-style dual-screened log
+remains queued repository work. Within those limits, the present work
+is the first federated evaluation on the SWAN-SF benchmark (in both
+its cleaned and raw substrates, against centralised baselines of
+matched architecture), the first to audit the benchmark's provenance
+from inside a federated study, and the first leakage-free
+re-evaluation of federated flare prediction under the benchmark's
+intended protocol. It also contributes a rarely documented artifact:
+an honest engineering log of the failure modes encountered when FL
+meets a severely imbalanced physical-science benchmark
+(Appendix~\ref{sec:appendix}).

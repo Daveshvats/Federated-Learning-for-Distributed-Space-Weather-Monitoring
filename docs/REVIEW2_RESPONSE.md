@@ -694,3 +694,29 @@ Numeric outcomes integrated into the paper (v3.8):
 The remaining owner-side queue is now fold-replication breadth only
 (remaining temporally-preceding folds; the sequence arms'
 cleaned-fold pairing).
+
+## G. Third external review — v3.9 evaluation-protocol audit (2026-10-02)
+
+A third external review (incorporating the second reviewer's reading of
+our own verification notes) asked for: factual corrections, a BN
+checkpoint diagnostic, one controlled no-BN run if warranted, a frozen
+interpretation, and a rewrite around provenance and methodology rather
+than a new experimental campaign. All executed; interpretation frozen
+BEFORE the rewrite (`docs/INTERPRETATION_FREEZE.md`).
+
+| Item | Status |
+|---|---|
+| zhao2018 bib errors (5, incl. wrong arXiv ID) | **FIXED** (arXiv:1806.00582, Zhao/Li/Lai/Suda/Civin/Chandra) |
+| Fu et al. 2023 preprint / broken "first" claim | **FIXED** (cited; claims narrowed to first-on-SWAN-SF + first provenance audit + first leakage-free re-evaluation; search protocol updated to record the miss) |
+| Fig. 2 "Realised 9%–94%" vs actual 28.6–80.5% | **FIXED** (figure regenerated from the cached assignment; generator now reads the artefact so it cannot desynchronise) |
+| α=0.5 range inconsistency (0.6–100 vs 3–99) | **FIXED** (re-measured 0.3–99.8% under seed 42; appendix row annotated) |
+| Brier text 0.271–0.544 vs table 0.127 | **FIXED** (range 0.127–0.544; FedAvg's 0.127 noted vs 0.013 climatology floor) |
+| "preregistered" (7 uses) | **FIXED** (frozen-protocol / frozen configuration) |
+| Communication comparison vs raw magnetograms | **FIXED** (70.5 MB lifetime exchange vs 47.3 MB cleaned centralisation — 1.5×, no single-run saving — vs 1.24 GB raw centralisation) |
+| Abstract 792 words | **FIXED** (257 words) |
+| Version archaeology in text | **PRUNED** (appendix table is the single home; v3.9 row added) |
+| Degenerate val F1 (2p/(1+p)) | **REPORTED AS AUDIT FINDING** (Sec. 6.9: monitor is adversarial, not merely uninformative — it restored the collapsed round-20 checkpoint over healthy round 5) |
+| BN checkpoint diagnostic | **EXECUTED** (`experiments/run_bn_diagnostic.py`, `outputs/bn_diagnostic.json`): buffers never updated; same weights 0.575/0.951/0.931 (r20) under shipped/batch-stats/transported treatments; weights retain 0.953 ROC at r50 |
+| Controlled no-BN run | **EXECUTED, both arms** (`experiments/run_nobn_control.py`, `outputs/nobn_control.json`): FedAvg and FedProx both stable, near-identical at r50 (0.873/0.108 vs 0.871/0.128); neither diverges |
+| "Checkpoint-independent" claims | **RETIRED** (leakage-free subsection, discussion, conclusion) |
+| New experimental campaign | **REFUSED AS ADVISED** — v3.9 is compression + audit, not v4.0; the only new compute is the diagnostic + control runs (both CPU, ~15 min total) |

@@ -3,9 +3,14 @@
 % ════════════════════════════════════════════════════════════════════
 \section{Conclusion}\label{sec:conclusion}
 
-We presented what the documented literature search of
-Section~\ref{sec:litsearch} indicates is the first application of
-federated learning to solar flare prediction, motivated by a plausible
+We presented an audit of federated solar-flare prediction on the
+public SWAN-SF benchmark. Federated flare forecasting itself predates
+this work (Fu et al., 2023 preprint); what the documented literature
+search of Section~\ref{sec:litsearch} supports is that this is the
+first federated evaluation of SWAN-SF, the first to audit the
+benchmark's provenance from inside a federated study, and the first
+leakage-free re-evaluation of federated flare prediction under the
+benchmark's intended protocol. The study was motivated by a plausible
 deployment constraint in operational space weather: several public
 data custodians restrict redistribution of raw magnetogram time
 series, so the strongest pooled models may not be trainable at all
@@ -29,8 +34,7 @@ the benchmark's intended temporally-preceding protocol removes the
 overlap; on that protocol all arms generalise (ROC-AUC 0.906--0.978);
 the in-partition federated-versus-centralised gap does not survive
 (FedProx 0.976/0.308 vs architecture-matched centralised MLP
-0.973/0.382); FedProx retains checkpoint-independent ROC stabilisation
-over plain FedAvg (0.976 vs 0.906); the threshold-transfer and
+0.973/0.382); the threshold-transfer and
 calibration failures persist (only XGBoost's posteriors are usable);
 and event-level detection is essentially solved for every arm (64--65
 of 65 events, 23.4\,h median lead) while the false-alarm burden
@@ -62,20 +66,24 @@ centralised baseline on any substrate's window-level ranking (the
 SCAFFOLD-LSTM event-level detection rate is the one priced
 exception, achieved at roughly twice the centralised arms'
 false-alarm burden).
-\textbf{Demonstrated in-partition only (protocol-stability evidence,
-disclosed overlap)}: FedProx with $\mu{=}0.01$ is the most \emph{consistent}
-stabiliser among the components studied---above FedAvg on PR-AUC on
+\textbf{Demonstrated in-partition (protocol diagnostics, disclosed
+overlap)}: the shipped evaluation path separates the FL
+algorithms---FedProx with $\mu{=}0.01$ is above FedAvg on PR-AUC on
 five of five seeds (one-sided Wilcoxon $p=0.031$) with $2.7\times$
-narrower ROC-AUC variance, where the leakage-free fold shows the PR
-ordering between the two FL arms reverses; the FedProx global model
-attains 97.7\% of the centralised XGBoost reference's in-partition
-ROC-AUC (0.954 vs 0.977); plain FedAvg diverges under the
-preregistered configuration (and completes without collapse at
-$\alpha{=}5.0$, so the divergence is a heterogeneity-severity effect);
-per-client SMOTE is inactive on this benchmark variant (zero
-synthetic samples); and both the centralised and federated models
-concentrate attribution on current helicity, flux-emergence proxies,
-and Lorentz-force terms.
+narrower ROC-AUC variance, the FedProx global model attains 97.7\% of
+the centralised XGBoost reference's in-partition ROC-AUC (0.954 vs
+0.977), and the shipped-eval FedAvg drift does not occur at
+$\alpha{=}5.0$---but the BatchNorm-transport diagnostic and the
+no-BatchNorm control re-attribute this separation: the identical
+FedAvg weights hold 0.951--0.953 test ROC-AUC under correct
+normalisation at every round, the saturated all-positive validation
+monitor ($F_1 = 2p/(1{+}p)$) restores a collapse-round checkpoint, and
+without BatchNorm layers neither algorithm diverges and the gap
+shrinks to at most 0.036 ROC-AUC (Sections~\ref{sec:res-bn}--\ref{sec:res-nobn}).
+Also demonstrated in-partition: per-client SMOTE is inactive on this
+benchmark variant (zero synthetic samples); and both the centralised
+and federated models concentrate attribution on current helicity,
+flux-emergence proxies, and Lorentz-force terms.
 \textbf{Supported with caveats}: one FedAvg cell with
 distribution-aware
 aggregation exceeds the FedProx headline ROC-AUC, recall-at-FPR
@@ -140,11 +148,15 @@ baseline, and the federated sequence arms are the only federated
 results whose Brier beats the climatology floor. No federated arm exceeds the best centralised
 baseline on any substrate, however, so the case for federating this
 problem still rests entirely on the
-data-locality constraint, not on predictive performance. For the
-machine-learning community the study is a caution and a demonstration:
-instance-level provenance audits can invert the conclusions drawn
-from a widely used preprocessed benchmark, and the cross-silo regime
-of the physical sciences has failure modes---prior mismatch, layered
+data-locality constraint, not on predictive performance. For the machine-learning community the study is a caution and a
+demonstration on two levels. Instance-level provenance audits can
+invert the conclusions drawn from a widely used preprocessed
+benchmark. And evaluation stacks have failure modes of their own:
+parameters-only weight transport, thresholded monitors, and
+strict-inequality checkpoint selection are each mundane choices whose
+composition manufactured a seed-reproducible algorithm gap that
+survived three revisions of this paper---the cross-silo regime of the
+physical sciences has failure modes---prior mismatch, layered
 imbalance handling, optimiser--variance-reduction interactions---that
 the medical and mobile FL literature does not fully anticipate, and
 that are worth studying in their own right.

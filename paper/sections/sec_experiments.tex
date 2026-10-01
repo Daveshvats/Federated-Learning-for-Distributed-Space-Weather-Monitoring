@@ -87,7 +87,7 @@ validation-selected calibration and threshold treatment as the
 federated models, so the decision layer is uniform across all
 comparisons.
 
-\subsection{Federated configuration and preregistration}
+\subsection{Federated configuration and protocol freeze}
 \label{sec:fedconfig}
 
 Table~\ref{tab:hyper} summarises the frozen configuration. The
@@ -97,7 +97,7 @@ Section~\ref{sec:res-ablation}); per-client SMOTE is disabled because
 the balanced benchmark renders it inert. The proximal coefficient is
 $\mu=0.01$. Two facts govern the heterogeneity parameter: the headline
 run and \emph{all} statistical studies (multiseed, ablations,
-client-level evaluation) use the preregistered Dirichlet
+client-level evaluation) use the frozen-protocol Dirichlet
 $\alpha=1.0$; separately, the $\mu/\alpha$ sensitivity sweep
 ($\mu \in \{0.001, 0.01, 0.1\}$, $\alpha \in \{0.5, 1.0, 5.0\}$,
 15 rounds) selected $\alpha=5.0$, $\mu=0.01$ as the
@@ -112,18 +112,20 @@ in this revision at the full 50-round frozen protocol
 reaches test ROC-AUC $0.955$ / PR-AUC $0.296$, statistically
 indistinguishable from the $\alpha=1.0$ headline ($0.954$/$0.307$),
 so the sweep optimum does not transfer to the study regime and
-$\alpha=1.0$ is retained as the preregistered headline configuration.
-The same run isolates \emph{why} plain FedAvg diverges at $\alpha=1.0$:
-at $\alpha=5.0$ the identical FedAvg arm completes all 50 rounds
-without collapsing (test ROC-AUC $0.915$, PR-AUC $0.201$), i.e.\ the
-divergence is a heterogeneity-severity effect rather than an intrinsic
-failure of plain averaging on this task. Both values, and the
+$\alpha=1.0$ is retained as the frozen headline configuration.
+The same run isolates a severity threshold for the shipped-eval FedAvg
+drift at $\alpha=1.0$: at $\alpha=5.0$ the identical FedAvg arm
+completes all 50 rounds without the evaluated collapse (test ROC-AUC
+$0.915$, PR-AUC $0.201$)---milder heterogeneity keeps the weights
+compatible with the stale-buffer evaluation for longer, which is
+consistent with (though not proof of) the mechanism dissected in
+Section~\ref{sec:res-bn}. Both values, and the
 provenance of each, are recorded in the run manifest.
 
 \begin{table}[t]
 \centering
 \caption{Frozen configuration of the improved framework
-(\texttt{improvements} branch, v3.1).}
+(\texttt{improvements} branch).}
 \label{tab:hyper}
 \small
 \begin{tabularx}{\textwidth}{@{}l >{\raggedright\arraybackslash}X l@{}}
@@ -135,7 +137,7 @@ headline \\
 Local optimisation & 10 local epochs, AdamW, lr $5\times10^{-4}$, wd
 $10^{-4}$, cosine warm restarts, batch 512, grad-clip 5.0 & unchanged \\
 FedProx & $\mu = 0.01$ & sweep-validated \\
-Aggregation & plain size-weighted mean (DA-FL: ablation) & v3.0 change \\
+Aggregation & plain size-weighted mean (DA-FL: ablation) & protocol hardening \\
 Loss & Fed-Focal, $\gamma=2.0$, $\alpha$ clamped $(0.05,0.25)$; global
 prevalence computed, not hardcoded & B13 fix \\
 Local rebalancing & SMOTE off (inert: pre-balanced data) & ablation \\
@@ -252,7 +254,7 @@ protocol, threshold-freezing arithmetic, event-level metrics, FL smoke
 tests) passes on every commit.
 
 \paragraph{Independent re-execution from the public artefacts.}
-Following the review of v3.0.1, the entire headline pipeline was
+Following an external review, the entire headline pipeline was
 re-executed from scratch in a clean environment: the Cleaned SWAN-SF
 release was downloaded from the dataset repository's official
 distribution, all 20 partition files were verified byte-identical to
@@ -305,6 +307,29 @@ predicted within $\pm$0.001--0.005 on AUC-scale metrics and now
 measured by the seed-43 replication at $\le$0.005 ROC-AUC on every
 arm (Section~\ref{sec:res-lstmrep}); all other artefacts in this
 paper were produced under the bit-stable CPU protocol above.
+
+\paragraph{BatchNorm-transport diagnostic and no-BatchNorm control.}
+Two CPU-only experiments extend the frozen protocol without altering
+it. The diagnostic runner (\texttt{experiments/run\_bn\_diagnostic.py})
+loads the shipped checkpoints, audits their BN buffer state, and
+evaluates the returned artefacts and a faithfully re-run FedAvg
+trajectory (validation history matches the frozen run within
+$\pm$0.01 ROC-AUC at every logged round) under four BN treatments:
+init buffers (the shipped path), exact per-client statistics pooled by
+the law of total variance, per-batch statistics at evaluation time,
+and the element-wise weighted average of the per-client running
+statistics that local training produced in the round being evaluated.
+Recalibration uses training shards only; validation and test are never
+touched by it. The control runner
+(\texttt{experiments/run\_nobn\_control.py}) replaces the three
+\texttt{BatchNorm1d} layers with identity (28{,}929 parameters
+vs.\ 29{,}377) and runs the identical 50-round loop for both
+FedAvg and FedProx, with the shipped best-validation checkpoint rule
+as the only selection mechanism; its per-round test evaluation is a
+disclosed diagnostic, not a selection path. Both runners are
+round-level resumable and write machine-readable artefacts
+(\texttt{bn\_diagnostic.json}, \texttt{nobn\_control.json}) under
+\texttt{outputs/}.
 
 \subsection{Data-provenance audit and the leakage-free protocol}
 \label{sec:provenance}

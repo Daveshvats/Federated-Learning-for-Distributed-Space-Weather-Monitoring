@@ -1,10 +1,17 @@
 #!/usr/bin/env python3
-"""Figure 2: Illustrative Dirichlet non-IID partition realization (alpha=1.0, 6 clients, seed 42).
+"""Figure 2: REALISED Dirichlet non-IID partition (alpha=1.0, 6 clients, seed 42).
+
+v3.9 fix: the previous generator drew an INDEPENDENT
+np.random.dirichlet sample whose proportions (9%-94% label skew) never
+matched the partition the experiments actually used
+(28.6%-80.5%). This version loads the cached client assignment and
+training labels that the frozen seed-42 run itself used, so the figure
+cannot desynchronise from the artefacts.
 
 Run from anywhere: writes into paper/figures/ relative to the repo root.
-Replicates the partition proportions logic of partition_clients.partition_data_dirichlet
-on a class-balanced training pool (48.9% flare rate, as in the cleaned SWAN-SF training set).
 """
+import os
+
 import numpy as np
 import matplotlib
 matplotlib.use("Agg")
@@ -15,38 +22,37 @@ import matplotlib.pyplot as plt
 plt.rcParams['font.sans-serif'] = ['DejaVu Sans']
 plt.rcParams['axes.unicode_minus'] = False
 
-# ── Reproduce the partition proportions (deterministic, seed 42) ──
-np.random.seed(42)
-N_CLIENTS = 6
-ALPHA = 1.0
-n_classes = 2
-proportions = np.random.dirichlet([ALPHA] * N_CLIENTS, size=n_classes)
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+# ── Authoritative source: the cached assignment of the frozen run ──
+z = np.load(os.path.join(ROOT, "data/cache/phase_data.npz"))
+y = z["y_train"]
+a = np.load(os.path.join(ROOT, "data/cache/phase_assignment.npz"))["assignment"]
+N = len(y)
+POOL_RATE = float(y.mean())
+
+N_CLIENTS = 6
 CLIENTS = ["Client A\nAmericas", "Client B\nEurope", "Client C\nAsia-Pacific",
            "Client D\nSouth Asia", "Client E\nEast Asia", "Client F\nOceania"]
 
-POOL_RATE = 0.4887  # balanced training pool flare rate (global_pos_rate in code)
-
-# Relative shard size: share of the pooled training samples per client
-rel_size = (proportions[0] + proportions[1]) / (proportions.sum())
-# Per-client flare rate (both class pools equally sized => weighted mix)
-flare_rate = proportions[1] / (proportions[0] + proportions[1])
+rel_size = np.array([(a == k).sum() for k in range(N_CLIENTS)]) / N
+flare_rate = np.array([y[a == k].mean() for k in range(N_CLIENTS)])
 
 fig, axes = plt.subplots(1, 2, figsize=(9.2, 4.1), constrained_layout=True)
 
-y = np.arange(N_CLIENTS)[::-1]
+y_pos = np.arange(N_CLIENTS)[::-1]
 
 # ── (a) relative shard sizes ──
 ax = axes[0]
-bars = ax.barh(y, rel_size * 100, height=0.62, color="#93C5FD",
-               edgecolor="#3B82F6", linewidth=1.0)
-ax.set_yticks(y)
+ax.barh(y_pos, rel_size * 100, height=0.62, color="#93C5FD",
+        edgecolor="#3B82F6", linewidth=1.0)
+ax.set_yticks(y_pos)
 ax.set_yticklabels(CLIENTS, fontsize=9)
-for yi, v in zip(y, rel_size * 100):
+for yi, v in zip(y_pos, rel_size * 100):
     ax.text(v + 0.8, yi, f"{v:.1f}%", va="center", ha="left", fontsize=9, color="#334155")
 ax.set_xlim(0, max(rel_size) * 100 * 1.22)
 ax.set_xlabel("Share of pooled training data (%)", fontsize=10.5)
-ax.set_title("(a) Client shard sizes", fontsize=11, fontweight="bold", loc="left", pad=8)
+ax.set_title("(a) Realised client shard sizes", fontsize=11, fontweight="bold", loc="left", pad=8)
 ax.spines['top'].set_visible(False)
 ax.spines['right'].set_visible(False)
 ax.spines['left'].set_visible(False)
@@ -59,20 +65,20 @@ ax.set_axisbelow(True)
 # ── (b) per-client flare rates ──
 ax = axes[1]
 rates = flare_rate * 100
-colors = ["#F59E0B" if r > 60 or r < 20 else "#34D399" for r in rates]
-bars = ax.barh(y, rates, height=0.62, color=colors,
-               edgecolor=["#B45309" if c == "#F59E0B" else "#059669" for c in colors],
-               linewidth=1.0)
-ax.set_yticks(y)
+colors = ["#F59E0B" if r > 60 or r < 35 else "#34D399" for r in rates]
+ax.barh(y_pos, rates, height=0.62, color=colors,
+        edgecolor=["#B45309" if c == "#F59E0B" else "#059669" for c in colors],
+        linewidth=1.0)
+ax.set_yticks(y_pos)
 ax.set_yticklabels(CLIENTS, fontsize=9)
-for yi, v in zip(y, rates):
+for yi, v in zip(y_pos, rates):
     ax.text(v + 1.2, yi, f"{v:.1f}%", va="center", ha="left", fontsize=9, color="#334155")
 ax.axvline(POOL_RATE * 100, color="#EF4444", linestyle="--", linewidth=1.4, alpha=0.85)
-ax.text(POOL_RATE * 100 + 1.0, N_CLIENTS - 0.42, "pooled rate\n48.9%",
+ax.text(POOL_RATE * 100 + 1.0, N_CLIENTS - 0.42, f"pooled rate\n{POOL_RATE*100:.1f}%",
         fontsize=8.5, color="#B91C1C", va="top")
 ax.set_xlim(0, 100)
 ax.set_xlabel("Local positive-class (flare) rate (%)", fontsize=10.5)
-ax.set_title("(b) Label skew across clients", fontsize=11, fontweight="bold", loc="left", pad=8)
+ax.set_title("(b) Realised label skew across clients", fontsize=11, fontweight="bold", loc="left", pad=8)
 ax.spines['top'].set_visible(False)
 ax.spines['right'].set_visible(False)
 ax.spines['left'].set_visible(False)
@@ -82,8 +88,7 @@ ax.tick_params(axis='x', colors="#4B5563")
 ax.grid(True, axis='x', linestyle='--', alpha=0.25, linewidth=0.6)
 ax.set_axisbelow(True)
 
-import os
-out = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "paper/figures/fig_partition.png")
+out = os.path.join(ROOT, "paper/figures/fig_partition.png")
 fig.savefig(out, dpi=220, facecolor="white")
 print("Saved", out)
 print("Relative sizes (%):", np.round(rel_size * 100, 1))

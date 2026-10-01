@@ -25,7 +25,7 @@ verified property.
 
 \paragraph{Region-identity, validation inflation, and the resolved
 provenance question.}
-The v3.3 text of this paragraph stated that the cleaned export lacks
+An earlier revision of this paragraph stated that the cleaned export lacks
 HARP identifiers and that the definitive split fix awaited the raw
 benchmark. That dependency is now resolved: every cleaned window has
 been aligned to its raw instance (Section~\ref{sec:provenance}), and
@@ -189,8 +189,9 @@ versus FedProx's $0.954$/$0.307$, so the headline gap survives
 budget parity); and the $\alpha{=}5.0$ promotion run at the full
 50-round protocol (negative: $0.955$/$0.296$ versus $0.954$/$0.307$;
 $\alpha{=}1.0$ retained, with the incidental finding that plain
-FedAvg completes without collapse at $\alpha{=}5.0$, isolating the
-headline divergence as a heterogeneity-severity effect). The
+FedAvg's shipped evaluation does not collapse at $\alpha{=}5.0$---a
+severity effect of the evaluation-path drift dissected in
+Section~\ref{sec:res-bn}). The
 raw-metadata provenance audit subsequently resolved the metadata
 blockers and executed items (1)--(3) on the leakage-free fold
 (Section~\ref{sec:res-leakfree}: region-disjointness holds by

@@ -64,22 +64,27 @@ to an aggregation server, which averages them into a new global model.
 Raw measurements never leave the custodian's infrastructure. FL has
 already proven transformative in medicine and digital health, where
 patient-privacy constraints are structurally similar to the
-data-locality constraints just described~\cite{rieke2020}. What has
-not existed, prior to the present work and per the documented search
-protocol of Section~\ref{sec:related}, is a systematic treatment of FL
-for solar flare prediction---the solar-physics community's benchmark
-workflows \cite{leka2019,georgoulis2021,angryk2020} are all centrally
-pooled, and we found no application of FL to photospheric flare
-forecasting in the FL literature.
+data-locality constraints just described~\cite{rieke2020}. Federated
+flare forecasting itself is not new: Fu et al.\ posted a federated
+transfer-learning preprint in July 2023 (Section~\ref{sec:related})
+\cite{fu2023}. What does not exist, per the documented search protocol
+of Section~\ref{sec:related}, is a federated treatment of the
+solar-physics community's public SWAN-SF benchmark
+\cite{angryk2020}---with its cleaned/rebalanced and raw substrates,
+its leakage structure, and its centralised baselines---under an
+evaluation protocol that audits its own benchmark artefacts.
 
-This paper closes that gap. We present a complete, reproducible
-federated framework---implemented, versioned, and released as open
+This paper provides that treatment, and its character is an audit: we
+ask what a federated pipeline actually achieves on SWAN-SF, what the
+benchmark's own artefacts do to the answer, and which parts of the
+observed behaviour belong to the algorithms rather than to the
+evaluation machinery. We present a complete, reproducible federated
+framework---implemented, versioned, and released as open
 source---that \emph{simulates} six regional data custodians (labelled
 A--F by region; no real institution participates), each holding a
-non-IID shard of the SWAN-SF benchmark \cite{angryk2020} in both its
-cleaned/rebalanced form and its raw, naturally imbalanced form, and
-evaluates whether federation can approach the
-centralised upper bound without any data movement. The framework is an
+non-IID shard of the benchmark in both its cleaned/rebalanced form and
+its raw, naturally imbalanced form, and evaluates whether federation
+can approach the centralised upper bound without any data movement. The framework is an
 upstream flare-probability component: it emits calibrated M/X flare
 probabilities and fixed-false-positive-rate alerting points that a
 future geomagnetic-hazard pipeline (CME/interplanetary propagation,
@@ -125,13 +130,12 @@ contributions are:
   test on partition 5, natural 1.31\% prevalence), all arms
   generalise (ROC-AUC 0.906--0.978); the in-partition
   federated-versus-centralised gap disappears (FedProx 0.976/0.308
-  vs architecture-matched centralised MLP 0.973/0.382); FedProx
-  retains checkpoint-independent ROC stabilisation over plain FedAvg
-  (0.976 vs 0.906); the threshold-transfer and calibration failures
-  persist; and an event-level evaluation on 65 physical M/X-class
-  events shows detection is not the deployability boundary---XGBoost's
-  false-alarm burden is roughly $7\times$ lower than every neural
-  arm's (Section~\ref{sec:res-leakfree}).
+  vs architecture-matched centralised MLP 0.973/0.382); the
+  threshold-transfer and calibration failures persist; and an
+  event-level evaluation on 65 physical M/X-class events shows
+  detection is not the deployability boundary---XGBoost's false-alarm
+  burden is roughly $7\times$ lower than every neural arm's
+  (Section~\ref{sec:res-leakfree}).
   \item \textbf{A raw-substrate re-execution and the encoder-conditional
   collapse.} Retraining the identical frozen protocol on the raw,
   unbalanced benchmark (natural prevalence, no synthetic positives, the
@@ -146,16 +150,29 @@ contributions are:
   per-client SMOTE at natural prevalence is a clean negative---so the
   balanced-substrate standing is a property of the flattened-feature
   MLP, not of federation per se (Sections~\ref{sec:res-raw}--\ref{sec:res-lstmrep}).
+  \item \textbf{A BatchNorm-transport diagnostic and a controlled
+  no-BatchNorm experiment, which re-attribute the in-partition
+  FedAvg-versus-FedProx gap.} The shipped implementation transports
+  model parameters only, so BatchNorm running statistics remain at
+  initialisation on the server for the entire run; under that
+  evaluation the FedAvg global model drifts from 0.950 to 0.098 test
+  ROC-AUC over 50 rounds, and a saturated validation monitor ($F_1
+  = 2p/(1{+}p)$ whenever every prediction is positive) restores the
+  collapsed round-20 checkpoint as the ``best'' model. The same
+  weights score 0.951 under correct normalisation and 0.953 even at
+  round 50; with BatchNorm layers removed, both FedAvg and FedProx
+  train stably to near-identical test quality, so the published
+  algorithm gap is substantially an evaluation-implementation
+  artefact (Sections~\ref{sec:res-bn}--\ref{sec:res-nobn}).
   \item \textbf{An in-partition data-locality study, disclosed as
   such.} On the same-partition protocol (331{,}185 test windows,
   1.88\% prevalence) whose instance overlap the audit quantified,
   FedProx attains ROC-AUC 0.954 (97.7\% of the XGBoost reference's
   0.977) against the architecture-matched centralised MLP's 0.888, a
   comparison whose optimisation budgets are documented and
-  budget-matched, while plain FedAvg diverges during training
-  (validation AUC $0.99\to0.05$); these numbers are retained as
-  protocol-stability evidence, not as generalisation estimates
-  (Section~\ref{sec:results}).
+  budget-matched; these numbers are retained as protocol-stability
+  evidence with the corrected attribution above, not as
+  generalisation estimates (Section~\ref{sec:results}).
   \item \textbf{A cross-model interpretability audit.} SHAP analysis
   of both the centralised XGBoost reference and the federated global
   model, with physical-parameter-group aggregation, shows both
@@ -173,14 +190,14 @@ simulated, not real agencies; and the downstream
 flare$\to$CME$\to$storm$\to$GIC chain is discussed as future
 integration, not evaluated.
 
-In addition to these scientific contributions, the released framework
-embodies a documented engineering narrative: a multi-version stability
-iteration (v2.1--v3.1) in which Dirichlet concentration, focal-loss
-alpha clamping, optimiser choice for variance-reduced FL, and dataset
-auditing were each adjusted in response to diagnosed failure modes. We
-summarise this evolution in Appendix~\ref{sec:appendix} because it
-constitutes, in our view, transferable know-how for practitioners
-attempting the first FL deployment in any physical-science domain.
+The released framework also carries a documented revision history
+(Appendix~\ref{sec:appendix}): a multi-version stability iteration in
+which Dirichlet concentration, focal-loss alpha clamping, optimiser
+choice, and dataset auditing were each adjusted in response to
+diagnosed failure modes, and the audit findings reported here.
+We keep that record because reproducible failure diagnosis is
+transferable know-how for first FL deployments in the physical
+sciences.
 
 The remainder of the paper is organised as follows.
 Section~\ref{sec:related} reviews flare prediction and federated

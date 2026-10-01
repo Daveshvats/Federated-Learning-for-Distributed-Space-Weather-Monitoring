@@ -34,45 +34,46 @@ Section~\ref{sec:res-lstm} restore it (FedProx-LSTM 0.970 vs
 FedAvg-LSTM 0.958), relocating the fragility from the federation
 mechanism to the representation the clients share.
 
-\subsection{Why proximal regularisation stabilises the federation}
+\subsection{Why the shipped evaluation separates FedAvg from FedProx}
 
 The asymmetry between FedAvg and FedProx in
-Table~\ref{tab:main} deserves a mechanistic reading. Under the
-realised partition (Fig.~\ref{fig:partition}), clients receive
-genuinely different problems: one holds 36\% of the data at a 29\%
-flare rate, another holds 2\% of the data at a 43\% flare rate.
-Ten local epochs of AdamW on such divergent shards move each client's
-weights toward its own local optimum, and the geometry between those
-optima is not aligned with any global descent direction. Averaging
-such updates---FedAvg---produces a model that satisfies no client's
-problem, and the damage compounds round over round until the ranking
-signal degrades below chance (test AUC 0.575 for the best-validation
-checkpoint; the diverged checkpoints reach validation AUC 0.05). These
-in-partition dynamics reproduce leakage-free in direction if not in
-magnitude: on the temporally-preceding fold FedAvg's ranking survives
-only via its round-35 validation checkpoint (0.906) while its
-final-round state has collapsed, whereas FedProx is checkpoint-independent
-(Section~\ref{sec:res-leakfree}). FedProx's proximal
-term (Eq.~\eqref{eq:fedprox}) changes the local
-problem: each client optimises within a trust region around the
-broadcast model, so updates from heterogeneous clients remain
-geometrically comparable and their average retains a meaningful
-descent direction. The result is that the same architecture, the same
-loss, and the same data partition produce test AUC 0.954 rather than
-0.575. This is no longer a single-seed anecdote: the multi-seed study
-of Section~\ref{sec:res-multiseed} shows FedProx above FedAvg on all
-five seeds (one-sided Wilcoxon $p=0.031$) with a $2.7\times$ narrower
+Table~\ref{tab:main} deserves a mechanistic reading, and the present
+revision's diagnostics give it a different centre of gravity than earlier
+revisions assumed. Under the realised partition
+(Fig.~\ref{fig:partition}) clients do receive genuinely different
+problems (one holds 36\% of the data at a 29\% flare rate, another
+2\% at 43\%), and client drift is real---the no-BN control shows
+both algorithms decaying gently in test quality over rounds. But the
+catastrophic component of the shipped asymmetry is an
+\emph{evaluation-path} effect: the implementation transports
+parameters only, so BatchNorm running statistics remain at
+initialisation on the server, the evaluated FedAvg probabilities
+squeeze toward the threshold, the all-positive $F_1$ tie follows, and
+the checkpoint rule restores a collapse-round state
+(Sections~\ref{sec:res-bn}--\ref{sec:res-nobn}). FedProx's proximal
+term (Eq.~\eqref{eq:fedprox}) anchors each client's optimisation
+within a trust region around the broadcast model; a side effect is
+that the weights stay near the initialisation whose pre-BN
+activations the (0, 1) buffers normalise correctly, so the shipped
+evaluation remains valid for it. The in-partition dynamics reproduce
+leakage-free in direction if not magnitude: on the
+temporally-preceding fold FedAvg's ranking survives via its round-35
+validation checkpoint (0.906) while its final-round state has
+collapsed, whereas FedProx's evaluated ranking never degrades
+(Section~\ref{sec:res-leakfree}). The multi-seed study of
+Section~\ref{sec:res-multiseed} shows FedProx above FedAvg on all five
+seeds (one-sided Wilcoxon $p=0.031$) with a $2.7\times$ narrower
 ROC-AUC confidence interval, and the 24-cell ablation grid shows every
 FedProx cell stable (0.954--0.959) while the FedAvg cells range down
-to 0.880. The direction and magnitude of the gap are consistent with
-the mechanism that motivated FedProx's design \cite{li2020}, and with
-the broader non-IID FL evidence base \cite{zhao2018,kairouz2021}. The
-scope of the claim is deliberately narrower than ``FedProx is
-load-bearing'': the ablation grid shows distribution-aware aggregation
-also stabilises FedAvg substantially (best FedAvg cell 0.963), so the
-defensible statement is that the proximal term was the \emph{most
-consistent} stabiliser among the components studied, under the
-preregistered configuration, on this benchmark. The raw-substrate
+to 0.880---all under the same evaluation path, so these reproduce the
+composite, not the pure algorithm contrast. The defensible statement
+is narrower than ``FedProx is load-bearing'': the proximal term is the
+\emph{most consistent stabiliser of the shipped evaluation path}
+among the components studied (distribution-aware aggregation also
+stabilises the shipped FedAvg cells, best 0.963), it retains a modest
+genuine optimisation benefit at early rounds, and any deployment of
+this codebase should transport BN statistics (or remove BN) before
+drawing algorithm conclusions at all. The raw-substrate
 LSTM arms extend that evidence across encoders: FedProx-LSTM 0.970
 versus FedAvg-LSTM 0.958 on both rank metrics, with identical
 shards, budgets, and aggregation, makes the stabilisation the only
@@ -128,13 +129,13 @@ is specified as future work (Section~\ref{sec:limitations}).
 \subsection{Engineering lessons for first FL deployments in the
 physical sciences}
 
-The released framework carries a six-version stability narrative
+The released framework carries a multi-version stability narrative
 (summarised in Appendix~\ref{sec:appendix}), and its diagnostic arc is
 independently useful to any group attempting a first FL deployment on
-imbalanced scientific data. Four lessons generalise. First,
+imbalanced scientific data. Five lessons generalise. First,
 \emph{heterogeneity must be tuned, not merely tolerated}: the Dirichlet
 concentration that yields ``interesting'' non-IID partitions
-($\alpha \le 0.5$) can also yield pathological ones (0.6\%--100\% local
+($\alpha \le 0.5$) can also yield pathological ones (0.3\%--99.8\% local
 class rates) under which nothing converges; the stable regime for this
 benchmark sits near $\alpha = 1.0$. Second, \emph{imbalance handling
 interacts across layers}: SMOTE, focal $\alpha$, class-rate-aware
@@ -147,9 +148,18 @@ SCAFFOLD's control-variate update is derived for fixed-step SGD, and
 running it under AdamW's adaptive steps silently invalidates the
 correction terms (in our case, producing NaN weights for every round
 until diagnosed). Fourth, \emph{feature-name hygiene is part of
-scientific reproducibility}: the v2.x pipeline's generic
+scientific reproducibility}: an earlier revision's generic
 \texttt{feature\_N} naming in the statistical representation is why
 its SHAP layer needed an analytical decoding pass
 (Fig.~\ref{fig:shap}); the improved pipeline preserves
 statistic-parameter names end-to-end, which is precisely what makes
-its interpretability auditable.
+its interpretability auditable. Fifth---the lesson of the present audit, and the one
+we would put first for any evaluation-heavy project---\emph{audit the
+evaluation stack itself}: parameters-only weight transport, a
+thresholded monitor, and strict-inequality checkpointing are each
+mundane engineering choices, and their composition manufactured a
+seed-reproducible algorithm gap that survived three revisions of this
+paper, a five-seed statistical study, and a 24-cell ablation grid. The
+diagnostic that broke it open cost minutes, not GPU-weeks
+(Section~\ref{sec:res-bn}): evaluate the same weights under corrected
+normalisation before believing any instability narrative.
