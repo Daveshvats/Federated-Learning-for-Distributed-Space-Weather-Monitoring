@@ -109,7 +109,7 @@ def main():
 
     # ── 4. local vs global on the untouched holdouts ─────────────────────
     results = evaluate_client_level(
-        fed_shards, (fedavg, fedprox), X_val, y_val, "MLP",
+        fed_shards, (fedavg, fedprox), "MLP",
         batch_size=cfg.EVAL_BATCH_SIZE, holdouts=holdouts)
 
     results["protocol"] = {

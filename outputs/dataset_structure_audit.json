@@ -38,7 +38,8 @@
       "train_synthetic_positives": 7524,
       "train_synthetic_positive_share": 0.8571428571428572,
       "train_synthetic_negatives": 2,
-      "unique_regions": 700
+      "unique_regions": 700,
+      "train_verified_unique": 11247
     },
     "2": {
       "raw_instances": 88557,
@@ -57,7 +58,8 @@
       "train_synthetic_positives": 8406,
       "train_synthetic_positive_share": 0.8571428571428572,
       "train_synthetic_negatives": 175,
-      "unique_regions": 882
+      "unique_regions": 882,
+      "train_verified_unique": 11213
     },
     "3": {
       "raw_instances": 42510,
@@ -76,7 +78,8 @@
       "train_synthetic_positives": 8544,
       "train_synthetic_positive_share": 0.8571428571428572,
       "train_synthetic_negatives": 9,
-      "unique_regions": 390
+      "unique_regions": 390,
+      "train_verified_unique": 11410
     },
     "4": {
       "raw_instances": 51261,
@@ -95,7 +98,8 @@
       "train_synthetic_positives": 7994,
       "train_synthetic_positive_share": 0.857725321888412,
       "train_synthetic_negatives": 17,
-      "unique_regions": 471
+      "unique_regions": 471,
+      "train_verified_unique": 11148
     },
     "5": {
       "raw_instances": 75365,
@@ -114,20 +118,35 @@
       "train_synthetic_positives": 8910,
       "train_synthetic_positive_share": 0.9,
       "train_synthetic_negatives": 2,
-      "unique_regions": 754
+      "unique_regions": 754,
+      "train_verified_unique": 10987
     }
   },
   "totals": {
     "test_windows": 331185,
     "train_windows": 97764,
-    "train_verified_windows": 56181,
-    "train_windows_shared_with_test": 56005,
-    "train_shared_frac_of_verified": 0.99998,
+    "train_verified_windows_rows": 56181,
+    "train_verified_positive_windows_rows": 6395,
+    "train_synthetic_positives_rows": 41378,
+    "train_verified_unique_instances": 56005,
+    "train_unique_instances_shared_with_test": 56005,
+    "train_shared_frac_of_verified_unique": 1.0,
     "test_positive_instances_total": 6234,
     "test_positives_in_train": 6234,
     "test_positives_in_train_frac": 1.0,
-    "train_synthetic_positives_total": 41378,
-    "train_real_positives_total": 6395
+    "train_real_positives_unique": 6235,
+    "train_synthetic_positives_unique": 41378,
+    "train_synthetic_positive_share_range": [
+      0.8571428571428572,
+      0.9
+    ],
+    "duplicate_instance_windows": {
+      "total": 176,
+      "positive": 160,
+      "note": "windows in the pooled train export that are duplicate instances of an already-counted raw window (RUS/TimeGAN rebalancing artefact; all in partition 4)"
+    },
+    "train_label_agreement": 0.9971342624730781,
+    "test_label_agreement": 1.0
   },
   "findings": [
     "The Cleaned-SWANSF test pkl of partition p contains ALL raw instances of p (counts match exactly on every partition; value-matching verifies 98.7-100% with 100% label agreement).",
@@ -143,5 +162,11 @@
     "protocol": "train pkls P1-4 -> single-pass test on test pkl P5",
     "report": "outputs/partition_disjoint_eval.json",
     "event_level": "outputs/event_level_p5.json"
+  },
+  "totals_provenance": {
+    "row_basis": "computed from provenance/train_meta_slim.csv.gz and test_meta_slim.csv.gz (committed)",
+    "unique_instance_basis": "sums of the committed per-partition matcher counts in this artefact",
+    "regenerated_by": "provenance/rebuild_audit_totals.py",
+    "replaces": "v3.4 totals block: mixed bases with typed literals (56005, 0.99998, 6234, 6234) and an unreconciled 6395-vs-6235 discrepancy"
   }
 }

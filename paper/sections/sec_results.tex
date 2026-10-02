@@ -83,7 +83,7 @@ are threshold-free.}
 \cmidrule(r){2-3} \cmidrule(l){4-8}
 \textbf{Model} & ROC & PR & ROC & PR & Brier & ECE & R@2\%FPR \\
 \midrule
-Logistic regression & 0.818 & 0.114 & 0.978 & 0.455 & 0.375 & 0.477 & 0.695 \\
+Logistic regression & 0.824 & 0.235 & 0.978 & 0.455 & 0.375 & 0.477 & 0.695 \\
 XGBoost (centralised) & 0.977 & 0.493 & 0.971 & 0.457 & 0.055 & 0.101 & 0.692 \\
 Centralised MLP & 0.888 & 0.153 & 0.973 & 0.382 & 0.544 & 0.687 & 0.555 \\
 FedAvg MLP & 0.575 & 0.199 & 0.906 & 0.370 & 0.127 & 0.337 & 0.652 \\
@@ -93,8 +93,11 @@ FedProx MLP & 0.954 & 0.307 & 0.976 & 0.308 & 0.271 & 0.508 & 0.631 \\
 \end{table}
 
 The calibration and threshold-transfer failures documented
-in-partition (Section~\ref{sec:res-calib}) persist leakage-free and
-are therefore genuine properties of the balanced-training /
+in-partition (Section~\ref{sec:res-calib}) persist leakage-free ---
+on this fold the balanced-validation carve ($48.9\%$ prevalence,
+partitions 1--4) again faces the natural-prevalence partition-5 test
+($1.31\%$), the same 26-fold prior shift without the instance overlap ---
+and are therefore genuine properties of the balanced-training /
 natural-test interface rather than overlap artifacts: the
 validation-frozen FPR operating points are violated by every arm
 (e.g.\ XGBoost realises 15.3\% FPR at the frozen 2\% target; FedProx
@@ -105,14 +108,47 @@ climatology floor). The
 prior-shift-corrected neural posteriors are not repairable by
 threshold re-freezing on this fold either.
 
+\paragraph{Standard verification metrics and baselines.}
+Because the toolkit of Leka et al.~\cite{leka2019}---TSS, HSS, Brier
+skill, reliability, persistence and climatology---is the standard
+vocabulary of flare-forecast evaluation, every operating point of this
+paper is accompanied by it (\texttt{experiments/run\_standard\_metrics.py}
+$\to$ \texttt{outputs/standard\_metrics.json}; derivation from the
+committed confusion components at full precision, plus recomputation
+from the phase-cache models). Three findings matter. First, on the
+leakage-free fold at each arm's frozen $F_\beta$ threshold, XGBoost
+attains TSS $0.848$ / HSS $0.201$ while the neural arms sit at TSS
+$0.06$--$0.19$ / HSS $\le 0.006$: the prevalence-free TSS ranking
+matches the PR-AUC ranking, but HSS prices the neural arms'
+false-alarm load severely at 1.31\% prevalence. Second, the
+same-active-region previous-window persistence baseline achieves TSS
+$0.348$ on the partition-5 test (HSS $0.349$) with no learned model
+at all --- the label-inertia floor every published arm on this fold
+must be read against, and every neural arm at its frozen threshold
+sits \emph{below} that floor on TSS while XGBoost sits above it.
+Third, no arm's raw Brier beats the climatology floor
+(pooled-test BSS: XGBoost $-2.4$, FedAvg $-6.3$, FedProx $-13.3$;
+all negative), and the 10-bin reliability tables confirm the
+systematic over-confidence that the calibration analysis of
+Section~\ref{sec:res-calib} dissects. Event-level detection rates
+carry Wilson 95\% intervals of $\pm$4--8 points at 65 events, and
+alert rates carry Poisson intervals (Block~D of the same artefact),
+so the between-arm event-level narrations of the next paragraph are
+read against those bands.
+
 \paragraph{Event-level evaluation.}
 Table~\ref{tab:eventlevel} regroups the partition-5 test decisions
 into physical flare events using the raw-benchmark event keys (65
 M/X-class events; background windows grouped by region and day;
 1-hour alert cooldown). All five arms detect effectively every event
 (64--65 of 65) with a median first-alert lead time of 23.4\,h before
-flare peak---consistent with the 24-hour prediction horizon---but
-their false-alarm burdens separate them sharply: XGBoost emits 1.7
+flare peak. That lead must be read for what it is: the label is
+positive for \emph{every} window in the 24 hours before a flare, so a
+median first alert near the horizon's edge measures the label
+boundary, not precursor physics --- an honest reading is ``detection
+fires early in the labelled window,'' not ``the model sees the flare
+23 hours ahead.'' What separates the arms is their false-alarm
+burden: XGBoost emits 1.7
 false-alarm windows per day versus 8.6--12.7 for the neural arms, a
 7$\times$ difference that mirrors the window-level calibration gap
 and confirms that the deployability boundary on this benchmark is
@@ -291,8 +327,11 @@ $\sim$74\,h on the 2-core CPU sandbox---the one experiment where a
 GPU was a practical requirement rather than a convenience). The
 substrate is identical by construction: the runner rebuilds the 3D
 series from the same cached stage-A/B arrays, asserts label equality
-with the frozen 2D split at startup, cross-checks the 144-statistic
-features (maximum difference $4.4\times10^{-4}$), and reuses the
+with the frozen 2D split at startup, runs the 144-statistic feature
+cross-check whenever the 2D cache is present (max$|$diff$|$ bounded
+by $5\times10^{-3}$ at float16 storage; on the owner-GPU box the
+label-equality assertion alone ran, the 2D cache being absent
+there), and reuses the
 identical seed-42 Dirichlet shards, so the only degrees of freedom
 are the encoder and the device. The SolarLSTM (219,265 parameters,
 consuming the raw $60\times24$ series directly) is trained under the
@@ -669,11 +708,15 @@ ranking information under correct normalisation.
     \begin{adjustbox}{max width=0.96\textwidth, max height=0.34\textheight}
         \includegraphics{figures/FL_Convergence.png}
     \end{adjustbox}
-    \caption{Validation-monitored convergence over 50 rounds
-    (validation F1 at the development threshold and ROC-AUC every five
-    rounds), as evaluated by the shipped server-side path. Plain
-    FedAvg's evaluated AUC drifts from $0.99$ to $0.05$ after round 20;
-    FedProx ($\mu{=}0.01$) stays at $\sim$0.99 throughout.
+    \caption{Validation-monitored convergence over 50 rounds: per-round
+    validation F1 (left panel) and validation Recall (right panel) at
+    the development threshold, as evaluated by the shipped server-side
+    path (FedAvg vs FedProx; ROC-AUC values quoted in the text come
+    from the round-level validation history in the run artefacts, not
+    from this figure). Plain FedAvg's evaluated F1 collapses toward
+    zero after round 20 while its recall saturates at 1.0 (the
+    all-positive degenerate regime); FedProx ($\mu{=}0.01$) holds its
+    monitored statistics throughout.
     Section~\ref{sec:res-bn} shows this trajectory measures
     normalisation compatibility, not information content: the same
     FedAvg weights carry $\sim$0.95 test ROC-AUC under correct
@@ -1035,12 +1078,13 @@ emerge. \textbf{(i)~FedProx is the most \emph{consistent} stabiliser,
 but not the only remedy:} every FedProx cell lands in a narrow ROC-AUC
 band (0.954--0.959) whereas the FedAvg cells range from 0.880 (focal
 loss, plain aggregation---the collapsing configuration) up to 0.963
-(focal loss with distribution-aware aggregation). That best FedAvg
+(plain BCE with distribution-aware aggregation). That best FedAvg
 cell \emph{exceeds} the FedProx headline (0.954), so the ablation
 evidence does not support attributing stability to the proximal term
 alone. \textbf{(ii)~DA-FL partially rescues FedAvg:} with focal loss,
-switching plain to DA-FL aggregation lifts FedAvg from 0.880 to 0.950
-(and to 0.963 in the best cell), suggesting distribution-aware
+switching plain to DA-FL aggregation lifts FedAvg from 0.880 to 0.950,
+and the best cell overall (0.963) is plain BCE with DA-FL, suggesting
+distribution-aware
 weighting mitigates the same client-drift the proximal term
 suppresses---at the cost of rate metadata sharing. \textbf{(iii)~Loss
 choice is secondary at this prevalence:} across cells, focal,
@@ -1074,8 +1118,8 @@ was consequently not applicable.
 \end{figure}
 
 The six simulated clients hold very different data: local flare rates
-span 28.6\% (Client~B, Europe) to 80.5\% (Client~A, Americas), and
-shard sizes span 1{,}503 (Client~E, East Asia) to 23{,}418
+span 28.6\% (Client~B) to 80.5\% (Client~A), and
+shard sizes span 1{,}503 (Client~E) to 23{,}418
 (Client~B). Figure~\ref{fig:clients} quantifies what each client gets
 out of the federation under the untouched-holdout protocol: a dedicated
 re-run in which every client's shard was split 80/20 \emph{before} any
@@ -1176,9 +1220,13 @@ a property of the 12-minute observation cadence and repeated
 retraining cycles, not of one run. On the raw 3D substrate the
 ordering reverses: centralising the training windows
 ($214{,}888 \times 60 \times 24$ float32, $\approx$1.24~GB) exceeds
-the LSTM cohort's lifetime exchange ($\approx$130~MB) by an order of
-magnitude. Latency and availability engineering remain deployment
-work.
+the LSTM cohort's lifetime parameter exchange at 32-bit round-trip
+precision (219{,}265 parameters, $\approx$526~MB) by a factor of
+2.4. The often-quoted $\approx$130~MB figure holds only under an
+fp16 uplink-only convention that the code base lists as future
+compression work, not as an implemented path; we state the
+32-bit round-trip number as the honest default. Latency and
+availability engineering remain deployment work.
 
 \subsection{Data-locality cost analysis}
 

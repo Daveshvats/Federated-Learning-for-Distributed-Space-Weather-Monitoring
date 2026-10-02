@@ -1,0 +1,27 @@
+dataset manifest verification 2026-10-02T16:40:13.764754+00:00
+manifest: /home/z/my-project/scripts/clone/data_manifest/manifest.json
+manifest sha256: 55277287fdcb3e76bbe7904f22c29cdeaefdcaf76ff01ccce52e5fbffb158de5
+data dir: data/cleaned
+------------------------------------------------------------------------
+[VERIFIED] train Partition1_Labels_RUS-Tomek-TimeGAN_LSBZM-Norm_WithoutC_FPCKNN-impute.pkl
+[VERIFIED] train Partition1_RUS-Tomek-TimeGAN_LSBZM-Norm_WithoutC_FPCKNN-impute.pkl
+[VERIFIED] train Partition2_Labels_RUS-Tomek-TimeGAN_LSBZM-Norm_WithoutC_FPCKNN-impute.pkl
+[VERIFIED] train Partition2_RUS-Tomek-TimeGAN_LSBZM-Norm_WithoutC_FPCKNN-impute.pkl
+[VERIFIED] train Partition3_Labels_RUS-Tomek-TimeGAN_LSBZM-Norm_WithoutC_FPCKNN-impute.pkl
+[VERIFIED] train Partition3_RUS-Tomek-TimeGAN_LSBZM-Norm_WithoutC_FPCKNN-impute.pkl
+[VERIFIED] train Partition4_Labels_RUS-Tomek-TimeGAN_LSBZM-Norm_WithoutC_FPCKNN-impute.pkl
+[VERIFIED] train Partition4_RUS-Tomek-TimeGAN_LSBZM-Norm_WithoutC_FPCKNN-impute.pkl
+[VERIFIED] train Partition5_Labels_RUS-Tomek-TimeGAN_LSBZM-Norm_WithoutC_FPCKNN-impute.pkl
+[VERIFIED] train Partition5_RUS-Tomek-TimeGAN_LSBZM-Norm_WithoutC_FPCKNN-impute.pkl
+[VERIFIED]  test Partition1_LSBZM-Norm_FPCKNN-impute.pkl
+[VERIFIED]  test Partition1_Labels_LSBZM-Norm_FPCKNN-impute.pkl
+[VERIFIED]  test Partition2_LSBZM-Norm_FPCKNN-impute.pkl
+[VERIFIED]  test Partition2_Labels_LSBZM-Norm_FPCKNN-impute.pkl
+[VERIFIED]  test Partition3_LSBZM-Norm_FPCKNN-impute.pkl
+[VERIFIED]  test Partition3_Labels_LSBZM-Norm_FPCKNN-impute.pkl
+[VERIFIED]  test Partition4_LSBZM-Norm_FPCKNN-impute.pkl
+[VERIFIED]  test Partition4_Labels_LSBZM-Norm_FPCKNN-impute.pkl
+[VERIFIED]  test Partition5_LSBZM-Norm_FPCKNN-impute.pkl
+[VERIFIED]  test Partition5_Labels_LSBZM-Norm_FPCKNN-impute.pkl
+------------------------------------------------------------------------
+VERDICT: PASS — 20/20 files byte-identical to the frozen manifest

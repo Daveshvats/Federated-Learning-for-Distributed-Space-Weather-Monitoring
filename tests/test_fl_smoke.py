@@ -141,7 +141,7 @@ def main():
 
     print("\n[6] Client-level evaluation (Stage 10)")
     from evaluate_clients import evaluate_client_level
-    res = evaluate_client_level(shards, (m_avg, m_prox), X_val, y_val,
+    res = evaluate_client_level(shards, (m_avg, m_prox),
                                 "MLP", batch_size=512, local_epochs=1)
     check("client evaluation returns per-client rows",
           res["summary"]["n_clients_evaluated"] == 4)

@@ -17,7 +17,7 @@ reimplementation would likely rediscover the hard way.
 \setlength{\LTcapwidth}{\textwidth}
 \begin{longtable}{@{}p{0.09\textwidth} >{\raggedright\arraybackslash}p{0.42\textwidth} >{\raggedright\arraybackslash}p{0.43\textwidth}@{}}
 \caption{Documented stability fixes and protocol revisions across
-framework versions (v2.1--v3.9), as recorded in the released source.}
+framework versions (v2.1--v4.0), as recorded in the released source.}
 \label{tab:evolution}\\
 \toprule
 \textbf{Version} & \textbf{Diagnosed failure mode} & \textbf{Fix} \\
@@ -93,7 +93,7 @@ balanced-prevalence validation cannot support threshold transfer or
 calibration; client-level evaluation optimistic; centralized-FL
 optimisation budgets unstated; window-level metrics read as event
 metrics; client labels implied institutional participation. &
-Protocol extensions, all unit-tested (78 checks) and queued for the
+Protocol extensions, all unit-tested and queued for the
 full-data re-run: region-disjoint splits, natural-prevalence
 validation with validation-frozen FPR operating points, untouched
 client holdouts, training-budget audit, event-level metrics,
@@ -227,6 +227,28 @@ claims; abstract compressed 781$\to$257 words. & Interpretation frozen
 (\texttt{docs/INTERPRETATION\_FREEZE.md}) before the rewrite; the
 divergence re-attributed to the evaluation path;
 Sections~\ref{sec:res-bn}--\ref{sec:res-nobn} added. \\
+\addlinespace[2pt]
+v4.0 & Third external review (dual-chaired forensic dossier): the
+numbers are faithful but the provenance \emph{meta-claims} are not
+substantiated --- no verification code behind ``byte-verified'', a
+hand-typed reference dict injecting a stale number into
+tab:leakfree, an internally inconsistent audit-JSON totals block
+(mixed row/unique-instance bases), an empty machine-written GPU
+ledger, four irreconcilable test counts, a wrong LSTM communication
+total, eleven metadata-defective bibliography entries, uncited
+prior art for both the leakage warnings and the BatchNorm mechanism,
+and a grid/GIC framing the paper's own boundary document
+contradicts. & The evidence edition: \texttt{verify\_manifest.py}
+(20/20 SHA-256, hard pipeline gate); reference dicts read from
+artefacts at run time and both JSONs regenerated; audit totals
+recomputed on dual bases with a committed recomputation test; queue
+logs committed and the ledger filled with artefact hashes; one
+battery runner, 214/214 checks; the Leka et al.\ verification
+apparatus (TSS/HSS/BSS/reliability/persistence/climatology) added to
+every operating point; bibliography repaired field-by-field against
+arXiv/DBLP/ADS; FedBN-lineage and prior-warning citations added;
+grid/GIC framing deleted from title, abstract, and operational
+claims; title narrowed to ``benchmark audit''. \\
 \end{longtable}
 \endgroup
 

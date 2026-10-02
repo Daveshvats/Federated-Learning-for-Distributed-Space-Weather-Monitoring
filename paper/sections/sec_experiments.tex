@@ -35,8 +35,10 @@ train if the audit fails.
 reported test metrics are recomputed from those predictions (the v2.x
 code reported a stale accuracy for federated models).
 \item \textbf{Protocol extensions released with this revision.} The
-following components are implemented, unit-tested (78-check integrity
-suite), and smoke-validated. Five of them were additionally
+following components are implemented, unit-tested (the 214-check
+integrity battery of \texttt{tests/run\_battery.py}, whose single
+authoritative count and log are committed at
+\texttt{logs/test\_battery.log}), and smoke-validated. Five of them were additionally
 \emph{executed} end-to-end in the independent re-execution of
 Section~\ref{sec:repro} and their results are reported in
 Section~\ref{sec:results}: (ii)\ the validation-frozen fixed-FPR
@@ -248,26 +250,37 @@ machine-readable results artefact (\texttt{results.json},
 \texttt{smote\_validity.json}) plus a run manifest embedding the code
 version, seeds, configuration, and dataset manifest hash; all figures
 and tables are generated from these artefacts. The pipeline supports
-round-level crash recovery, and the 78-check integrity test suite
-(partitioning disjointness, leakage audit, calibration, evaluation
-protocol, threshold-freezing arithmetic, event-level metrics, FL smoke
-tests) passes on every commit.
+round-level crash recovery, and the integrity battery (partitioning
+disjointness, leakage audit, calibration, evaluation protocol,
+threshold-freezing arithmetic, event-level metrics, FL smoke tests,
+GPU-queue artefact guards, and an audit-artefact recomputation test)
+passes 214/214 checks (\texttt{tests/run\_battery.py};
+\texttt{logs/test\_battery.log}).
 
 \paragraph{Independent re-execution from the public artefacts.}
 Following an external review, the entire headline pipeline was
 re-executed from scratch in a clean environment: the Cleaned SWAN-SF
 release was downloaded from the dataset repository's official
 distribution, all 20 partition files were verified byte-identical to
-the frozen data manifest (SHA-256 match on every file), and the frozen
+the frozen data manifest (SHA-256 match on every file ---
+\texttt{data\_manifest/verify\_manifest.py}, whose committed log at
+\texttt{logs/verify\_manifest.log} records the 20/20 verdict and the
+manifest hash; the verification also runs as a hard gate at pipeline
+start), and the frozen
 protocol was run end-to-end (data load and flattening, immutable
 splits, Dirichlet partition, pooled baselines, FedAvg and FedProx to
 50 rounds, validation-fit calibration and thresholds, single-pass test
-evaluation, figures, and SHAP attribution) on CPU only (Python 3.12,
-PyTorch 2.14). Every test-set metric of every model reproduced
-\emph{exactly}, to all reported significant digits: all six models'
-ROC-AUC, PR-AUC, Brier, ECE, precision, recall, F1, and accuracy
-match the published artefacts at three decimals, and the FedAvg
-divergence signature reproduces round-for-round. The pipeline is
+evaluation, figures, and SHAP attribution) on CPU only (Python 3.12;
+the torch and numpy versions are recorded per-run in the run manifest,
+and the v4.0 verification environment is pinned in
+\texttt{requirements.txt}). Every test-set metric of every model
+reproduced \emph{exactly}, to all reported significant digits: all
+six models' ROC-AUC, PR-AUC, Brier, ECE, precision, recall, F1, and
+accuracy match the published artefacts at three decimals, and the
+FedAvg divergence signature reproduces (rounds 5--40 agree to three
+decimals; the collapsed-tail values differ by up to 0.02 between the
+original execution and the re-run caches, a chaotic regime the
+diagnostic of Section~\ref{sec:res-bn} documents). The pipeline is
 therefore bit-stable under this protocol: fixed seeds, deterministic
 CPU kernels, disjoint index arithmetic, and single-precision training
 make the published numbers re-derivable by anyone from the public
@@ -292,8 +305,12 @@ as a second single resumable queue, the remaining programme (8.7\,h:
 1.5\,h SCAFFOLD-LSTM, 3.9\,h the seed-43 replication of all four
 arms, 3.2\,h the two SMOTE ablation arms). The substrate identity
 is device-independent and asserted at startup on every run (label
-equality with the frozen 2D split; 144-statistic cross-check at
-$4.4\times10^{-4}$), and each run writes the same machine-readable
+equality with the frozen 2D split; a 144-statistic feature
+cross-check that runs whenever the 2D cache is present, asserting
+max$|$diff$|$ below the $5\times10^{-3}$ float16 bound --- on the
+owner-GPU box only the 3D cache was shipped, so the label-equality
+assertion ran there and the feature check ran in the CPU sessions),
+and each run writes the same machine-readable
 artefact schema as every CPU arm (\texttt{raw\_lstm\_eval},
 \texttt{raw\_lstm\_scaffold}, \texttt{raw\_lstm\_seed43}, and
 \texttt{raw\_lstm\_smote}, all under \texttt{outputs/}).
@@ -352,21 +369,31 @@ monotone normalization and are robust to the export's imputation
 noise. A window is accepted as aligned when at least 28 of 48
 invariants agree (borderline cases require a mean per-feature Spearman
 rank correlation of at least 0.70). On the test partitions this
-verifies 98.7--100.0\% of windows with 100.00\% label agreement and a
+verifies 98.7--100.0\% of windows with 100.00\% label agreement
+(train-side label agreement is 99.71\% --- 161 disagreements, which
+bound the synthetic-share estimate below) and a
 median best-to-second-best margin of 31--32 invariants; the alignment
 artefacts and per-window metadata tables are released with the code
-(\texttt{outputs/dataset\_structure\_audit.json}).
+(\texttt{outputs/dataset\_structure\_audit.json}; a committed test,
+\texttt{tests/test\_audit\_artifact.py}, recomputes every headline
+audit total from the committed per-partition tables and slim
+metadata).
 
 \paragraph{What the audit found.}
 Three structural facts follow. First, the test export of partition
 $p$ contains \emph{all} raw instances of $p$ (the counts match exactly
 on every partition). Second, the training export of $p$ is a
-RUS-Tomek-TimeGAN rebalanced \emph{subset of the same instances}: of
-the 56{,}006 verified training windows across the five partitions,
-56{,}005 (99.998\%) are also test windows, and every M/X-flaring test
+RUS-Tomek-TimeGAN rebalanced \emph{subset of the same instances}: the
+verified training pool contains 56{,}181 windows covering 56{,}005
+unique raw instances (the 176-window difference is
+duplicate-instance windows, 160 of them positive, all in partition
+4), and \emph{every} unique verified train instance is also a test
+instance (56{,}005/56{,}005; on the row basis, 56{,}181/56{,}181). Every
+M/X-flaring test
 instance---6{,}234 of 6{,}234, 100\% of the minority class---is in the
 training pool. Third, 85.7--90.0\% of the training positive windows are
-TimeGAN-synthetic (they have no raw counterpart), while virtually no
+TimeGAN-synthetic (they have no raw counterpart; the 161 train-side
+label disagreements bound this estimate), while virtually no
 negative windows are synthetic. The release paper of the cleaned
 dataset prescribes pairing \emph{temporally preceding} training
 partitions with a later test partition; the shipped pipeline of this

@@ -114,7 +114,7 @@ def build_3d(raw_dir, out_dir=CACHE):
         d = {"X_train": np.load(tr_path), "y_train": z["y_train"],
              "X_val": np.load(va_path), "y_val": z["y_val"],
              "X_test": np.load(te_path), "y_test": z["y_test"]}
-        crosscheck_2d(d, out_dir)
+        d["crosscheck_2d"] = crosscheck_2d(d, out_dir)
         return d
 
     # prerequisites from the 2D pipeline's caches
@@ -184,7 +184,7 @@ def build_3d(raw_dir, out_dir=CACHE):
           flush=True)
     d = {"X_train": X_train, "y_train": y_train, "X_val": X_val,
          "y_val": y_val, "X_test": np.load(te_path), "y_test": y_test}
-    crosscheck_2d(d, out_dir)
+    d["crosscheck_2d"] = crosscheck_2d(d, out_dir)
     return d
 
 
@@ -197,7 +197,8 @@ def crosscheck_2d(d, out_dir=CACHE):
     p2 = os.path.join(out_dir, "data.npz")
     if not os.path.exists(p2):
         print("[3D] 2D cache absent — cross-check skipped", flush=True)
-        return None
+        return {"status": "skipped",
+                "reason": "2D cache absent on this host"}
     z = np.load(p2)
     ok = (np.array_equal(d["y_train"], z["y_train"]) and
           np.array_equal(d["y_val"], z["y_val"]) and
@@ -220,7 +221,8 @@ def crosscheck_2d(d, out_dir=CACHE):
           f"(train/val/test), 144-stat max|diff| = {worst:.2e} "
           f"(f16 bound ~5e-3)", flush=True)
     assert worst < 5e-3, f"3D/2D feature mismatch: max|diff|={worst}"
-    return worst
+    return {"status": "checked", "max_abs_diff_144stat": float(worst),
+            "bound": 5e-3}
 
 # ── optional pooled centralized SolarLSTM comparator ────────────────────────
 
@@ -685,8 +687,9 @@ def main():
         "substrate": {"train": int(len(y_train)), "val": int(len(y_val)),
                       "test": int(len(y_test)),
                       "test_pos": float(np.mean(y_test)),
-                      "source": ("data/cache/rawsubstrate (frozen split, "
-                                 "cross-checked vs the 2D substrate)")},
+                      "source": ("data/cache/rawsubstrate (frozen "
+                                 "split)"),
+                      "crosscheck_2d": d.get("crosscheck_2d")},
         "results": results,
         "elapsed_s": round(time.time() - t0, 1),
     }

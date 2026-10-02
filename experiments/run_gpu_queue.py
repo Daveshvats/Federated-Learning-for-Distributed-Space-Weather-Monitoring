@@ -90,6 +90,17 @@ def _ts():
     return time.strftime("%Y-%m-%d %H:%M:%S")
 
 
+def _artefact_hash(path):
+    """sha256[:16] of an output artefact, embedded in the ledger line so
+    post-hoc edits to the artefact are detectable (v4.0, review M7)."""
+    import hashlib
+    try:
+        with open(os.path.join(ROOT, path), "rb") as f:
+            return hashlib.sha256(f.read()).hexdigest()[:16]
+    except OSError:
+        return "MISSING"
+
+
 def runlog_append(line):
     """Machine-written ledger line (kept append-only, never rewritten)."""
     with open(RUNLOG, "a", encoding="utf-8") as f:
@@ -230,8 +241,10 @@ def main():
         rc, dur, log = run_step(s, args.python)
         ok = (rc == 0) and outputs_exist(s)
         status = "DONE" if ok else f"FAILED (rc={rc})"
+        hashes = " ".join(f"{o}#{_artefact_hash(o)}"
+                          for o in s["outputs"])
         runlog_append(f"{s['name']} | {status} | {dur:.0f}s | "
-                      f"{', '.join(s['outputs'])} | log {log}")
+                      f"{hashes} | log {log}")
         statuses.append((s["name"], status, dur))
         if not ok:
             print(f"[queue] step {s['name']} FAILED — continuing with the "

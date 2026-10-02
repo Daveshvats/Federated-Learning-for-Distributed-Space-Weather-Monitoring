@@ -1,0 +1,36 @@
+[3D] resumed from cache (X_train_3d/X_val_3d/y3d)
+[3D] 2D cache absent — cross-check skipped
+[LSTM] device=cuda | seed=42 | tag=scaffold | train 214,888 (pos 2.05%) | val 40,932 | test 75,365 (pos 1.31%)
+[Partition] Client A (Americas)            | n= 17,786 | flare rate:   8.2%
+[Partition] Client B (Europe)              | n=105,135 | flare rate:   0.4%
+[Partition] Client C (Asia-Pacific)        | n= 46,680 | flare rate:   1.8%
+[Partition] Client D (South Asia)          | n= 31,801 | flare rate:   0.1%
+[Partition] Client E (East Asia)           | n=  6,727 | flare rate:  12.2%
+[Partition] Client F (Oceania)             | n=  6,759 | flare rate:  12.7%
+[Partition] coverage: 214,888/214,888 (100.0%) — disjoint by construction
+[Model] Creating SolarLSTM (hidden=128, layers=2, bidir=False, seed=42)
+[Model] GPU: NVIDIA GeForce RTX 4060 Laptop GPU | allocated: 0.8 MB
+[Model] Parameters: 219,265
+============================================================
+ SCAFFOLD [cuda] | LSTM | agg=plain | pos_rate=0.020
+ monitoring: VALIDATION (40,932 samples)
+============================================================
+  Round   5 | val F1: 0.000 | val Recall: 0.000 | val ROC-AUC: 0.913
+  Round  10 | val F1: 0.000 | val Recall: 0.000 | val ROC-AUC: 0.939
+  Round  15 | val F1: 0.000 | val Recall: 0.000 | val ROC-AUC: 0.951
+  Round  20 | val F1: 0.000 | val Recall: 0.000 | val ROC-AUC: 0.956
+  Round  25 | val F1: 0.000 | val Recall: 0.000 | val ROC-AUC: 0.958
+  Round  30 | val F1: 0.000 | val Recall: 0.000 | val ROC-AUC: 0.960
+  Round  35 | val F1: 0.005 | val Recall: 0.002 | val ROC-AUC: 0.961
+  Round  40 | val F1: 0.031 | val Recall: 0.015 | val ROC-AUC: 0.963
+  Round  45 | val F1: 0.065 | val Recall: 0.033 | val ROC-AUC: 0.963
+  Round  50 | val F1: 0.075 | val Recall: 0.039 | val ROC-AUC: 0.964
+
+  [scaffold] Restored best VALIDATION checkpoint (val F1=0.075)
+  scaffold_lstm    ROC-AUC 0.970 PR-AUC 0.294  (MLP counterpart 0.768/0.057)
+[event] 75,365 raw windows | 75,263 matched (99.86%) | 4409 groups | 65 true events
+[event] flare peaks matched 65/65 (ambiguous 4)
+[event scaffold_lstm ] thr 0.160 | events 55/65 (84.6%) | FA/day 0.41 | alerts/day 0.54 | lead 23.2h
+[event] -> outputs/event_level_raw_scaffold.json
+
+[LSTM] report -> outputs/raw_lstm_scaffold.json (5515s)

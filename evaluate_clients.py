@@ -50,10 +50,12 @@ def split_shards_for_holdout(shards, holdout_fraction=0.2, seed=42):
     return fed_shards, holdouts
 
 
-def evaluate_client_level(shards, global_models, X_val, y_val, model_name,
+def evaluate_client_level(shards, global_models, model_name,
                           threshold=None, batch_size=2048, seed=None,
                           local_epochs=None, n_local_runs=1,
                           holdouts=None):
+    # v4.0 (review m9): X_val/y_val removed — they were accepted and
+    # never used (dead parameters).
     """
     Parameters
     ----------

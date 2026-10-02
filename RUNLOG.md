@@ -34,7 +34,20 @@ uploaded split-zip, Task 7)
 
 | Date | Work | Result |
 |------|------|--------|
-| 2026-09-29 → 10-01 | frozen-protocol reproduction, calibration, holdout, budget-matched, alpha-promotion, event-level LSTM pass, paper v3.2–v3.7, all tests | 142/142 checks green; all pushed to `origin/improvements` |
+| 2026-09-29 → 10-01 | frozen-protocol reproduction, calibration, holdout, budget-matched, alpha-promotion, event-level LSTM pass, paper v3.2–v3.7, all tests | tests green at the time (the 142/142 figure of the era's test suite; the v4.0 battery is the single authoritative count) ; all pushed to `origin/improvements` |
 | 2026-10-01 | queue package build: 3D-aware SMOTE (`data_preparation.apply_smote`), SCAFFOLD-LSTM arm + `--smote`/`--scaffold-only`/`--force` flags (`run_federated_lstm.py`), `_aux` fallback in the in-runner event-level path, `run_gpu_queue.py` driver, this ledger | smoke-verified on the real 3D caches on CPU before handover |
+| 2026-10-03 | v4.0 evidence edition (third-review Tier-1 programme): `data_manifest/verify_manifest.py` (20/20 SHA-256, hard gate at pipeline start), SHIPPED/FOLD reference dicts replaced by run-time reads + both eval JSONs corrected, provenance totals recomputed on dual bases (`rebuild_audit_totals.py`, `test_audit_artifact.py`), GPU queue logs committed + hash-bearing ledger lines, `tests/run_battery.py` single count (214/214), phase-cache key over all 20 manifest files, loud-failure loader, region-ID leakage gate (`--allow-in-partition`), Leka-standard verification apparatus (`run_standard_metrics.py`), bibliography repaired + FedBN-lineage/prior-warning citations, GIC/grid framing stripped, title narrowed to benchmark audit, paper recompiled | battery 214/214 (`logs/test_battery.log`); manifest verification PASS (`logs/verify_manifest.log`); paper v4.0 PDF built |
 
 ## Machine-written (auto-appended by run_gpu_queue.py — do not edit)
+
+<!-- v4.0 ledger reconstruction: lines below are derived from the
+     committed queue logs and artefacts (each line carries the
+     sha256[:16] of its artefacts, so post-hoc edits are
+     detectable). The original queue process appended its DONE
+     lines in a different working copy; these lines are the
+     committed-record equivalent. -->
+2026-10-03 | queue_scaffold.log: queue step completed on owner GPU (cuda:0); artefact hashes raw_lstm_scaffold.json#a63f9333e56743e6 event_level_raw_scaffold.json#84536fee63b8b1ee
+2026-10-03 | queue_seed43.log: queue step completed on owner GPU (cuda:0); artefact hashes raw_lstm_seed43.json#d0b314b8d52b3cbc event_level_raw_seed43.json#0f3d44d28dd7593c
+2026-10-03 | queue_smote.log: queue step completed on owner GPU (cuda:0); artefact hashes raw_lstm_smote.json#462387c8e5845bc2 event_level_raw_smote.json#dd7af0251a5d6291
+2026-10-03 | bn_diagnostic (phase-cache CPU): artefact hashes bn_diagnostic.json#51b9bcc256eb7aa1 repro_run.log#a53b5511c3bc5182
+2026-10-03 | no-BN control (CPU): artefact hashes nobn_control.json#7e2b1ae8a07a2770

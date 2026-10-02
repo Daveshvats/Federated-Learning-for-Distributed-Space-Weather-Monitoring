@@ -3,76 +3,62 @@
 % ════════════════════════════════════════════════════════════════════
 \section{Introduction}\label{sec:intro}
 
-Modern society has quietly built its electrical backbone in the path of
-a cosmic hazard. Geomagnetically induced currents (GICs) are
-quasi-direct currents that flow in high-voltage transmission lines when
-a geomagnetic storm---itself driven by the arrival of a coronal mass
-ejection (CME) associated with a major solar flare---distorts the
-Earth's magnetosphere. The time-varying geomagnetic field induces
-geo-electric fields in the conducting crust, and these fields drive GICs
-through grounded transformer neutrals. Once inside a high-voltage
-transformer, even a modest GIC biases the alternating flux into
-half-cycle saturation, producing harmonics, reactive-power absorption,
-and localized heating that can culminate in irreversible thermal
-damage~\cite{bolduc2002,boteler2019}. The canonical demonstration of
-this failure mode remains the 13~March 1989 storm, which collapsed the
-Hydro-Qu\'ebec grid in ninety seconds and left six million customers
-without power for nine hours~\cite{bolduc2002,boteler2019}. The
-July~2012 event, an eruptive flare/CME of Carrington-class magnitude
-that missed Earth's orbital position by roughly nine days, is a stark
-reminder that the next exposure is a matter of when, not
-if~\cite{baker2013}.
+Solar-flare prediction from photospheric magnetogram time series is a
+benchmark-driven machine-learning problem. The community's public
+reference is SWAN-SF~\cite{angryk2020}, and the machine-learning
+literature on it has grown around a small number of evaluation
+conventions: randomised splits of pooled windows, the cleaned and
+rebalanced export, and a reporting culture built on ROC/PR summary
+statistics. Those conventions carry risk. The benchmark's own creators
+warned that sliding-window temporal coherence ``invalidates the
+randomness assumption, thus impacting all sampling practices''~\cite{angryk2019};
+subsequent work has echoed the warning~\cite{ahmadzadeh2021}, and the
+cleaned export's release paper explicitly prescribes pairing
+temporally-preceding training partitions with a later test
+partition~\cite{eskandari2024}. Machine-learning flare-prediction
+models built on photospheric vector-magnetogram
+summaries---the SHARP parameter suite~\cite{bobra2015} and its
+descendants---have demonstrated statistically skilful classification of
+flaring versus non-flaring active regions~\cite{leka2019,georgoulis2021};
+the predictive signal lives in quantities such as total unsigned
+current helicity, magnetic free energy, and flux-emergence proxies. What
+has not existed, per the documented search protocol of
+Section~\ref{sec:related}, is a federated treatment of SWAN-SF---with
+its cleaned and raw substrates, its leakage structure, and its
+centralised baselines---under an evaluation protocol that audits its own
+benchmark artefacts.
 
-The first line of defence against such events is forecasting. Grid
-operators who receive an early warning that an M- or X-class flare has
-erupted, or is likely to erupt, in a magnetically complex active region
-can pre-emptively derate transformers, adjust reserve margins, postpone
-switching operations, and prepare load-shedding plans in the
-window between the flare observation and the CME's arrival one to three
-days later. Machine-learning flare-prediction models built on
-photospheric vector-magnetogram summaries---the SHARP parameter
-suite~\cite{bobra2015} and its descendants---have demonstrated
-statistically skilful classification of flaring versus non-flaring
-active regions~\cite{leka2019,georgoulis2021}. The predictive signal
-lives in quantities such as total unsigned current helicity, magnetic
-free energy, and flux-emergence proxies, all of which are computed
-routinely by solar observatories on every continent and in orbit.
+Why federate a public benchmark whose data is, in reality, freely
+poolable? Two honest reasons. Methodologically, cross-silo federated
+learning~\cite{mcmahan2017,kairouz2021} is the standard instrument for
+studying non-IID data heterogeneity under a controlled protocol: it
+prescribes exactly what moves between data holders (model parameters)
+and exactly what does not (raw observations), which makes it a clean
+lens for asking how much of a benchmark's apparent difficulty survives
+when the data is deliberately fragmented. Operationally, the
+SHARP-style parameters at the centre of this pipeline are dominated by
+a single public instrument (SDO/HMI via JSOC); the six-regional-agency
+narrative sometimes attached to federated space-weather proposals does
+not describe this data and is not claimed here. The six clients of
+this study are a \emph{simulation protocol}---Dirichlet label skew
+across disjoint shards---not a claim about any institution, and the
+present study does not claim that any agency's flare data cannot be
+pooled.
 
-There is, however, a structural obstacle to training the strongest
-possible model: many institutions that could pool their data choose
-not to. The highest-fidelity flare-forecasting observations are
-produced and curated by nationally mandated agencies---NASA and NOAA
-in the Americas, ESA in Europe, JAXA in the Asia-Pacific region, ISRO
-in South Asia, KASI in East Asia, and the Australian Bureau of
-Meteorology (BoM) in Oceania---and in several jurisdictions the raw
-magnetogram-derived time series are treated as nationally sensitive
-assets whose redistribution is restricted by data-locality policies,
-inter-agency agreements, or export controls. Whether these
-restrictions are legally binding or a matter of institutional policy,
-the practical effect is the same: if the custodians do not pool, each
-either trains on its own regional shard or forgoes machine learning
-altogether, and the community inherits models that each see a biased
-slice of the active-region population. The present study does not
-claim that any specific agency's flare data cannot be pooled; it takes
-data locality as a plausible deployment constraint and studies its
-consequences under a controlled simulation of that constraint.
-
-Federated learning (FL)~\cite{mcmahan2017,kairouz2021} is precisely the
-mechanism for this setting. In cross-silo FL, each data-holder trains a
-shared model architecture locally and transmits only parameter updates
-to an aggregation server, which averages them into a new global model.
-Raw measurements never leave the custodian's infrastructure. FL has
-already proven transformative in medicine and digital health, where
-patient-privacy constraints are structurally similar to the
-data-locality constraints just described~\cite{rieke2020}. Federated
-flare forecasting itself is not new: Fu et al.\ posted a federated
+In cross-silo FL, each data-holder trains a shared architecture locally
+and transmits model parameters to an aggregation server, which averages
+them into a new global model; raw measurements do not move. FL has
+proven transformative in medicine and digital health, where privacy
+constraints really are binding~\cite{rieke2020}. Federated flare
+forecasting itself is not new: Fu et al.\ posted a federated
 transfer-learning preprint in July 2023 (Section~\ref{sec:related})
-\cite{fu2023}. What does not exist, per the documented search protocol
-of Section~\ref{sec:related}, is a federated treatment of the
-solar-physics community's public SWAN-SF benchmark
-\cite{angryk2020}---with its cleaned/rebalanced and raw substrates,
-its leakage structure, and its centralised baselines---under an
-evaluation protocol that audits its own benchmark artefacts.
+\cite{fu2023}. As a body of practice, FL also carries its own
+evaluation-protocol hazards---statistics that travel with weights
+(most visibly BatchNorm running moments, a failure mode documented
+since FedBN~\cite{li2021fedbn}), drift monitors that saturate, and
+checkpoint rules that quietly restore the wrong model---and a benchmark
+audit is exactly the place to expose how those hazards interact with a
+published comparison.
 
 This paper provides that treatment, and its character is an audit: we
 ask what a federated pipeline actually achieves on SWAN-SF, what the
@@ -80,23 +66,24 @@ benchmark's own artefacts do to the answer, and which parts of the
 observed behaviour belong to the algorithms rather than to the
 evaluation machinery. We present a complete, reproducible federated
 framework---implemented, versioned, and released as open
-source---that \emph{simulates} six regional data custodians (labelled
-A--F by region; no real institution participates), each holding a
-non-IID shard of the benchmark in both its cleaned/rebalanced form and
-its raw, naturally imbalanced form, and evaluates whether federation
-can approach the centralised upper bound without any data movement. The framework is an
-upstream flare-probability component: it emits calibrated M/X flare
-probabilities and fixed-false-positive-rate alerting points that a
-future geomagnetic-hazard pipeline (CME/interplanetary propagation,
-storm forecasting, GIC and power-system response modelling) could
-consume; the downstream chain is not evaluated here. The specific
-contributions are:
+source---that \emph{simulates} six clients (labelled A--F; no real
+institution participates), each holding a non-IID shard of the
+benchmark in both its cleaned/rebalanced form and its raw, naturally
+imbalanced form, and evaluates whether federation can approach the
+centralised upper bound without any data movement. The framework emits
+M/X flare probabilities whose calibration, thresholds, and
+false-alarm rates are themselves audited quantities in this paper---the
+evaluation finds they do not survive the prevalence shift, and no
+operational alerting claim is made. The downstream
+flare$\to$CME$\to$storm$\to$GIC chain is physically far from the
+quantity modelled here and is not evaluated
+(Section~\ref{sec:limits}). The specific contributions are:
 
 \begin{enumerate}[leftmargin=2em, itemsep=3pt]
   \item \textbf{A problem formulation and system architecture} that maps
-  grid-resilience precursor alerting onto a cross-silo federated
+  flare-probability estimation onto a cross-silo federated
   classification problem with a safety-critical, recall-weighted
-  objective, and that operationalises the data-locality constraint as a
+  objective, and that operationalises client heterogeneity as a
   concrete, simulable protocol (Section~\ref{sec:problem} and
   Section~\ref{sec:method}).
   \item \textbf{A non-IID federation protocol for SWAN-SF} that combines
@@ -124,7 +111,12 @@ contributions are:
   export's same-partition train/test pairing shares instances---including 100\% of the flaring test windows and 85.7--90\%
   TimeGAN-synthetic training positives---so the study re-evaluates all
   headline claims on a leakage-free temporally-preceding fold
-  (Section~\ref{sec:provenance}).
+  (Section~\ref{sec:provenance}). The leakage phenomenon itself is
+  documented prior art---the benchmark's creators warned about
+  random-split overlap in 2019~\cite{angryk2019} and the cleaned
+  export's release prescribes temporally-preceding
+  folds~\cite{eskandari2024}; what is new here is the instance-level
+  quantification, performed inside a federated study.
   \item \textbf{A leakage-free federated evaluation.} On the
   temporally-preceding fold (training partitions 1--4, single-pass
   test on partition 5, natural 1.31\% prevalence), all arms
@@ -152,7 +144,13 @@ contributions are:
   MLP, not of federation per se (Sections~\ref{sec:res-raw}--\ref{sec:res-lstmrep}).
   \item \textbf{A BatchNorm-transport diagnostic and a controlled
   no-BatchNorm experiment, which re-attribute the in-partition
-  FedAvg-versus-FedProx gap.} The shipped implementation transports
+  FedAvg-versus-FedProx gap.} The underlying mechanism---weight
+  averaging without normalisation statistics---is established
+  knowledge in the FL literature since FedBN~\cite{li2021fedbn} and
+  its successors~\cite{wang2023bn,guerraoui2024bn,bnscaffold2024};
+  the contribution here is the composite failure-mode dissection on
+  this pipeline and the self-correction of our own earlier artefact.
+  The shipped implementation transports
   model parameters only, so BatchNorm running statistics remain at
   initialisation on the server for the entire run; under that
   evaluation the FedAvg global model drifts from 0.950 to 0.098 test
@@ -184,11 +182,12 @@ contributions are:
 
 We are explicit about what is \emph{not} claimed: per-client SMOTE
 contributes nothing on either substrate (zero synthetic samples on
-the cleaned variant; an executed negative at natural prevalence); the verified property
-is data locality, not cryptographic privacy; the six clients are
-simulated, not real agencies; and the downstream
-flare$\to$CME$\to$storm$\to$GIC chain is discussed as future
-integration, not evaluated.
+the cleaned variant; an executed negative at natural prevalence); the
+transport protocol moves full model weights, not data, and confers no
+cryptographic privacy (the secure-aggregation sketch verifies
+arithmetic cancellation only); the six clients are simulated, not real
+agencies; and the downstream flare$\to$CME$\to$storm$\to$GIC chain
+is discussed as a boundary, not evaluated.
 
 The released framework also carries a documented revision history
 (Appendix~\ref{sec:appendix}): a multi-version stability iteration in

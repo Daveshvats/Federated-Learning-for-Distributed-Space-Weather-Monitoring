@@ -30,7 +30,7 @@ data sources in an open framework, and it explicitly confronted the
 data-heterogeneity problem that motivates the present paper. On the
 data side, the SWAN-SF benchmark of Angryk et
 al.~\cite{angryk2020} released a multivariate time-series dataset of
-roughly 8{,}000 active-region tracks with 24 physical parameters per
+4{,}098 active-region (MVTS) tracks with 24 physical parameters per
 timestep and flare-history labels, specifically designed to make flare
 prediction reproducible and comparable; it has since become the
 community's reference benchmark, and a family of cleaned and rebalanced
@@ -67,6 +67,22 @@ clients---is the deployment regime relevant to space-weather agencies,
 and it contrasts with the cross-device regime in its stability
 requirements and long-lived participants.
 
+A distinct and, for this study, decisive strand concerns normalisation
+statistics under heterogeneity. FedBN~\cite{li2021fedbn} established
+that BatchNorm running statistics are a per-client feature that
+weight-averaged federation must \emph{not} naively transport, and that
+keeping them local outperforms both FedAvg and FedProx under feature
+shift. Wang et al.~\cite{wang2023bn} supplied the convergence analysis
+of exactly this mismatch, Guerraoui et al.~\cite{guerraoui2024bn}
+showed corrected statistics restore centralised-level evaluation
+performance, and BN-SCAFFOLD~\cite{bnscaffold2024} documents BN drift
+crippling SCAFFOLD specifically. The parameters-only transport bug we
+diagnose in Section~\ref{sec:res-bn} is an engineering-level
+instantiation of this literature's central mechanism --- the mechanism
+is textbook; the composite failure chain (initialised-buffer evaluation
+times a saturated monitor times a checkpoint rule) is the
+pipeline-specific part.
+
 \subsection{Class imbalance in federated learning}
 
 Flare prediction inherits an extreme class-imbalance regime: in
@@ -100,6 +116,11 @@ transfer learning to flare forecasting on its own data substrate; it
 remains unrefereed, and we found no evidence of formal journal
 publication as of this revision. It does not evaluate SWAN-SF, reports
 no provenance audit, and, to our knowledge, no follow-up has appeared.
+We note that its evaluation protocol---a random 7:1.5:1.5 split of
+pooled windows (AUC 0.936 on the Tianchi flare dataset)---is precisely
+the random-split convention whose instance-sharing risk this paper
+quantifies for SWAN-SF; the comparison is offered as context, not as a
+score comparison across datasets.
 Because novelty claims are factual statements about the literature, we
 document the search protocol behind ours rather than relying on ``to
 the best of our knowledge''. The search was last
@@ -126,11 +147,19 @@ preprint surfaced only in a targeted verification pass during the
 present revision. We note two further limitations of this protocol:
 web-engine coverage of preprint servers is incomplete, and the
 screening was single-reviewer, so a PRISMA-style dual-screened log
-remains queued repository work. Within those limits, the present work
-is the first federated evaluation on the SWAN-SF benchmark (in both
+remains queued repository work. Three facts bound the novelty claim honestly. The leakage
+phenomenon is documented prior art: the SWAN-SF creators warned that
+temporal coherence invalidates randomised
+sampling~\cite{angryk2019}, Ahmadzadeh et al.\ repeated the
+warning~\cite{ahmadzadeh2021}, and the cleaned export's release paper
+prescribes temporally-preceding folds~\cite{eskandari2024}; the
+BatchNorm-transport mechanism is textbook since
+FedBN~\cite{li2021fedbn}. Within those limits, the present work is
+the first federated evaluation on the SWAN-SF benchmark (in both
 its cleaned and raw substrates, against centralised baselines of
-matched architecture), the first to audit the benchmark's provenance
-from inside a federated study, and the first leakage-free
+matched architecture), the first \emph{instance-level} provenance
+audit of the cleaned export (normalisation-invariant matching of
+every window to the raw benchmark), and the first leakage-free
 re-evaluation of federated flare prediction under the benchmark's
 intended protocol. It also contributes a rarely documented artifact:
 an honest engineering log of the failure modes encountered when FL

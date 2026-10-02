@@ -7,22 +7,26 @@
 
 \begin{sloppypar}
 Figure~\ref{fig:arch} shows the complete system. Six simulated
-regional clients---labelled neutrally A--F by region (Americas,
-Europe, Asia-Pacific, South Asia, East Asia, Oceania); no real
-institution participates in this study---each hold a private, non-IID
-shard of the benchmark. In every communication round, each selected
+clients---labelled neutrally A--F (plain identifiers; the labels
+carry no geographic or institutional mapping, and no real institution
+participates in this study)---each hold a private, non-IID shard of the
+benchmark. In every communication round, each selected
 client trains a local copy of the shared model on its shard (with an
-imbalance-robust loss, described below), and returns only its weight
-increment to the aggregation server. The server forms the next global
+imbalance-robust loss, described below), and transmits its model
+parameters to the aggregation server (the implementation transports
+full weight tensors both directions; delta/weight-increment encoding
+and quantised uplinks are the communication-cost model's future
+compression path, not what the code does). The server forms the next global
 model by size-weighted averaging, broadcasts it to all clients, and
 the cycle repeats for $T = 50$ rounds. Downstream of federation, the
-global model emits flare probabilities and, at validation-frozen
-operating points, M/X flare-precursor alerts: an \emph{upstream}
-component that a future grid-resilience pipeline---CME propagation and
-storm forecasting, geomagnetic-hazard estimation, GIC and power-system
-response modelling, and SCADA integration---could consume. That
-downstream chain is outside the scope of this paper and is not
-evaluated here (Section~\ref{sec:limitations}). The division of labour
+global model emits flare probabilities; the evaluation of this paper
+finds that its calibration and frozen operating points do not survive
+the prevalence shift, so no alerting claim is made. Any downstream
+use---CME propagation and storm forecasting, geomagnetic-hazard
+estimation, GIC and power-system response modelling---would require
+components this paper does not evaluate, and the
+flare$\to$CME$\to$storm$\to$GIC chain is far from the quantity
+modelled here (Section~\ref{sec:limitations}). The division of labour
 is deliberate: everything that touches raw magnetogram data (loading,
 local training) executes inside the client boundary; everything the
 server touches is a weight tensor.
@@ -33,17 +37,19 @@ server touches is a weight tensor.
     \begin{adjustbox}{max width=\textwidth, max height=0.46\textheight}
         \includegraphics{figures/fig_architecture.png}
     \end{adjustbox}
-    \caption{Federated space-weather monitoring architecture for
-    grid-resilience pipelines. Six simulated regional clients
-    (neutral labels A--F; no real institution participates) hold
-    private non-IID shards of the benchmark; only weight updates
-    $\Delta \w_k$ cross the client boundary. The server applies
+    \caption{Federated benchmark-audit architecture. Six simulated
+    clients (neutral labels A--F; no real institution participates)
+    hold private non-IID shards of the benchmark; only model weight
+    tensors $\w_k$ cross the client boundary (the figure and the
+    communication-cost model describe full-weight transport; delta
+    encoding is listed future compression work). The server applies
     size-weighted FedAvg/FedProx aggregation by default (the
     distribution-aware weighting $\rho_k \propto n_k\sqrt{\phi_k}$,
     capped at $2/K$, is studied as an ablation arm). The global model
-    emits flare-probability precursor alerts at validation-frozen
-    operating points; the downstream GIC/SCADA pipeline is a future
-    integration interface and is not evaluated.}
+    emits flare probabilities; the evaluation finds its calibration
+    and frozen operating points do not survive the prevalence shift,
+    so no alerting claim is made, and no downstream pipeline is
+    evaluated.}
     \label{fig:arch}
 \end{figure}
 
@@ -210,7 +216,18 @@ Figure~\ref{fig:partition}. \textbf{SCAFFOLD} \cite{karimireddy2020}:
 variance reduction via client and server control variates; it is
 implemented with the SGD-based update required for exactness of the
 control-variate correction (AdamW's adaptive steps would invalidate
-the correction terms). It was held out of the cleaned-substrate
+the correction terms). Three implementation details depart from the
+reference algorithm and are disclosed for exactness: (i)\ the
+control-variate correction is damped, rescaled to 10\% of each
+parameter's gradient norm (the undamped correction destabilised
+training on this benchmark's loss scale); (ii)\ gradients are clipped
+to max-norm 1.0; and (iii)\ the SCAFFOLD arm is warm-started from
+the converged FedAvg model of the same run, so its trajectory should
+be read as ``FedAvg-initialised variance-reduced refinement,'' not a
+from-scratch run. The raw-substrate arms of
+Sections~\ref{sec:res-raw} and~\ref{sec:res-lstm} report this
+configuration as implemented; a vanilla-SCAFFOLD replication is
+queued future work. It was held out of the cleaned-substrate
 headline configuration for stability reasons and is not run on the
 cleaned fold, but it is executed on the raw substrate for both
 encoders, where its MLP instance is the hardest failure and its
@@ -322,8 +339,10 @@ evaluation has been performed on this benchmark.}
 \midrule
 Honest-but-curious aggregation server (observes all weight
 updates) & Secure-aggregation module (Bonawitz-style masks;
-round-trip verified by tests) & Implemented as verified module;
-not yet wired into the training loop; accuracy overhead not
+tests verify arithmetic round-trip cancellation only --- the sketch
+uses deterministic, publicly reproducible mask keys, so it confers
+no cryptographic privacy as committed) & Implemented as a numerical
+sketch; not wired into the training loop; accuracy overhead not
 measured \\
 \addlinespace[2pt]
 Gradient inversion / reconstruction from the transcript

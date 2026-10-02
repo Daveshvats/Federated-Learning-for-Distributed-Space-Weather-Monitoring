@@ -7,22 +7,22 @@ We presented an audit of federated solar-flare prediction on the
 public SWAN-SF benchmark. Federated flare forecasting itself predates
 this work (Fu et al., 2023 preprint); what the documented literature
 search of Section~\ref{sec:litsearch} supports is that this is the
-first federated evaluation of SWAN-SF, the first to audit the
-benchmark's provenance from inside a federated study, and the first
+first federated evaluation of SWAN-SF, the first instance-level
+provenance audit of the cleaned export (the leakage phenomenon
+itself is documented prior art --- the benchmark's creators warned
+about random-split overlap in 2019, and the cleaned release
+prescribes temporally-preceding folds), and the first
 leakage-free re-evaluation of federated flare prediction under the
-benchmark's intended protocol. The study was motivated by a plausible
-deployment constraint in operational space weather: several public
-data custodians restrict redistribution of raw magnetogram time
-series, so the strongest pooled models may not be trainable at all
-unless the custodians federate. The proposed framework simulates that
-constraint on the public SWAN-SF benchmark---six regional clients
-(neutral labels, no real institution) holding disjoint
-Dirichlet-skewed shards, MLP clients trained under FedAvg and FedProx
-with a clamped server-aware focal loss, and a frozen, leakage-audited
-evaluation protocol whose every selection decision is made on
-validation data. The study is an upstream flare-probability component
-for grid-resilience pipelines; the downstream flare$\to$CME$\to$storm
-$\to$GIC chain is discussed as future integration, not evaluated.
+benchmark's intended protocol. The study is a benchmark audit: six
+simulated clients (neutral labels, no real institution) hold disjoint
+Dirichlet-skewed shards of the public SWAN-SF benchmark, MLP clients
+train under FedAvg and FedProx with a clamped server-aware focal loss,
+and a frozen, leakage-audited evaluation protocol makes every
+selection decision on validation data. We make no deployment claim:
+the benchmark's data is public and freely poolable, the downstream
+flare$\to$CME$\to$storm$\to$GIC chain is far from the quantity
+modelled and is not evaluated, and the calibration analysis finds no
+validation-fit decision layer that survives the prevalence shift.
 
 To keep the summary honest, we classify the paper's claims into three
 levels, tiered against the leakage-free fold of
@@ -115,9 +115,10 @@ ablation queued in earlier revisions have since been executed
 (Section~\ref{sec:res-lstmrep}: the four-arm federation matrix is
 complete, every arm's ROC-AUC replicates within $\pm$0.005, and
 per-client SMOTE is a clean negative).
-An independent re-execution from the public, byte-verified dataset
-artefacts reproduces every in-partition headline metric exactly
-(Section~\ref{sec:repro}); eleven items of the re-run
+An independent re-execution from the public dataset artefacts ---
+byte-verified against the frozen SHA-256 manifest by a committed,
+executable verification script (20/20 files; Section~\ref{sec:repro})
+--- reproduces every in-partition headline metric exactly; eleven items of the re-run
 programme---the frozen-FPR report, the calibration arms, the
 untouched holdouts, the budget-matched and $\alpha{=}5.0$ re-runs,
 the raw-metadata provenance audit, the event-level/leakage-free
@@ -131,24 +132,18 @@ items are listed in
 Section~\ref{sec:limitations}, each with the implemented-and-tested
 protocol that would upgrade the claim.
 
-For the smart-grid community the message is correspondingly
-conditional: \emph{if} custodians of magnetogram data face
-data-locality constraints, then at benchmark scale a proximal-regularised
-federation keeps the federation converging where plain averaging
-collapses, at negligible bandwidth, without any raw data
-movement---while matching the same-architecture pooled model's
-ranking is, on the leakage-free protocol, a property the pooled
-reference shares rather than a federation advantage, and on the raw
-unbalanced benchmark that parity is encoder-dependent: with the
-flattened-feature MLP every federated configuration is strictly
-dominated by simple centralised baselines, while with the sequence
-encoder the best federated arm (FedProx-LSTM, 0.970/0.404) comes
-within 0.008 ROC-AUC and 0.044 PR-AUC of the best centralised
-baseline, and the federated sequence arms are the only federated
-results whose Brier beats the climatology floor. No federated arm exceeds the best centralised
-baseline on any substrate, however, so the case for federating this
-problem still rests entirely on the
-data-locality constraint, not on predictive performance. For the machine-learning community the study is a caution and a
+The performance message is correspondingly conditional. Matching the
+same-architecture pooled model's ranking is, on the leakage-free
+protocol, a property the pooled reference shares rather than a
+federation advantage, and on the raw unbalanced benchmark that parity
+is encoder-dependent: with the flattened-feature MLP every federated
+configuration is strictly dominated by simple centralised baselines,
+while with the sequence encoder the best federated arm
+(FedProx-LSTM, 0.970/0.404) comes within 0.008 ROC-AUC and 0.044
+PR-AUC of the best centralised baseline. No federated arm exceeds the
+best centralised baseline on any substrate, so the case for federating
+this problem rests on methodology (controlled heterogeneity studies,
+parameter-only transport), not on predictive performance. For the machine-learning community the study is a caution and a
 demonstration on two levels. Instance-level provenance audits can
 invert the conclusions drawn from a widely used preprocessed
 benchmark. And evaluation stacks have failure modes of their own:

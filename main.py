@@ -80,6 +80,12 @@ def parse_args():
     p.add_argument("--no-scaffold", action="store_true")
     p.add_argument("--no-mixup", action="store_true")
     p.add_argument("--eval-batch-size", type=int, default=cfg.EVAL_BATCH_SIZE)
+    p.add_argument("--allow-in-partition", action="store_true",
+                   help="v4.0: proceed despite the region-level "
+                        "train/test overlap the leakage audit now "
+                        "detects on the shipped in-partition protocol "
+                        "(use only to reproduce the published "
+                        "in-partition numbers deliberately)")
     p.add_argument("--fresh", action="store_true",
                    help="ignore and wipe the phase cache (full recompute)")
     return p.parse_args()
@@ -100,6 +106,28 @@ def _atomic_save(path, writer):
     os.replace(tmp, path)
 
 
+def _load_region_ids():
+    """AR/region ids aligned to the pooled dataframe order (train rows
+    then test rows, partitions 1-5 within each), read from the committed
+    provenance slim tables. Returns None if unavailable (synthetic-data
+    mode)."""
+    try:
+        import pandas as pd
+        tr = pd.read_csv("provenance/train_meta_slim.csv.gz")
+        te = pd.read_csv("provenance/test_meta_slim.csv.gz")
+        tr = tr.sort_values("pool_row")
+        te = te.sort_values("pool_row")
+        ids = np.concatenate([tr["ar"].values.astype(str),
+                              te["ar"].values.astype(str)])
+        print(f"[Audit] region ids loaded from provenance slim tables "
+              f"({len(ids):,} windows)")
+        return ids
+    except Exception as e:
+        print(f"[Audit] region ids unavailable ({e}) — region check "
+              f"will be skipped")
+        return None
+
+
 def main():
     args = parse_args()
 
@@ -115,6 +143,20 @@ def main():
     os.makedirs("logs", exist_ok=True)
     t0 = time.time()
 
+    # ── dataset verification gate (v4.0, review M5) ─────────────────────
+    # Every pipeline run begins by byte-verifying all 20 partition files
+    # against the frozen manifest. The "byte-verified" claim in the paper
+    # is this call, not prose. Failure aborts the run.
+    from data_manifest.verify_manifest import verify as verify_dataset
+    ds_verify = verify_dataset()
+    print(f"[Verify] dataset manifest: "
+          f"{ds_verify['n_verified']}/{ds_verify['n_files']} files "
+          f"byte-identical (sha256 {ds_verify['manifest_sha256'][:16]}…)")
+    if not ds_verify["ok"]:
+        print("[Verify] FAIL — aborting before any training. "
+              "Re-download the cleaned export or regenerate the manifest.")
+        sys.exit(1)
+
     use_lstm = cfg.USE_LSTM
     model_name = 'LSTM' if use_lstm else 'MLP'
     # ── resumable phase cache (keyed by experiment identity) ──────────────
@@ -125,13 +167,21 @@ def main():
     CACHE_DIR = os.path.join("data", "cache")
 
     def _phase_key():
+        # v4.0 (review m2): fold in the per-file sha256 of ALL 20 manifest
+        # entries (train+test), not just the first train file — a change
+        # to any partition now invalidates the phase cache.
         ds_sha = "none"
         mf = "data_manifest/manifest.json"
         if os.path.exists(mf):
             m = json.load(open(mf))
-            files = m.get("files", {}).get("train", [])
-            if files:
-                ds_sha = files[0].get("sha256", "none")[:16]
+            parts = []
+            for split in ("train", "test"):
+                for e in m.get("files", {}).get(split, []):
+                    parts.append(f"{split}/{e['file']}:"
+                                 f"{e.get('sha256', 'none')}")
+            if parts:
+                ds_sha = hashlib.sha256(
+                    "|".join(parts).encode()).hexdigest()[:16]
         kb = {"v": cfg.VERSION, "seed": args.seed, "clients": args.clients,
               "rounds": args.rounds, "mu": args.mu, "alpha": args.alpha,
               "model": model_name, "val_split": cfg.VAL_SPLIT,
@@ -207,12 +257,31 @@ def main():
         print(f"[Cache] splits cached -> {data_cache}")
 
     # ── runtime leakage audit (Gate 1 pass criterion) ──
+    # v4.0 (review M11): region ids from the committed provenance tables
+    # are wired in, so the gate now detects the shipped in-partition
+    # protocol's instance-level train/test overlap (same ARs on both
+    # sides) instead of silently skipping the region check. A guard that
+    # cannot fail on the failure mode it guards is decoration.
+    region_ids = _load_region_ids()
     audit = run_audit(train_idx=train_idx, val_idx=val_idx,
-                      test_idx=test_idx)
+                      test_idx=test_idx, region_ids=region_ids)
     _print_report(audit)
     if not audit.get("overall_pass"):
-        raise RuntimeError("LEAKAGE AUDIT FAILED — refusing to train. "
-                           "Fix the split before running experiments.")
+        if region_ids is not None and not args.allow_in_partition:
+            raise RuntimeError(
+                "LEAKAGE AUDIT FAILED — region ids shared between train "
+                "and test (the shipped in-partition protocol: the "
+                "cleaned export's test pkls contain the same raw "
+                "instances the train pkls were rebalanced from; see "
+                "outputs/dataset_structure_audit.json). Refusing to "
+                "train. Pass --allow-in-partition to reproduce the "
+                "shipped-in-partition numbers deliberately, with the "
+                "leakage quantified in the provenance audit.")
+        print("[Audit] region/window checks FAILED but "
+              "--allow-in-partition set: this run deliberately "
+              "reproduces the shipped in-partition protocol whose "
+              "instance-level leakage the provenance audit quantifies "
+              "(6,234/6,234 flaring test windows in training).")
 
     # ── 3D data for LSTM (same contract: val carved from train) ──
     X_train_fl, X_val_fl, X_test_fl = X_train_2d, X_val_2d, X_test_2d
@@ -477,7 +546,7 @@ def main():
         from evaluate_clients import evaluate_client_level
         client_results = evaluate_client_level(
             shards, (fedavg_model, fedprox_model),
-            X_val_fl, y_val_fl, model_name,
+            model_name,
             batch_size=args.eval_batch_size)
     except Exception as e:
         print(f"[Client Eval] Skipped: {e}")
@@ -549,6 +618,8 @@ def main():
     }
     _save_json(results, cfg.RESULTS_JSON)
 
+    import torch  # for the run manifest environment record (v4.0, m7)
+
     manifest = {
         "run_id": run_id, "version": cfg.VERSION,
         "seed": args.seed, "clients": args.clients, "rounds": args.rounds,
@@ -560,6 +631,11 @@ def main():
         "dirichlet_alpha": args.alpha,
         "feature_names": feature_names,
         "python": sys.version.split()[0],
+        "torch": torch.__version__,
+        "numpy": np.__version__,
+        "dataset_manifest_sha256": ds_verify["manifest_sha256"],
+        "dataset_files_verified": (
+            f"{ds_verify['n_verified']}/{ds_verify['n_files']}"),
         "elapsed_s": round(time.time() - t0, 1),
     }
     _save_json(manifest, cfg.RUN_MANIFEST)

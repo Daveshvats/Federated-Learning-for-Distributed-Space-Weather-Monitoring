@@ -14,8 +14,9 @@ Outputs (/tmp/swansf_raw):
 import numpy as np
 import pandas as pd
 import json
+import os
 
-RAW = "/tmp/swansf_raw"
+RAW = os.environ.get("SWANSF_RAW", "/tmp/swansf_raw")  # v4.0: overridable
 TEST_SIZES = {1: 73492, 2: 88557, 3: 42510, 4: 51261, 5: 75365}
 TRAIN_SIZES = {1: 18773, 2: 19807, 3: 19965, 4: 19320, 5: 19899}
 

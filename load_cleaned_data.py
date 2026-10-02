@@ -135,6 +135,7 @@ def load_cleaned_partition(partition_num=1,
     X_train_list = []
     y_train_list = []
     
+    missing = []
     for part_num in partitions:
         train_file = f"Partition{part_num}_RUS-Tomek-TimeGAN_LSBZM-Norm_WithoutC_FPCKNN-impute.pkl"
         label_file = f"Partition{part_num}_Labels_RUS-Tomek-TimeGAN_LSBZM-Norm_WithoutC_FPCKNN-impute.pkl"
@@ -143,7 +144,10 @@ def load_cleaned_partition(partition_num=1,
         label_path = os.path.join(train_dir, label_file)
         
         if not os.path.exists(train_path):
-            print(f"      ⚠ Warning: {train_file} not found, skipping")
+            missing.append(train_file)
+            continue
+        if not os.path.exists(label_path):
+            missing.append(label_file)
             continue
         
         try:
@@ -166,6 +170,16 @@ def load_cleaned_partition(partition_num=1,
         except Exception as e:
             print(f"      ✗ Error loading partition {part_num}: {e}")
     
+    # v4.0 (review m3): FAIL LOUDLY on any missing partition — a silent
+    # 4-of-5 load would change the substrate under an "immutable"
+    # protocol label.
+    if missing:
+        raise FileNotFoundError(
+            f"load_cleaned_data: {len(missing)} partition file(s) missing "
+            f"({', '.join(missing)}) — refusing to train on a partial "
+            f"substrate. Expected the full 5-partition cleaned export "
+            f"from the frozen manifest.")
+
     # Combine all partitions
     if len(X_train_list) > 0:
         X_train = np.vstack(X_train_list)
@@ -181,6 +195,7 @@ def load_cleaned_partition(partition_num=1,
     
     X_test_list = []
     y_test_list = []
+    missing_test = []
     
     for part_num in partitions:
         test_file = f"Partition{part_num}_LSBZM-Norm_FPCKNN-impute.pkl"
@@ -190,7 +205,10 @@ def load_cleaned_partition(partition_num=1,
         label_path = os.path.join(test_dir, label_file)
         
         if not os.path.exists(test_path):
-            print(f"      ⚠ Warning: {test_file} not found, skipping")
+            missing_test.append(test_file)
+            continue
+        if not os.path.exists(label_path):
+            missing_test.append(label_file)
             continue
         
         try:
@@ -212,6 +230,13 @@ def load_cleaned_partition(partition_num=1,
             
         except Exception as e:
             print(f"      ✗ Error loading partition {part_num}: {e}")
+    
+    # v4.0 (review m3): same loud-failure contract for the test split
+    if missing_test:
+        raise FileNotFoundError(
+            f"load_cleaned_data: {len(missing_test)} test partition "
+            f"file(s) missing ({', '.join(missing_test)}) — refusing "
+            f"to evaluate on a partial substrate.")
     
     if len(X_test_list) > 0:
         X_test = np.vstack(X_test_list)
@@ -359,8 +384,9 @@ def load_cleaned_3d(data_dir='data/cleaned', combine_all_partitions=True):
         label_path = os.path.join(train_dir, label_file)
 
         if not os.path.exists(train_path):
-            print(f"      ⚠ Warning: {train_file} not found, skipping")
-            continue
+            raise FileNotFoundError(
+                f"3D loader: {train_file} missing — the protocol "
+                f"requires the full 5-partition export (v4.0, m3)")
 
         try:
             with open(train_path, 'rb') as f:
@@ -400,8 +426,9 @@ def load_cleaned_3d(data_dir='data/cleaned', combine_all_partitions=True):
         label_path = os.path.join(test_dir, label_file)
 
         if not os.path.exists(test_path):
-            print(f"      ⚠ Warning: {test_file} not found, skipping")
-            continue
+            raise FileNotFoundError(
+                f"3D loader: {test_file} missing — the protocol "
+                f"requires the full 5-partition export (v4.0, m3)")
 
         try:
             with open(test_path, 'rb') as f:

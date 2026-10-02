@@ -39,20 +39,45 @@ import config as cfg
 FPR_TARGETS = (0.005, 0.01, 0.02, 0.05)
 
 # reference numbers for the comparison columns
-SHIPPED = {                       # in-partition (memorisation-tainted)
-    "xgboost": {"roc_auc": 0.977, "pr_auc": 0.493},
-    "fedprox_mlp": {"roc_auc": 0.954, "pr_auc": 0.307},
-    "fedavg_mlp": {"roc_auc": 0.575, "pr_auc": 0.199},
-    "centralized_mlp": {"roc_auc": 0.888, "pr_auc": 0.153},
-    "logistic_regression": {"roc_auc": 0.818, "pr_auc": 0.114},
-}
-FOLD = {                          # leakage-free, cleaned substrate (v3.4)
-    "xgboost": {"roc_auc": 0.971, "pr_auc": 0.457},
-    "fedprox_mlp": {"roc_auc": 0.976, "pr_auc": 0.308},
-    "fedavg_mlp": {"roc_auc": 0.906, "pr_auc": 0.370},
-    "centralized_mlp": {"roc_auc": 0.973, "pr_auc": 0.382},
-    "logistic_regression": {"roc_auc": 0.978, "pr_auc": 0.455},
-}
+# v4.0 (review M1): both reference dicts are READ from the committed
+# machine-readable artefacts at run time — never hand-typed.
+def _load_reference(path, key):
+    """Read {model: {roc_auc, pr_auc}} from a committed eval JSON."""
+    import json as _json
+    if not os.path.exists(path):
+        return {}
+    with open(path) as f:
+        d = _json.load(f)
+    out = {}
+    for name, entry in d.get("results", {}).items():
+        m = entry.get(key) or entry.get("test") or {}
+        if isinstance(m, dict) and "roc_auc" in m and "pr_auc" in m:
+            out[name] = {"roc_auc": float(m["roc_auc"]),
+                         "pr_auc": float(m["pr_auc"]),
+                         "source": os.path.basename(path)}
+    return out
+
+
+def load_shipped_reference():
+    """In-partition (shipped-protocol) reference metrics from
+    outputs/results.json (test_metrics block)."""
+    import json as _json
+    path = cfg.RESULTS_JSON
+    with open(path) as f:
+        res = _json.load(f)
+    out = {}
+    for name, m in res.get("test_metrics", {}).items():
+        if isinstance(m, dict) and "roc_auc" in m and "pr_auc" in m:
+            out[name] = {"roc_auc": float(m["roc_auc"]),
+                         "pr_auc": float(m["pr_auc"]),
+                         "source": "outputs/results.json"}
+    return out
+
+
+SHIPPED = load_shipped_reference()          # in-partition (memorisation-tainted)
+FOLD = _load_reference(                     # leakage-free, cleaned substrate (v3.4)
+    os.path.join("outputs", "partition_disjoint_eval.json"),
+    "test")
 
 
 def _atomic_json(obj, path):

@@ -126,12 +126,14 @@
         }
       },
       "shipped_in_partition": {
-        "roc_auc": 0.818,
-        "pr_auc": 0.114
+        "roc_auc": 0.8236271595438993,
+        "pr_auc": 0.23481742271914388,
+        "source": "outputs/results.json"
       },
       "fold_leakage_free_cleaned": {
-        "roc_auc": 0.978,
-        "pr_auc": 0.455
+        "roc_auc": 0.9775435158305746,
+        "pr_auc": 0.45458092276045176,
+        "source": "outputs/partition_disjoint_eval.json"
       }
     },
     "xgboost": {
@@ -186,12 +188,14 @@
         }
       },
       "shipped_in_partition": {
-        "roc_auc": 0.977,
-        "pr_auc": 0.493
+        "roc_auc": 0.9766869855959834,
+        "pr_auc": 0.49275545501848395,
+        "source": "outputs/results.json"
       },
       "fold_leakage_free_cleaned": {
-        "roc_auc": 0.971,
-        "pr_auc": 0.457
+        "roc_auc": 0.9709564417282064,
+        "pr_auc": 0.45721431908064547,
+        "source": "outputs/partition_disjoint_eval.json"
       }
     },
     "centralized_mlp": {
@@ -246,12 +250,14 @@
         }
       },
       "shipped_in_partition": {
-        "roc_auc": 0.888,
-        "pr_auc": 0.153
+        "roc_auc": 0.8876854930711614,
+        "pr_auc": 0.15278863365568351,
+        "source": "outputs/results.json"
       },
       "fold_leakage_free_cleaned": {
-        "roc_auc": 0.973,
-        "pr_auc": 0.382
+        "roc_auc": 0.9728209150326798,
+        "pr_auc": 0.3818943950498757,
+        "source": "outputs/partition_disjoint_eval.json"
       }
     },
     "fedavg_mlp": {
@@ -306,12 +312,14 @@
         }
       },
       "shipped_in_partition": {
-        "roc_auc": 0.575,
-        "pr_auc": 0.199
+        "roc_auc": 0.5747842348614725,
+        "pr_auc": 0.19862870412298378,
+        "source": "outputs/results.json"
       },
       "fold_leakage_free_cleaned": {
-        "roc_auc": 0.906,
-        "pr_auc": 0.37
+        "roc_auc": 0.905897462015109,
+        "pr_auc": 0.36995677953704703,
+        "source": "outputs/partition_disjoint_eval.json"
       }
     },
     "fedprox_mlp": {
@@ -366,12 +374,14 @@
         }
       },
       "shipped_in_partition": {
-        "roc_auc": 0.954,
-        "pr_auc": 0.307
+        "roc_auc": 0.9544154648080616,
+        "pr_auc": 0.30721543178019844,
+        "source": "outputs/results.json"
       },
       "fold_leakage_free_cleaned": {
-        "roc_auc": 0.976,
-        "pr_auc": 0.308
+        "roc_auc": 0.9760480434598082,
+        "pr_auc": 0.30755285212383854,
+        "source": "outputs/partition_disjoint_eval.json"
       }
     },
     "scaffold_mlp": {

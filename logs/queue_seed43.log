@@ -1,0 +1,113 @@
+[3D] resumed from cache (X_train_3d/X_val_3d/y3d)
+[3D] 2D cache absent — cross-check skipped
+[LSTM] device=cuda | seed=43 | tag=seed43 | train 214,888 (pos 2.05%) | val 40,932 | test 75,365 (pos 1.31%)
+[Partition] Client A (Americas)            | n=  7,887 | flare rate:  15.0%
+[Partition] Client B (Europe)              | n= 51,987 | flare rate:   0.9%
+[Partition] Client C (Asia-Pacific)        | n=  8,249 | flare rate:   4.8%
+[Partition] Client D (South Asia)          | n= 15,699 | flare rate:   3.8%
+[Partition] Client E (East Asia)           | n= 22,041 | flare rate:   1.4%
+[Partition] Client F (Oceania)             | n=109,025 | flare rate:   1.4%
+[Partition] coverage: 214,888/214,888 (100.0%) — disjoint by construction
+    [Central LSTM] epoch 1: val BCE 0.0878 (best 0.0878, wait 0)
+    [Central LSTM] epoch 2: val BCE 0.0766 (best 0.0766, wait 0)
+    [Central LSTM] epoch 3: val BCE 0.0684 (best 0.0684, wait 0)
+    [Central LSTM] epoch 4: val BCE 0.0755 (best 0.0684, wait 1)
+    [Central LSTM] epoch 5: val BCE 0.0719 (best 0.0684, wait 2)
+    [Central LSTM] epoch 6: val BCE 0.0825 (best 0.0684, wait 3)
+    [Central LSTM] epoch 7: val BCE 0.0682 (best 0.0682, wait 0)
+    [Central LSTM] epoch 8: val BCE 0.0726 (best 0.0682, wait 1)
+    [Central LSTM] epoch 9: val BCE 0.0629 (best 0.0629, wait 0)
+    [Central LSTM] epoch 10: val BCE 0.0628 (best 0.0628, wait 0)
+    [Central LSTM] epoch 11: val BCE 0.0602 (best 0.0602, wait 0)
+    [Central LSTM] epoch 12: val BCE 0.0589 (best 0.0589, wait 0)
+    [Central LSTM] epoch 13: val BCE 0.0652 (best 0.0589, wait 1)
+    [Central LSTM] epoch 14: val BCE 0.0547 (best 0.0547, wait 0)
+    [Central LSTM] epoch 15: val BCE 0.0534 (best 0.0534, wait 0)
+    [Central LSTM] epoch 16: val BCE 0.0553 (best 0.0534, wait 1)
+    [Central LSTM] epoch 17: val BCE 0.0608 (best 0.0534, wait 2)
+    [Central LSTM] epoch 18: val BCE 0.0678 (best 0.0534, wait 3)
+    [Central LSTM] epoch 19: val BCE 0.0512 (best 0.0512, wait 0)
+    [Central LSTM] epoch 20: val BCE 0.0688 (best 0.0512, wait 1)
+    [Central LSTM] epoch 21: val BCE 0.0495 (best 0.0495, wait 0)
+    [Central LSTM] epoch 22: val BCE 0.0503 (best 0.0495, wait 1)
+    [Central LSTM] epoch 23: val BCE 0.0491 (best 0.0491, wait 0)
+    [Central LSTM] epoch 24: val BCE 0.0473 (best 0.0473, wait 0)
+    [Central LSTM] epoch 25: val BCE 0.0441 (best 0.0441, wait 0)
+    [Central LSTM] epoch 26: val BCE 0.0405 (best 0.0405, wait 0)
+    [Central LSTM] epoch 27: val BCE 0.0399 (best 0.0399, wait 0)
+    [Central LSTM] epoch 28: val BCE 0.0435 (best 0.0399, wait 1)
+    [Central LSTM] epoch 29: val BCE 0.0421 (best 0.0399, wait 2)
+    [Central LSTM] epoch 30: val BCE 0.0428 (best 0.0399, wait 3)
+[Model] Creating SolarLSTM (hidden=128, layers=2, bidir=False, seed=43)
+[Model] GPU: NVIDIA GeForce RTX 4060 Laptop GPU | allocated: 20.6 MB
+[Model] Parameters: 219,265
+============================================================
+ FEDAVG [cuda] | LSTM | agg=plain | pos_rate=0.020
+ monitoring: VALIDATION (40,932 samples)
+============================================================
+  Round   5 | val F1: 0.475 | val Recall: 0.360 | val ROC-AUC: 0.981
+  Round  10 | val F1: 0.643 | val Recall: 0.539 | val ROC-AUC: 0.989
+  Round  15 | val F1: 0.755 | val Recall: 0.681 | val ROC-AUC: 0.994
+  Round  20 | val F1: 0.817 | val Recall: 0.754 | val ROC-AUC: 0.997
+  Round  25 | val F1: 0.848 | val Recall: 0.806 | val ROC-AUC: 0.998
+  Round  30 | val F1: 0.877 | val Recall: 0.844 | val ROC-AUC: 0.998
+  Round  35 | val F1: 0.884 | val Recall: 0.851 | val ROC-AUC: 0.998
+  Round  40 | val F1: 0.898 | val Recall: 0.872 | val ROC-AUC: 0.998
+  Round  45 | val F1: 0.907 | val Recall: 0.884 | val ROC-AUC: 0.999
+  Round  50 | val F1: 0.921 | val Recall: 0.893 | val ROC-AUC: 0.999
+
+  [fedavg] Restored best VALIDATION checkpoint (val F1=0.921)
+[Model] Creating SolarLSTM (hidden=128, layers=2, bidir=False, seed=43)
+[Model] GPU: NVIDIA GeForce RTX 4060 Laptop GPU | allocated: 21.4 MB
+[Model] Parameters: 219,265
+============================================================
+ FedProx (mu=0.01) [cuda] | LSTM | agg=plain | pos_rate=0.020
+ monitoring: VALIDATION (40,932 samples)
+============================================================
+  Round   5 | val F1: 0.384 | val Recall: 0.284 | val ROC-AUC: 0.968
+  Round  10 | val F1: 0.360 | val Recall: 0.249 | val ROC-AUC: 0.971
+  Round  15 | val F1: 0.351 | val Recall: 0.238 | val ROC-AUC: 0.973
+  Round  20 | val F1: 0.355 | val Recall: 0.232 | val ROC-AUC: 0.975
+  Round  25 | val F1: 0.315 | val Recall: 0.198 | val ROC-AUC: 0.975
+  Round  30 | val F1: 0.426 | val Recall: 0.299 | val ROC-AUC: 0.977
+  Round  35 | val F1: 0.446 | val Recall: 0.316 | val ROC-AUC: 0.979
+  Round  40 | val F1: 0.466 | val Recall: 0.341 | val ROC-AUC: 0.981
+  Round  45 | val F1: 0.478 | val Recall: 0.346 | val ROC-AUC: 0.982
+  Round  50 | val F1: 0.487 | val Recall: 0.371 | val ROC-AUC: 0.983
+
+  [fedprox] Restored best VALIDATION checkpoint (val F1=0.487)
+[Model] Creating SolarLSTM (hidden=128, layers=2, bidir=False, seed=43)
+[Model] GPU: NVIDIA GeForce RTX 4060 Laptop GPU | allocated: 22.3 MB
+[Model] Parameters: 219,265
+============================================================
+ SCAFFOLD [cuda] | LSTM | agg=plain | pos_rate=0.020
+ monitoring: VALIDATION (40,932 samples)
+============================================================
+  Round   5 | val F1: 0.000 | val Recall: 0.000 | val ROC-AUC: 0.946
+  Round  10 | val F1: 0.187 | val Recall: 0.110 | val ROC-AUC: 0.960
+  Round  15 | val F1: 0.243 | val Recall: 0.153 | val ROC-AUC: 0.962
+  Round  20 | val F1: 0.269 | val Recall: 0.173 | val ROC-AUC: 0.963
+  Round  25 | val F1: 0.265 | val Recall: 0.167 | val ROC-AUC: 0.964
+  Round  30 | val F1: 0.310 | val Recall: 0.204 | val ROC-AUC: 0.964
+  Round  35 | val F1: 0.327 | val Recall: 0.219 | val ROC-AUC: 0.965
+  Round  40 | val F1: 0.322 | val Recall: 0.213 | val ROC-AUC: 0.965
+  Round  45 | val F1: 0.317 | val Recall: 0.207 | val ROC-AUC: 0.965
+  Round  50 | val F1: 0.339 | val Recall: 0.226 | val ROC-AUC: 0.965
+
+  [scaffold] Restored best VALIDATION checkpoint (val F1=0.339)
+  central_lstm     ROC-AUC 0.962 PR-AUC 0.357  (MLP counterpart 0.971/0.445)
+                   seed-42 LSTM counterpart 0.962/0.314
+  fedavg_lstm      ROC-AUC 0.961 PR-AUC 0.271  (MLP counterpart 0.875/0.056)
+                   seed-42 LSTM counterpart 0.958/0.305
+  fedprox_lstm     ROC-AUC 0.965 PR-AUC 0.381  (MLP counterpart 0.930/0.149)
+                   seed-42 LSTM counterpart 0.970/0.404
+  scaffold_lstm    ROC-AUC 0.968 PR-AUC 0.368  (MLP counterpart 0.768/0.057)
+[event] 75,365 raw windows | 75,263 matched (99.86%) | 4409 groups | 65 true events
+[event] flare peaks matched 65/65 (ambiguous 4)
+[event central_lstm  ] thr 0.200 | events 43/65 (66.2%) | FA/day 0.29 | alerts/day 0.38 | lead 20.4h
+[event fedavg_lstm   ] thr 0.155 | events 36/65 (55.4%) | FA/day 0.18 | alerts/day 0.24 | lead 20.3h
+[event fedprox_lstm  ] thr 0.220 | events 45/65 (69.2%) | FA/day 0.33 | alerts/day 0.44 | lead 22.8h
+[event scaffold_lstm ] thr 0.200 | events 50/65 (76.9%) | FA/day 0.36 | alerts/day 0.48 | lead 23.0h
+[event] -> outputs/event_level_raw_seed43.json
+
+[LSTM] report -> outputs/raw_lstm_seed43.json (14149s)

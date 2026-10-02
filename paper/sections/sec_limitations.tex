@@ -14,12 +14,14 @@ leak training information under gradient-inversion attacks
 low-entropy data. The full threat model (curious server, gradient
 inversion, membership inference, model poisoning, impersonation,
 interception) is stated in Table~\ref{tab:threat}: secure aggregation
-is implemented and round-trip tested, differential-privacy hooks are
-provided, and poisoning/backdoor defence is not addressed at all. The
+is implemented as a numerical sketch whose tests verify arithmetic
+round-trip cancellation only (deterministic mask keys; no
+cryptographic guarantee), differential-privacy hooks are provided,
+and poisoning/backdoor defence is not addressed at all. The
 accuracy cost of enabling secure aggregation and differential privacy
 on this benchmark has not been measured; before any cross-custodian
 deployment handling genuinely sensitive observations, that budget must
-be re-measured. Until then, ``data-locality-preserving'', not
+be re-measured. Until then, ``parameter-transport-only'', not
 ``cryptographically private'', is the correct description of the
 verified property.
 
@@ -32,7 +34,8 @@ been aligned to its raw instance (Section~\ref{sec:provenance}), and
 the audit inverted the concern---the material leakage is not
 validation-region overlap but instance sharing between the same
 partitions' train and test exports, now quantified (100\% of flaring
-test windows; 56{,}005 of 56{,}006 verified train windows) and
+test windows; 56{,}005 of 56{,}005 unique verified train instances,
+56{,}181 rows) and
 removed by the temporally-preceding fold executed in this revision.
 The region-disjoint split generator remains available for
 within-fold validation studies, and no region spans partitions, so

@@ -1,0 +1,2014 @@
+{
+  "purpose": "standard flare-forecast verification apparatus (Leka et al. 2019 toolkit): TSS, HSS, Brier skill score, reliability, persistence and climatology baselines \u2014 review Tier-1 item 8",
+  "definitions": {
+    "tss": "TSS = POD - POFD = recall - FPR",
+    "hss": "HSS = 2(TP*TN - FP*FN)/[(TP+FN)(FN+TN)+(TP+FP)(FP+TN)]",
+    "bss": "BSS = 1 - Brier/Brier_climatology (test-set base rate)",
+    "persistence": "same active region, previous window (~12 min cadence): the label-inertia floor"
+  },
+  "block_a_derived": {
+    "in_partition": {
+      "climatology": {
+        "n_windows": 331185,
+        "n_pos": 6234,
+        "prevalence": 0.018823316273381945,
+        "roc_auc": 0.5,
+        "brier": 0.23920900372768875,
+        "bss_vs_climatology": -11.95192030913015,
+        "fbeta_threshold": {
+          "threshold": 0.05,
+          "confusion": {
+            "tp": 6234.0,
+            "fp": 324951.0,
+            "fn": 0.0,
+            "tn": 0.0
+          },
+          "tss": 0.0,
+          "hss": 0.0
+        },
+        "0.5%FPR": {
+          "frozen_threshold": 0.4886530776655639,
+          "realised_fpr": 1.0,
+          "recall": 1.0,
+          "tss": 0.0,
+          "hss": 0.0
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.4886530776655639,
+          "realised_fpr": 1.0,
+          "recall": 1.0,
+          "tss": 0.0,
+          "hss": 0.0
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.4886530776655639,
+          "realised_fpr": 1.0,
+          "recall": 1.0,
+          "tss": 0.0,
+          "hss": 0.0
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.4886530776655639,
+          "realised_fpr": 1.0,
+          "recall": 1.0,
+          "tss": 0.0,
+          "hss": 0.0
+        }
+      },
+      "logistic_regression": {
+        "n_windows": 331185,
+        "n_pos": 6234,
+        "prevalence": 0.018823316273381945,
+        "roc_auc": 0.8236271595438993,
+        "brier": 0.6589589667796526,
+        "bss_vs_climatology": -34.67919221984072,
+        "fbeta_threshold": {
+          "threshold": 0.22499999999999992,
+          "confusion": {
+            "tp": 6029.0,
+            "fp": 279586.0,
+            "fn": 205.0,
+            "tn": 45365.0
+          },
+          "tss": 0.10672148011334581,
+          "hss": 0.00464451453578744
+        },
+        "0.5%FPR": {
+          "frozen_threshold": 0.9358671254417654,
+          "realised_fpr": 0.46744893845533636,
+          "recall": 0.8233878729547642,
+          "tss": 0.3559389344994279,
+          "hss": 0.027672195767860452
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.8578817947022461,
+          "realised_fpr": 0.5975824047317904,
+          "recall": 0.8508180943214629,
+          "tss": 0.2532356895896726,
+          "hss": 0.015629208538947555
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.6757046511831539,
+          "realised_fpr": 0.7287744921542018,
+          "recall": 0.8899582932306705,
+          "tss": 0.1611838010764688,
+          "hss": 0.008233933959952278
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.25523140834564406,
+          "realised_fpr": 0.85476271807134,
+          "recall": 0.96390760346487,
+          "tss": 0.10914488539353007,
+          "hss": 0.004780257283749507
+        }
+      },
+      "xgboost": {
+        "n_windows": 331185,
+        "n_pos": 6234,
+        "prevalence": 0.018823316273381945,
+        "roc_auc": 0.9766869855959834,
+        "brier": 0.06316186885149938,
+        "bss_vs_climatology": -2.419885870481796,
+        "fbeta_threshold": {
+          "threshold": 0.36999999999999983,
+          "confusion": {
+            "tp": 6033.0,
+            "fp": 35164.0,
+            "fn": 201.0,
+            "tn": 289787.0
+          },
+          "tss": 0.8595442207916627,
+          "hss": 0.2291860342448098
+        },
+        "0.5%FPR": {
+          "frozen_threshold": 0.6762692696548486,
+          "realised_fpr": 0.05405430357192315,
+          "recall": 0.8787295476419634,
+          "tss": 0.8246752440700402,
+          "hss": 0.35511028268225575
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.32367033460305805,
+          "realised_fpr": 0.12149524082092376,
+          "recall": 0.9765800449149824,
+          "tss": 0.8550848040940586,
+          "hss": 0.20884898000479368
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.16061391887260146,
+          "realised_fpr": 0.20106723782970357,
+          "recall": 0.9951876804619827,
+          "tss": 0.7941204426322791,
+          "hss": 0.12938864437878977
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.03085415283056752,
+          "realised_fpr": 0.43144043255752407,
+          "recall": 1.0,
+          "tss": 0.5685595674424759,
+          "hss": 0.04726642283094281
+        }
+      },
+      "fedavg_mlp": {
+        "n_windows": 331185,
+        "n_pos": 6234,
+        "prevalence": 0.018823316273381945,
+        "roc_auc": 0.5747842348614725,
+        "brier": 0.13565890062840902,
+        "bss_vs_climatology": -6.345222139562717,
+        "fbeta_threshold": {
+          "threshold": 0.3599999999999998,
+          "confusion": {
+            "tp": 6215.0,
+            "fp": 312351.0,
+            "fn": 19.0,
+            "tn": 12600.0
+          },
+          "tss": 0.03572727448366397,
+          "hss": 0.0013972282215017123
+        },
+        "0.5%FPR": {
+          "frozen_threshold": 0.36182036824331054,
+          "realised_fpr": 0.14224298432686774,
+          "recall": 0.4433750401026628,
+          "tss": 0.30113205577579505,
+          "hss": 0.0690170293530321
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.36182036824331054,
+          "realised_fpr": 0.14224298432686774,
+          "recall": 0.4433750401026628,
+          "tss": 0.30113205577579505,
+          "hss": 0.0690170293530321
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.36182036824331054,
+          "realised_fpr": 0.14224298432686774,
+          "recall": 0.4433750401026628,
+          "tss": 0.30113205577579505,
+          "hss": 0.0690170293530321
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.36182036824331054,
+          "realised_fpr": 0.14224298432686774,
+          "recall": 0.4433750401026628,
+          "tss": 0.30113205577579505,
+          "hss": 0.0690170293530321
+        }
+      },
+      "fedprox_mlp": {
+        "n_windows": 331185,
+        "n_pos": 6234,
+        "prevalence": 0.018823316273381945,
+        "roc_auc": 0.9544154648080616,
+        "brier": 0.26417483064883285,
+        "bss_vs_climatology": -13.303689664360176,
+        "fbeta_threshold": {
+          "threshold": 0.5049999999999998,
+          "confusion": {
+            "tp": 6227.0,
+            "fp": 285611.0,
+            "fn": 7.0,
+            "tn": 39340.0
+          },
+          "tss": 0.11994153207474478,
+          "hss": 0.005110962290842177
+        },
+        "0.5%FPR": {
+          "frozen_threshold": 0.5194638708574714,
+          "realised_fpr": 0.2823687263618207,
+          "recall": 0.9886108437600256,
+          "tss": 0.706242117398205,
+          "hss": 0.08599547074027387
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.5170647229311822,
+          "realised_fpr": 0.3700373287049432,
+          "recall": 0.9931023419955085,
+          "tss": 0.6230650132905653,
+          "hss": 0.05959032744959436
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.5139752338800025,
+          "realised_fpr": 0.5037190222525858,
+          "recall": 0.9983958934873276,
+          "tss": 0.4946768712347418,
+          "hss": 0.035650633892184966
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.5094253116572488,
+          "realised_fpr": 0.7208686848170955,
+          "recall": 0.998716714789862,
+          "tss": 0.2778480299727665,
+          "hss": 0.014302310554576595
+        }
+      },
+      "centralized_mlp": {
+        "n_windows": 331185,
+        "n_pos": 6234,
+        "prevalence": 0.018823316273381945,
+        "roc_auc": 0.8876854930711614,
+        "brier": 0.2768092894174408,
+        "bss_vs_climatology": -13.987779730243677,
+        "fbeta_threshold": {
+          "threshold": 0.31999999999999984,
+          "confusion": {
+            "tp": 6225.0,
+            "fp": 198890.0,
+            "fn": 9.0,
+            "tn": 126061.0
+          },
+          "tss": 0.3864947933261953,
+          "hss": 0.023219457088792295
+        },
+        "0.5%FPR": {
+          "frozen_threshold": 0.667895844919964,
+          "realised_fpr": 0.2552846429153934,
+          "recall": 0.8787295476419634,
+          "tss": 0.62344490472657,
+          "hss": 0.08350097914306293
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.527744213822405,
+          "realised_fpr": 0.4069782828795726,
+          "recall": 0.9783445620789221,
+          "tss": 0.5713662791993495,
+          "hss": 0.05015115055171944
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.42309472063448667,
+          "realised_fpr": 0.5155023372754661,
+          "recall": 0.9980750721847931,
+          "tss": 0.48257273490932695,
+          "hss": 0.034039754584594524
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.29531344465209514,
+          "realised_fpr": 0.6359666534339024,
+          "recall": 0.9988771254411293,
+          "tss": 0.3629104720072269,
+          "hss": 0.021030317203644087
+        }
+      }
+    },
+    "leakage_free_fold": {
+      "logistic_regression": {
+        "n_windows": 75365,
+        "n_pos": 990,
+        "prevalence": 0.013136071152985096,
+        "roc_auc": 0.9775435158305746,
+        "brier": 0.3750019165649887,
+        "bss_vs_climatology": -27.927487854009904,
+        "fbeta_threshold": {
+          "threshold": 0.4199999999999998,
+          "confusion": {
+            "tp": 990.0,
+            "fp": 37998.0,
+            "fn": 0.0,
+            "tn": 36377.0
+          },
+          "tss": 0.48910252100840335,
+          "hss": 0.024534297798331463
+        }
+      },
+      "xgboost": {
+        "n_windows": 75365,
+        "n_pos": 990,
+        "prevalence": 0.013136071152985096,
+        "roc_auc": 0.9709564417282064,
+        "brier": 0.05496261878795396,
+        "bss_vs_climatology": -3.239792964198293,
+        "fbeta_threshold": {
+          "threshold": 0.3499999999999998,
+          "confusion": {
+            "tp": 926.0,
+            "fp": 6521.0,
+            "fn": 64.0,
+            "tn": 67854.0
+          },
+          "tss": 0.8476762244291657,
+          "hss": 0.20098055343531285
+        }
+      },
+      "centralized_mlp": {
+        "n_windows": 75365,
+        "n_pos": 990,
+        "prevalence": 0.013136071152985096,
+        "roc_auc": 0.9728209150326798,
+        "brier": 0.5437885756083837,
+        "bss_vs_climatology": -40.94761872192923,
+        "fbeta_threshold": {
+          "threshold": 0.23999999999999988,
+          "confusion": {
+            "tp": 990.0,
+            "fp": 70060.0,
+            "fn": 0.0,
+            "tn": 4315.0
+          },
+          "tss": 0.05801680672268905,
+          "hss": 0.0016154889381637038
+        }
+      },
+      "fedavg_mlp": {
+        "n_windows": 75365,
+        "n_pos": 990,
+        "prevalence": 0.013136071152985096,
+        "roc_auc": 0.905897462015109,
+        "brier": 0.1265975264298247,
+        "bss_vs_climatology": -8.765679177567064,
+        "fbeta_threshold": {
+          "threshold": 0.3499999999999998,
+          "confusion": {
+            "tp": 990.0,
+            "fp": 61961.99999999999,
+            "fn": 0.0,
+            "tn": 12413.000000000007
+          },
+          "tss": 0.16689747899159668,
+          "hss": 0.0052356070796322
+        }
+      },
+      "fedprox_mlp": {
+        "n_windows": 75365,
+        "n_pos": 990,
+        "prevalence": 0.013136071152985096,
+        "roc_auc": 0.9760480434598082,
+        "brier": 0.27052353643213023,
+        "bss_vs_climatology": -19.86807018493748,
+        "fbeta_threshold": {
+          "threshold": 0.5149999999999998,
+          "confusion": {
+            "tp": 990.0,
+            "fp": 60213.00000000001,
+            "fn": 0.0,
+            "tn": 14161.999999999993
+          },
+          "tss": 0.1904134453781512,
+          "hss": 0.0061412176713115975
+        }
+      }
+    },
+    "raw_substrate_2d": {
+      "logistic_regression": {
+        "n_windows": 75365,
+        "n_pos": 990,
+        "prevalence": 0.013136071152985096,
+        "roc_auc": 0.9775583329089212,
+        "brier": 0.052784017901053096,
+        "bss_vs_climatology": -3.0717366212552086,
+        "fbeta_threshold": {
+          "threshold": 0.8799999999999997,
+          "confusion": {
+            "tp": 710.0,
+            "fp": 1360.0,
+            "fn": 280.0,
+            "tn": 73015.0
+          },
+          "tss": 0.6988860028860029,
+          "hss": 0.4543549020101246
+        }
+      },
+      "xgboost": {
+        "n_windows": 75365,
+        "n_pos": 990,
+        "prevalence": 0.013136071152985096,
+        "roc_auc": 0.973900612851201,
+        "brier": 0.017777938681076636,
+        "bss_vs_climatology": -0.3713826051261069,
+        "fbeta_threshold": {
+          "threshold": 0.7449999999999997,
+          "confusion": {
+            "tp": 391.0,
+            "fp": 778.0,
+            "fn": 599.0,
+            "tn": 73597.0
+          },
+          "tss": 0.3844889907478143,
+          "hss": 0.3530010567747817
+        }
+      },
+      "centralized_mlp": {
+        "n_windows": 75365,
+        "n_pos": 990,
+        "prevalence": 0.013136071152985096,
+        "roc_auc": 0.9710213258636788,
+        "brier": 0.010386922036482074,
+        "bss_vs_climatology": 0.19875726555437145,
+        "fbeta_threshold": {
+          "threshold": 0.21999999999999992,
+          "confusion": {
+            "tp": 607.0,
+            "fp": 1612.0,
+            "fn": 383.0,
+            "tn": 72763.0
+          },
+          "tss": 0.5914573635514812,
+          "hss": 0.3668078014622409
+        }
+      },
+      "fedavg_mlp": {
+        "n_windows": 75365,
+        "n_pos": 990,
+        "prevalence": 0.013136071152985096,
+        "roc_auc": 0.8747205704099822,
+        "brier": 0.013054611795172283,
+        "bss_vs_climatology": -0.0070271842949773955,
+        "fbeta_threshold": {
+          "threshold": 0.05,
+          "confusion": {
+            "tp": 0.0,
+            "fp": NaN,
+            "fn": 990.0,
+            "tn": NaN
+          },
+          "tss": NaN,
+          "hss": NaN
+        }
+      },
+      "fedprox_mlp": {
+        "n_windows": 75365,
+        "n_pos": 990,
+        "prevalence": 0.013136071152985096,
+        "roc_auc": 0.9302553263729735,
+        "brier": 0.03187531405574112,
+        "bss_vs_climatology": -1.4588481270612523,
+        "fbeta_threshold": {
+          "threshold": 0.15999999999999995,
+          "confusion": {
+            "tp": 686.0,
+            "fp": 6694.0,
+            "fn": 304.0,
+            "tn": 67681.0
+          },
+          "tss": 0.6029259315847552,
+          "hss": 0.14409191670819183
+        }
+      },
+      "scaffold_mlp": {
+        "n_windows": 75365,
+        "n_pos": 990,
+        "prevalence": 0.013136071152985096,
+        "roc_auc": 0.7684830693489517,
+        "brier": 0.13665327360368912,
+        "bss_vs_climatology": -9.541375224401923,
+        "fbeta_threshold": {
+          "threshold": 0.3649999999999998,
+          "confusion": {
+            "tp": 782.0,
+            "fp": 31751.999999999996,
+            "fn": 208.0,
+            "tn": 42623.0
+          },
+          "tss": 0.3629813428401664,
+          "hss": 0.021710380896545967
+        }
+      }
+    },
+    "raw_substrate_lstm": {
+      "raw_lstm_eval::central_lstm": {
+        "artefact": "raw_lstm_eval.json",
+        "n_windows": 75365,
+        "n_pos": 990,
+        "prevalence": 0.013136071152985096,
+        "roc_auc": null,
+        "brier": null,
+        "bss_vs_climatology": null,
+        "0.5%FPR": {
+          "frozen_threshold": 0.3712297636722697,
+          "realised_fpr": 0.005095798319327731,
+          "recall": 0.2636363636363636,
+          "tss": 0.2585405653170359,
+          "hss": 0.31316034389516173
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.30377197214775137,
+          "realised_fpr": 0.009465546218487395,
+          "recall": 0.34040404040404043,
+          "tss": 0.33093849418555304,
+          "hss": 0.32273624337344553
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.2326750863813574,
+          "realised_fpr": 0.01729075630252101,
+          "recall": 0.46060606060606063,
+          "tss": 0.4433153043035396,
+          "hss": 0.3224715163922077
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.11514921682992442,
+          "realised_fpr": 0.040994957983193275,
+          "recall": 0.6494949494949495,
+          "tss": 0.6084999915117562,
+          "hss": 0.2593244073767069
+        }
+      },
+      "raw_lstm_eval::fedavg_lstm": {
+        "artefact": "raw_lstm_eval.json",
+        "n_windows": 75365,
+        "n_pos": 990,
+        "prevalence": 0.013136071152985096,
+        "roc_auc": null,
+        "brier": null,
+        "bss_vs_climatology": null,
+        "0.5%FPR": {
+          "frozen_threshold": 0.16777417289941238,
+          "realised_fpr": 0.006749579831932773,
+          "recall": 0.2545454545454545,
+          "tss": 0.24779587471352174,
+          "hss": 0.2808220548539351
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.10223829825835999,
+          "realised_fpr": 0.011105882352941177,
+          "recall": 0.3191919191919192,
+          "tss": 0.308086036838978,
+          "hss": 0.2863929645943346
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.05437941769132897,
+          "realised_fpr": 0.018433613445378152,
+          "recall": 0.40404040404040403,
+          "tss": 0.3856067905950259,
+          "hss": 0.27757590650153147
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.020741080395920333,
+          "realised_fpr": 0.038305882352941176,
+          "recall": 0.6676767676767676,
+          "tss": 0.6293708853238265,
+          "hss": 0.2790029100579272
+        }
+      },
+      "raw_lstm_eval::fedprox_lstm": {
+        "artefact": "raw_lstm_eval.json",
+        "n_windows": 75365,
+        "n_pos": 990,
+        "prevalence": 0.013136071152985096,
+        "roc_auc": null,
+        "brier": null,
+        "bss_vs_climatology": null,
+        "0.5%FPR": {
+          "frozen_threshold": 0.28711663690332895,
+          "realised_fpr": 0.0024470588235294116,
+          "recall": 0.24646464646464647,
+          "tss": 0.24401758764111706,
+          "hss": 0.3394115384644447
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.2482765214553505,
+          "realised_fpr": 0.008739495798319327,
+          "recall": 0.3292929292929293,
+          "tss": 0.32055343349460996,
+          "hss": 0.3228055150367104
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.20725218690847866,
+          "realised_fpr": 0.015663865546218486,
+          "recall": 0.4808080808080808,
+          "tss": 0.46514421526186234,
+          "hss": 0.3512082517426835
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.1503899569137466,
+          "realised_fpr": 0.0329546218487395,
+          "recall": 0.7373737373737373,
+          "tss": 0.7044191155249978,
+          "hss": 0.336746777992666
+        }
+      },
+      "raw_lstm_scaffold::scaffold_lstm": {
+        "artefact": "raw_lstm_scaffold.json",
+        "n_windows": 75365,
+        "n_pos": 990,
+        "prevalence": 0.013136071152985096,
+        "roc_auc": null,
+        "brier": null,
+        "bss_vs_climatology": null,
+        "0.5%FPR": {
+          "frozen_threshold": 0.26772285535619994,
+          "realised_fpr": 0.005902521008403361,
+          "recall": 0.22424242424242424,
+          "tss": 0.2183399032340209,
+          "hss": 0.2611564672456493
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.24344536335851552,
+          "realised_fpr": 0.009815126050420168,
+          "recall": 0.3323232323232323,
+          "tss": 0.3225081062728121,
+          "hss": 0.31178741471461235
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.21319374349893053,
+          "realised_fpr": 0.016658823529411764,
+          "recall": 0.4585858585858586,
+          "tss": 0.4419270350564468,
+          "hss": 0.3272747031582333
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.16045175689648605,
+          "realised_fpr": 0.029727731092436975,
+          "recall": 0.7363636363636363,
+          "tss": 0.7066359052711993,
+          "hss": 0.35838202665109997
+        }
+      },
+      "raw_lstm_seed43::central_lstm": {
+        "artefact": "raw_lstm_seed43.json",
+        "n_windows": 75365,
+        "n_pos": 990,
+        "prevalence": 0.013136071152985096,
+        "roc_auc": null,
+        "brier": null,
+        "bss_vs_climatology": null,
+        "0.5%FPR": {
+          "frozen_threshold": 0.3345263742650449,
+          "realised_fpr": 0.0035495798319327733,
+          "recall": 0.23535353535353534,
+          "tss": 0.23180395552160257,
+          "hss": 0.307300094761882
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.28321749756935666,
+          "realised_fpr": 0.0074621848739495795,
+          "recall": 0.33434343434343433,
+          "tss": 0.32688124946948477,
+          "hss": 0.34474820178920845
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.21412010533109885,
+          "realised_fpr": 0.016941176470588234,
+          "recall": 0.4818181818181818,
+          "tss": 0.4648770053475936,
+          "hss": 0.33876969045521055
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.1099122672029087,
+          "realised_fpr": 0.038978151260504204,
+          "recall": 0.6767676767676768,
+          "tss": 0.6377895255071726,
+          "hss": 0.2790972482471933
+        }
+      },
+      "raw_lstm_seed43::fedavg_lstm": {
+        "artefact": "raw_lstm_seed43.json",
+        "n_windows": 75365,
+        "n_pos": 990,
+        "prevalence": 0.013136071152985096,
+        "roc_auc": null,
+        "brier": null,
+        "bss_vs_climatology": null,
+        "0.5%FPR": {
+          "frozen_threshold": 0.1296902135437373,
+          "realised_fpr": 0.012423529411764707,
+          "recall": 0.3797979797979798,
+          "tss": 0.3673744503862151,
+          "hss": 0.3182159361244525
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.07976544473053004,
+          "realised_fpr": 0.017747899159663866,
+          "recall": 0.494949494949495,
+          "tss": 0.4772015957898311,
+          "hss": 0.33877029399599495
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.0468451729210011,
+          "realised_fpr": 0.02535798319327731,
+          "recall": 0.5747474747474748,
+          "tss": 0.5493894915541975,
+          "hss": 0.31755695617867813
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.019704506534432085,
+          "realised_fpr": 0.04625210084033613,
+          "recall": 0.7353535353535353,
+          "tss": 0.6891014345131992,
+          "hss": 0.26671255256156284
+        }
+      },
+      "raw_lstm_seed43::fedprox_lstm": {
+        "artefact": "raw_lstm_seed43.json",
+        "n_windows": 75365,
+        "n_pos": 990,
+        "prevalence": 0.013136071152985096,
+        "roc_auc": null,
+        "brier": null,
+        "bss_vs_climatology": null,
+        "0.5%FPR": {
+          "frozen_threshold": 0.32910270930706076,
+          "realised_fpr": 0.004289075630252101,
+          "recall": 0.24242424242424243,
+          "tss": 0.23813516679399033,
+          "hss": 0.3032716322462254
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.2905611300398496,
+          "realised_fpr": 0.009398319327731093,
+          "recall": 0.3383838383838384,
+          "tss": 0.3289855190561073,
+          "hss": 0.32192681523945815
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.24145450302484253,
+          "realised_fpr": 0.018608403361344537,
+          "recall": 0.5454545454545454,
+          "tss": 0.5268461420932009,
+          "hss": 0.3595144095739798
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.1678120644946829,
+          "realised_fpr": 0.039354621848739495,
+          "recall": 0.7151515151515152,
+          "tss": 0.6757968933027757,
+          "hss": 0.2915334011540259
+        }
+      },
+      "raw_lstm_seed43::scaffold_lstm": {
+        "artefact": "raw_lstm_seed43.json",
+        "n_windows": 75365,
+        "n_pos": 990,
+        "prevalence": 0.013136071152985096,
+        "roc_auc": null,
+        "brier": null,
+        "bss_vs_climatology": null,
+        "0.5%FPR": {
+          "frozen_threshold": 0.311826839799271,
+          "realised_fpr": 0.006803361344537815,
+          "recall": 0.25656565656565655,
+          "tss": 0.24976229522111873,
+          "hss": 0.28209469033573537
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.2877084904596087,
+          "realised_fpr": 0.010326050420168067,
+          "recall": 0.3242424242424242,
+          "tss": 0.3139163738222562,
+          "hss": 0.29915759717122403
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.24807967031774558,
+          "realised_fpr": 0.015448739495798319,
+          "recall": 0.5191919191919192,
+          "tss": 0.5037431796961209,
+          "hss": 0.37722985901823186
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.1809166550950734,
+          "realised_fpr": 0.033196638655462185,
+          "recall": 0.7464646464646465,
+          "tss": 0.7132680078091843,
+          "hss": 0.3387978076861681
+        }
+      },
+      "raw_lstm_smote::fedavg_lstm": {
+        "artefact": "raw_lstm_smote.json",
+        "n_windows": 75365,
+        "n_pos": 990,
+        "prevalence": 0.013136071152985096,
+        "roc_auc": null,
+        "brier": null,
+        "bss_vs_climatology": null,
+        "0.5%FPR": {
+          "frozen_threshold": 0.08570412842365818,
+          "realised_fpr": 0.012423529411764707,
+          "recall": 0.3939393939393939,
+          "tss": 0.3815158645276292,
+          "hss": 0.32848006106668853
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.051612254462605395,
+          "realised_fpr": 0.017411764705882352,
+          "recall": 0.4676767676767677,
+          "tss": 0.45026500297088534,
+          "hss": 0.3256381500286462
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.030218988745832558,
+          "realised_fpr": 0.022857142857142857,
+          "recall": 0.5545454545454546,
+          "tss": 0.5316883116883117,
+          "hss": 0.3267113411712788
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.011286224879041531,
+          "realised_fpr": 0.04130420168067227,
+          "recall": 0.7141414141414142,
+          "tss": 0.6728372124607419,
+          "hss": 0.28154113252124663
+        }
+      },
+      "raw_lstm_smote::fedprox_lstm": {
+        "artefact": "raw_lstm_smote.json",
+        "n_windows": 75365,
+        "n_pos": 990,
+        "prevalence": 0.013136071152985096,
+        "roc_auc": null,
+        "brier": null,
+        "bss_vs_climatology": null,
+        "0.5%FPR": {
+          "frozen_threshold": 0.34451674474320204,
+          "realised_fpr": 0.007825210084033614,
+          "recall": 0.296969696969697,
+          "tss": 0.28914448688566335,
+          "hss": 0.3065599657183858
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.22356016804251652,
+          "realised_fpr": 0.012571428571428572,
+          "recall": 0.34545454545454546,
+          "tss": 0.3328831168831169,
+          "hss": 0.2912312056281697
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.13344496082392393,
+          "realised_fpr": 0.019307563025210084,
+          "recall": 0.4080808080808081,
+          "tss": 0.388773245055598,
+          "hss": 0.2730957273131646
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.04899499083950408,
+          "realised_fpr": 0.03841344537815126,
+          "recall": 0.5575757575757576,
+          "tss": 0.5191623121976063,
+          "hss": 0.23539918760287612
+        }
+      }
+    },
+    "event_level": {
+      "event_level_p5::logistic_regression": {
+        "n_true_events": 65,
+        "n_background_groups": 4345,
+        "confusion_events": {
+          "tp": 65,
+          "fn": 0,
+          "fp": 3512,
+          "tn": 833
+        },
+        "tss": 0.19171461449942462,
+        "hss": 0.006943353545508813,
+        "window_fpr": 0.14435082598022955
+      },
+      "event_level_p5::xgboost": {
+        "n_true_events": 65,
+        "n_background_groups": 4345,
+        "confusion_events": {
+          "tp": 64,
+          "fn": 1,
+          "fp": 868,
+          "tn": 3477
+        },
+        "tss": 0.7848455342126228,
+        "hss": 0.10368578986390246,
+        "window_fpr": 0.028448218669143502
+      },
+      "event_level_p5::centralized_mlp": {
+        "n_true_events": 65,
+        "n_background_groups": 4345,
+        "confusion_events": {
+          "tp": 65,
+          "fn": 0,
+          "fp": 4295,
+          "tn": 50
+        },
+        "tss": 0.011507479861910253,
+        "hss": 0.00034305407851716193,
+        "window_fpr": 0.21159689511046242
+      },
+      "event_level_p5::fedavg_mlp": {
+        "n_true_events": 65,
+        "n_background_groups": 4345,
+        "confusion_events": {
+          "tp": 65,
+          "fn": 0,
+          "fp": 4047,
+          "tn": 298
+        },
+        "tss": 0.06858457997698508,
+        "hss": 0.0021659386302478865,
+        "window_fpr": 0.1940954023751078
+      },
+      "event_level_p5::fedprox_mlp": {
+        "n_true_events": 65,
+        "n_background_groups": 4345,
+        "confusion_events": {
+          "tp": 65,
+          "fn": 0,
+          "fp": 4194,
+          "tn": 151
+        },
+        "tss": 0.034752589182968974,
+        "hss": 0.0010602117074809468,
+        "window_fpr": 0.19850063026603862
+      },
+      "event_level_raw_lstm_p5::central_lstm": {
+        "n_true_events": 65,
+        "n_background_groups": 4344,
+        "confusion_events": {
+          "tp": 41,
+          "fn": 24,
+          "fp": 144,
+          "tn": 4200
+        },
+        "tss": 0.5976200594985125,
+        "hss": 0.31301057317751807,
+        "window_fpr": 0.00478322681795836
+      },
+      "event_level_raw_lstm_p5::fedavg_lstm": {
+        "n_true_events": 65,
+        "n_background_groups": 4344,
+        "confusion_events": {
+          "tp": 35,
+          "fn": 30,
+          "fp": 113,
+          "tn": 4231
+        },
+        "tss": 0.5124486471171554,
+        "hss": 0.3145964079980258,
+        "window_fpr": 0.0030692372081899473
+      },
+      "event_level_raw_lstm_p5::fedprox_lstm": {
+        "n_true_events": 65,
+        "n_background_groups": 4344,
+        "confusion_events": {
+          "tp": 49,
+          "fn": 16,
+          "fp": 146,
+          "tn": 4198
+        },
+        "tss": 0.7202365774188979,
+        "hss": 0.3628328531030607,
+        "window_fpr": 0.006058753969413922
+      },
+      "event_level_raw_p5::logistic_regression": {
+        "n_true_events": 65,
+        "n_background_groups": 4344,
+        "confusion_events": {
+          "tp": 51,
+          "fn": 14,
+          "fp": 112,
+          "tn": 4232
+        },
+        "tss": 0.7588326958492704,
+        "hss": 0.43546849690365036,
+        "window_fpr": 0.0043713378419675
+      },
+      "event_level_raw_p5::xgboost": {
+        "n_true_events": 65,
+        "n_background_groups": 4344,
+        "confusion_events": {
+          "tp": 40,
+          "fn": 25,
+          "fp": 92,
+          "tn": 4252
+        },
+        "tss": 0.5942059781838788,
+        "hss": 0.39412130188287,
+        "window_fpr": 0.0029230830554189974
+      },
+      "event_level_raw_p5::centralized_mlp": {
+        "n_true_events": 65,
+        "n_background_groups": 4344,
+        "confusion_events": {
+          "tp": 52,
+          "fn": 13,
+          "fp": 150,
+          "tn": 4194
+        },
+        "tss": 0.7654696132596686,
+        "hss": 0.3755841948732474,
+        "window_fpr": 0.005407703652525145
+      },
+      "event_level_raw_p5::fedavg_mlp": {
+        "n_true_events": 65,
+        "n_background_groups": 4344,
+        "confusion_events": {
+          "tp": 0,
+          "fn": 65,
+          "fp": 0,
+          "tn": 4344
+        },
+        "tss": 0.0,
+        "hss": 0.0,
+        "window_fpr": 0.0
+      },
+      "event_level_raw_p5::fedprox_mlp": {
+        "n_true_events": 65,
+        "n_background_groups": 4344,
+        "confusion_events": {
+          "tp": 48,
+          "fn": 17,
+          "fp": 517,
+          "tn": 3827
+        },
+        "tss": 0.6194468054965293,
+        "hss": 0.12935855810547958,
+        "window_fpr": 0.02116577866946574
+      },
+      "event_level_raw_p5::scaffold_mlp": {
+        "n_true_events": 65,
+        "n_background_groups": 4344,
+        "confusion_events": {
+          "tp": 54,
+          "fn": 11,
+          "fp": 2774,
+          "tn": 1570
+        },
+        "tss": 0.1921872786513671,
+        "hss": 0.008761344108950266,
+        "window_fpr": 0.10744987576897014
+      },
+      "event_level_raw_scaffold::scaffold_lstm": {
+        "n_true_events": 65,
+        "n_background_groups": 4344,
+        "confusion_events": {
+          "tp": 55,
+          "fn": 10,
+          "fp": 161,
+          "tn": 4183
+        },
+        "tss": 0.809091231052557,
+        "hss": 0.37734680377156854,
+        "window_fpr": 0.006802811474429666
+      },
+      "event_level_raw_seed43::central_lstm": {
+        "n_true_events": 65,
+        "n_background_groups": 4344,
+        "confusion_events": {
+          "tp": 43,
+          "fn": 22,
+          "fp": 154,
+          "tn": 4190
+        },
+        "tss": 0.6260872644850545,
+        "hss": 0.3130137010556435,
+        "window_fpr": 0.004889520747246323
+      },
+      "event_level_raw_seed43::fedavg_lstm": {
+        "n_true_events": 65,
+        "n_background_groups": 4344,
+        "confusion_events": {
+          "tp": 36,
+          "fn": 29,
+          "fp": 110,
+          "tn": 4234
+        },
+        "tss": 0.5285238702365774,
+        "hss": 0.32751210059265745,
+        "window_fpr": 0.002949656537740988
+      },
+      "event_level_raw_seed43::fedprox_lstm": {
+        "n_true_events": 65,
+        "n_background_groups": 4344,
+        "confusion_events": {
+          "tp": 45,
+          "fn": 20,
+          "fp": 153,
+          "tn": 4191
+        },
+        "tss": 0.6570866978325541,
+        "hss": 0.32727214998408044,
+        "window_fpr": 0.00556714454645709
+      },
+      "event_level_raw_seed43::scaffold_lstm": {
+        "n_true_events": 65,
+        "n_background_groups": 4344,
+        "confusion_events": {
+          "tp": 50,
+          "fn": 15,
+          "fp": 142,
+          "tn": 4202
+        },
+        "tss": 0.7365420031165888,
+        "hss": 0.37534528174358595,
+        "window_fpr": 0.00600560700476994
+      },
+      "event_level_raw_smote::fedavg_lstm": {
+        "n_true_events": 65,
+        "n_background_groups": 4344,
+        "confusion_events": {
+          "tp": 40,
+          "fn": 25,
+          "fp": 124,
+          "tn": 4220
+        },
+        "tss": 0.5868394956792747,
+        "hss": 0.3353093719677723,
+        "window_fpr": 0.0034944129253418016
+      },
+      "event_level_raw_smote::fedprox_lstm": {
+        "n_true_events": 65,
+        "n_background_groups": 4344,
+        "confusion_events": {
+          "tp": 37,
+          "fn": 28,
+          "fp": 125,
+          "tn": 4219
+        },
+        "tss": 0.5404554469471596,
+        "hss": 0.3115036696901253,
+        "window_fpr": 0.0034279792195368243
+      }
+    }
+  },
+  "block_b_recomputed": {
+    "protocol": "in-partition (shipped), pooled 5-partition test",
+    "n_test_windows": 331185,
+    "prevalence": 0.018823316273381945,
+    "climatology_brier": 0.018468999037854178,
+    "models": {
+      "climatology": {
+        "brier_raw": 0.01846899903785419,
+        "bss_vs_climatology_raw": -6.661338147750939e-16,
+        "ece_raw": 1.0408340855860843e-17,
+        "auc_raw": 0.5,
+        "reliability_10bin": [
+          {
+            "bin": 0,
+            "lo": 0.0,
+            "hi": 0.1,
+            "n": 331185,
+            "mean_pred": 0.018823316273381956,
+            "emp_freq": 0.018823316273381945
+          },
+          {
+            "bin": 1,
+            "lo": 0.1,
+            "hi": 0.2,
+            "n": 0,
+            "mean_pred": null,
+            "emp_freq": null
+          },
+          {
+            "bin": 2,
+            "lo": 0.2,
+            "hi": 0.30000000000000004,
+            "n": 0,
+            "mean_pred": null,
+            "emp_freq": null
+          },
+          {
+            "bin": 3,
+            "lo": 0.30000000000000004,
+            "hi": 0.4,
+            "n": 0,
+            "mean_pred": null,
+            "emp_freq": null
+          },
+          {
+            "bin": 4,
+            "lo": 0.4,
+            "hi": 0.5,
+            "n": 0,
+            "mean_pred": null,
+            "emp_freq": null
+          },
+          {
+            "bin": 5,
+            "lo": 0.5,
+            "hi": 0.6000000000000001,
+            "n": 0,
+            "mean_pred": null,
+            "emp_freq": null
+          },
+          {
+            "bin": 6,
+            "lo": 0.6000000000000001,
+            "hi": 0.7000000000000001,
+            "n": 0,
+            "mean_pred": null,
+            "emp_freq": null
+          },
+          {
+            "bin": 7,
+            "lo": 0.7000000000000001,
+            "hi": 0.8,
+            "n": 0,
+            "mean_pred": null,
+            "emp_freq": null
+          },
+          {
+            "bin": 8,
+            "lo": 0.8,
+            "hi": 0.9,
+            "n": 0,
+            "mean_pred": null,
+            "emp_freq": null
+          },
+          {
+            "bin": 9,
+            "lo": 0.9,
+            "hi": 1.0,
+            "n": 0,
+            "mean_pred": null,
+            "emp_freq": null
+          }
+        ],
+        "note": "raw (pre-calibration) probabilities from the phase-cache models on the frozen test split"
+      },
+      "logistic_regression": {
+        "brier_raw": 0.6589605221119653,
+        "bss_vs_climatology_raw": -34.67927643297591,
+        "ece_raw": 0.731812514146164,
+        "auc_raw": 0.8236271311592738,
+        "reliability_10bin": [
+          {
+            "bin": 0,
+            "lo": 0.0,
+            "hi": 0.1,
+            "n": 38323,
+            "mean_pred": 0.011906379077190773,
+            "emp_freq": 0.0033139368003548783
+          },
+          {
+            "bin": 1,
+            "lo": 0.1,
+            "hi": 0.2,
+            "n": 5753,
+            "mean_pred": 0.14962498843909017,
+            "emp_freq": 0.011298452981053364
+          },
+          {
+            "bin": 2,
+            "lo": 0.2,
+            "hi": 0.30000000000000004,
+            "n": 6306,
+            "mean_pred": 0.2513454025591026,
+            "emp_freq": 0.012686330478908976
+          },
+          {
+            "bin": 3,
+            "lo": 0.30000000000000004,
+            "hi": 0.4,
+            "n": 7444,
+            "mean_pred": 0.35165035809440304,
+            "emp_freq": 0.011015583019881784
+          },
+          {
+            "bin": 4,
+            "lo": 0.4,
+            "hi": 0.5,
+            "n": 9128,
+            "mean_pred": 0.4522276964701938,
+            "emp_freq": 0.010736196319018405
+          },
+          {
+            "bin": 5,
+            "lo": 0.5,
+            "hi": 0.6000000000000001,
+            "n": 11239,
+            "mean_pred": 0.5516353235595486,
+            "emp_freq": 0.011922768929620072
+          },
+          {
+            "bin": 6,
+            "lo": 0.6000000000000001,
+            "hi": 0.7000000000000001,
+            "n": 14483,
+            "mean_pred": 0.652201793403902,
+            "emp_freq": 0.00918318028032866
+          },
+          {
+            "bin": 7,
+            "lo": 0.7000000000000001,
+            "hi": 0.8,
+            "n": 21098,
+            "mean_pred": 0.7534989216661133,
+            "emp_freq": 0.006398710778272822
+          },
+          {
+            "bin": 8,
+            "lo": 0.8,
+            "hi": 0.9,
+            "n": 36928,
+            "mean_pred": 0.8560860141786035,
+            "emp_freq": 0.00389948006932409
+          },
+          {
+            "bin": 9,
+            "lo": 0.9,
+            "hi": 1.0,
+            "n": 180483,
+            "mean_pred": 0.9740258663132044,
+            "emp_freq": 0.029011042591268982
+          }
+        ],
+        "note": "raw (pre-calibration) probabilities from the phase-cache models on the frozen test split"
+      },
+      "xgboost": {
+        "brier_raw": 0.06316237650371592,
+        "bss_vs_climatology_raw": -2.419913357202408,
+        "ece_raw": 0.11546481361522606,
+        "auc_raw": 0.9766869855959834,
+        "reliability_10bin": [
+          {
+            "bin": 0,
+            "lo": 0.0,
+            "hi": 0.1,
+            "n": 240763,
+            "mean_pred": 0.020139718428254128,
+            "emp_freq": 5.8148469656882496e-05
+          },
+          {
+            "bin": 1,
+            "lo": 0.1,
+            "hi": 0.2,
+            "n": 27258,
+            "mean_pred": 0.14362625777721405,
+            "emp_freq": 0.0011372807982977474
+          },
+          {
+            "bin": 2,
+            "lo": 0.2,
+            "hi": 0.30000000000000004,
+            "n": 14999,
+            "mean_pred": 0.2460855096578598,
+            "emp_freq": 0.0054003600240016
+          },
+          {
+            "bin": 3,
+            "lo": 0.30000000000000004,
+            "hi": 0.4,
+            "n": 9432,
+            "mean_pred": 0.34678393602371216,
+            "emp_freq": 0.01272264631043257
+          },
+          {
+            "bin": 4,
+            "lo": 0.4,
+            "hi": 0.5,
+            "n": 6604,
+            "mean_pred": 0.44802147150039673,
+            "emp_freq": 0.023773470623864326
+          },
+          {
+            "bin": 5,
+            "lo": 0.5,
+            "hi": 0.6000000000000001,
+            "n": 5436,
+            "mean_pred": 0.5493025779724121,
+            "emp_freq": 0.03292862398822664
+          },
+          {
+            "bin": 6,
+            "lo": 0.6000000000000001,
+            "hi": 0.7000000000000001,
+            "n": 4707,
+            "mean_pred": 0.6491853594779968,
+            "emp_freq": 0.05077544083280221
+          },
+          {
+            "bin": 7,
+            "lo": 0.7000000000000001,
+            "hi": 0.8,
+            "n": 4487,
+            "mean_pred": 0.7500771880149841,
+            "emp_freq": 0.07354579897481614
+          },
+          {
+            "bin": 8,
+            "lo": 0.8,
+            "hi": 0.9,
+            "n": 4956,
+            "mean_pred": 0.8516470193862915,
+            "emp_freq": 0.13216303470540758
+          },
+          {
+            "bin": 9,
+            "lo": 0.9,
+            "hi": 1.0,
+            "n": 12543,
+            "mean_pred": 0.9695950746536255,
+            "emp_freq": 0.3530255919636451
+          }
+        ],
+        "note": "raw (pre-calibration) probabilities from the phase-cache models on the frozen test split"
+      },
+      "centralized_mlp": {
+        "brier_raw": 0.2768117009783761,
+        "bss_vs_climatology_raw": -13.987910303694374,
+        "ece_raw": 0.4394790047448359,
+        "auc_raw": 0.8876854930711614,
+        "reliability_10bin": [
+          {
+            "bin": 0,
+            "lo": 0.0,
+            "hi": 0.1,
+            "n": 36861,
+            "mean_pred": 0.061553084078426315,
+            "emp_freq": 0.0
+          },
+          {
+            "bin": 1,
+            "lo": 0.1,
+            "hi": 0.2,
+            "n": 46470,
+            "mean_pred": 0.14839160317358263,
+            "emp_freq": 0.0
+          },
+          {
+            "bin": 2,
+            "lo": 0.2,
+            "hi": 0.30000000000000004,
+            "n": 36452,
+            "mean_pred": 0.2477447345802162,
+            "emp_freq": 0.0001920333589377812
+          },
+          {
+            "bin": 3,
+            "lo": 0.30000000000000004,
+            "hi": 0.4,
+            "n": 30534,
+            "mean_pred": 0.34960136080960236,
+            "emp_freq": 0.00013100150651732494
+          },
+          {
+            "bin": 4,
+            "lo": 0.4,
+            "hi": 0.5,
+            "n": 32627,
+            "mean_pred": 0.45123832172345923,
+            "emp_freq": 0.001685720415606706
+          },
+          {
+            "bin": 5,
+            "lo": 0.5,
+            "hi": 0.6000000000000001,
+            "n": 36874,
+            "mean_pred": 0.5504122330227907,
+            "emp_freq": 0.008895156478819765
+          },
+          {
+            "bin": 6,
+            "lo": 0.6000000000000001,
+            "hi": 0.7000000000000001,
+            "n": 32936,
+            "mean_pred": 0.6486228932566599,
+            "emp_freq": 0.017883167354870052
+          },
+          {
+            "bin": 7,
+            "lo": 0.7000000000000001,
+            "hi": 0.8,
+            "n": 27661,
+            "mean_pred": 0.7483031666462862,
+            "emp_freq": 0.03329597628429919
+          },
+          {
+            "bin": 8,
+            "lo": 0.8,
+            "hi": 0.9,
+            "n": 24698,
+            "mean_pred": 0.8495950805449719,
+            "emp_freq": 0.05506518746457203
+          },
+          {
+            "bin": 9,
+            "lo": 0.9,
+            "hi": 1.0,
+            "n": 26072,
+            "mean_pred": 0.9530936994204934,
+            "emp_freq": 0.1139153114452286
+          }
+        ],
+        "note": "raw (pre-calibration) probabilities from the phase-cache models on the frozen test split"
+      },
+      "fedavg_mlp": {
+        "brier_raw": 0.13566136933337836,
+        "bss_vs_climatology_raw": -6.345355807064906,
+        "ece_raw": 0.3424105474175967,
+        "auc_raw": 0.5747842348614725,
+        "reliability_10bin": [
+          {
+            "bin": 0,
+            "lo": 0.0,
+            "hi": 0.1,
+            "n": 0,
+            "mean_pred": null,
+            "emp_freq": null
+          },
+          {
+            "bin": 1,
+            "lo": 0.1,
+            "hi": 0.2,
+            "n": 0,
+            "mean_pred": null,
+            "emp_freq": null
+          },
+          {
+            "bin": 2,
+            "lo": 0.2,
+            "hi": 0.30000000000000004,
+            "n": 0,
+            "mean_pred": null,
+            "emp_freq": null
+          },
+          {
+            "bin": 3,
+            "lo": 0.30000000000000004,
+            "hi": 0.4,
+            "n": 331185,
+            "mean_pred": 0.36123386369097865,
+            "emp_freq": 0.018823316273381945
+          },
+          {
+            "bin": 4,
+            "lo": 0.4,
+            "hi": 0.5,
+            "n": 0,
+            "mean_pred": null,
+            "emp_freq": null
+          },
+          {
+            "bin": 5,
+            "lo": 0.5,
+            "hi": 0.6000000000000001,
+            "n": 0,
+            "mean_pred": null,
+            "emp_freq": null
+          },
+          {
+            "bin": 6,
+            "lo": 0.6000000000000001,
+            "hi": 0.7000000000000001,
+            "n": 0,
+            "mean_pred": null,
+            "emp_freq": null
+          },
+          {
+            "bin": 7,
+            "lo": 0.7000000000000001,
+            "hi": 0.8,
+            "n": 0,
+            "mean_pred": null,
+            "emp_freq": null
+          },
+          {
+            "bin": 8,
+            "lo": 0.8,
+            "hi": 0.9,
+            "n": 0,
+            "mean_pred": null,
+            "emp_freq": null
+          },
+          {
+            "bin": 9,
+            "lo": 0.9,
+            "hi": 1.0,
+            "n": 0,
+            "mean_pred": null,
+            "emp_freq": null
+          }
+        ],
+        "note": "raw (pre-calibration) probabilities from the phase-cache models on the frozen test split"
+      },
+      "fedprox_mlp": {
+        "brier_raw": 0.26417870335356036,
+        "bss_vs_climatology_raw": -13.303899351128775,
+        "ece_raw": 0.4962891311468917,
+        "auc_raw": 0.9544154650548844,
+        "reliability_10bin": [
+          {
+            "bin": 0,
+            "lo": 0.0,
+            "hi": 0.1,
+            "n": 0,
+            "mean_pred": null,
+            "emp_freq": null
+          },
+          {
+            "bin": 1,
+            "lo": 0.1,
+            "hi": 0.2,
+            "n": 0,
+            "mean_pred": null,
+            "emp_freq": null
+          },
+          {
+            "bin": 2,
+            "lo": 0.2,
+            "hi": 0.30000000000000004,
+            "n": 0,
+            "mean_pred": null,
+            "emp_freq": null
+          },
+          {
+            "bin": 3,
+            "lo": 0.30000000000000004,
+            "hi": 0.4,
+            "n": 0,
+            "mean_pred": null,
+            "emp_freq": null
+          },
+          {
+            "bin": 4,
+            "lo": 0.4,
+            "hi": 0.5,
+            "n": 11528,
+            "mean_pred": 0.49701193200991767,
+            "emp_freq": 0.0
+          },
+          {
+            "bin": 5,
+            "lo": 0.5,
+            "hi": 0.6000000000000001,
+            "n": 319657,
+            "mean_pred": 0.5157652181765862,
+            "emp_freq": 0.01950215387118067
+          },
+          {
+            "bin": 6,
+            "lo": 0.6000000000000001,
+            "hi": 0.7000000000000001,
+            "n": 0,
+            "mean_pred": null,
+            "emp_freq": null
+          },
+          {
+            "bin": 7,
+            "lo": 0.7000000000000001,
+            "hi": 0.8,
+            "n": 0,
+            "mean_pred": null,
+            "emp_freq": null
+          },
+          {
+            "bin": 8,
+            "lo": 0.8,
+            "hi": 0.9,
+            "n": 0,
+            "mean_pred": null,
+            "emp_freq": null
+          },
+          {
+            "bin": 9,
+            "lo": 0.9,
+            "hi": 1.0,
+            "n": 0,
+            "mean_pred": null,
+            "emp_freq": null
+          }
+        ],
+        "note": "raw (pre-calibration) probabilities from the phase-cache models on the frozen test split"
+      }
+    }
+  },
+  "block_c_baselines": {
+    "pooled_test": {
+      "n_windows": 331185,
+      "climatology": {
+        "brier": 0.018468999037854178,
+        "tss": 0.0,
+        "auc": 0.5,
+        "note": "base-rate forecast, no discrimination"
+      },
+      "persistence_same_ar_prev_window": {
+        "confusion": {
+          "tp": 2198,
+          "fp": 3999,
+          "fn": 4036,
+          "tn": 320952
+        },
+        "tss": 0.340276140663648,
+        "hss": 0.34126946187429946,
+        "auc": 0.340276140663648
+      }
+    },
+    "p5_test": {
+      "n_windows": 75365,
+      "climatology": {
+        "brier": 0.012963514756062612,
+        "tss": 0.0,
+        "auc": 0.5
+      },
+      "persistence_same_ar_prev_window": {
+        "confusion": {
+          "tp": 353,
+          "fp": 630,
+          "fn": 637,
+          "tn": 73745
+        },
+        "tss": 0.34809506833036247,
+        "hss": 0.34931357703389815,
+        "auc": 0.34809506833036247
+      }
+    }
+  },
+  "block_d_event_uncertainty": {
+    "event_level_p5::logistic_regression": {
+      "detection_rate": 1.0,
+      "detection_ci95_wilson": [
+        0.9441965323292892,
+        0.9999999999999999
+      ],
+      "alerts_per_day": 8.819661057357996,
+      "false_alarm_windows_per_day": 8.645620169669998,
+      "false_alarm_windows_per_day_ci95_poisson": [
+        8.563992571887347,
+        8.72645679363941
+      ]
+    },
+    "event_level_p5::xgboost": {
+      "detection_rate": 0.9846153846153847,
+      "detection_ci95_wilson": [
+        0.9178652058620286,
+        0.9972791254725134
+      ],
+      "alerts_per_day": 1.8715355730832655,
+      "false_alarm_windows_per_day": 1.7038523433930026,
+      "false_alarm_windows_per_day_ci95_poisson": [
+        1.6673975410515514,
+        1.7395208483854265
+      ]
+    },
+    "event_level_p5::centralized_mlp": {
+      "detection_rate": 1.0,
+      "detection_ci95_wilson": [
+        0.9441965323292892,
+        0.9999999999999999
+      ],
+      "alerts_per_day": 12.847237398923172,
+      "false_alarm_windows_per_day": 12.673196511235174,
+      "false_alarm_windows_per_day_ci95_poisson": [
+        12.574451065527578,
+        12.771150333333672
+      ]
+    },
+    "event_level_p5::fedavg_mlp": {
+      "detection_rate": 1.0,
+      "detection_ci95_wilson": [
+        0.9441965323292892,
+        0.9999999999999999
+      ],
+      "alerts_per_day": 11.7990185365466,
+      "false_alarm_windows_per_day": 11.624977648858602,
+      "false_alarm_windows_per_day_ci95_poisson": [
+        11.530387365767615,
+        11.718776444365558
+      ]
+    },
+    "event_level_p5::fedprox_mlp": {
+      "detection_rate": 1.0,
+      "detection_ci95_wilson": [
+        0.9441965323292892,
+        0.9999999999999999
+      ],
+      "alerts_per_day": 12.062861343452605,
+      "false_alarm_windows_per_day": 11.888820455764607,
+      "false_alarm_windows_per_day_ci95_poisson": [
+        11.793167222991508,
+        11.983682165026995
+      ]
+    },
+    "event_level_raw_lstm_p5::central_lstm": {
+      "detection_rate": 0.6307692307692307,
+      "detection_ci95_wilson": [
+        0.5092359303460251,
+        0.7377077781093274
+      ],
+      "alerts_per_day": 0.37430711461665306,
+      "false_alarm_windows_per_day": 0.2860946098980788,
+      "false_alarm_windows_per_day_ci95_poisson": [
+        0.2709305819074235,
+        0.30048445417132025
+      ]
+    },
+    "event_level_raw_lstm_p5::fedavg_lstm": {
+      "detection_rate": 0.5384615384615384,
+      "detection_ci95_wilson": [
+        0.41853187398623515,
+        0.6540986285006332
+      ],
+      "alerts_per_day": 0.24476983291280074,
+      "false_alarm_windows_per_day": 0.18357737468460056,
+      "false_alarm_windows_per_day_ci95_poisson": [
+        0.17135590414108023,
+        0.19502975906352402
+      ]
+    },
+    "event_level_raw_lstm_p5::fedprox_lstm": {
+      "detection_rate": 0.7538461538461538,
+      "detection_ci95_wilson": [
+        0.6369398600835174,
+        0.842421456329814
+      ],
+      "alerts_per_day": 0.4807978860787157,
+      "false_alarm_windows_per_day": 0.36238650587089977,
+      "false_alarm_windows_per_day_ci95_poisson": [
+        0.34536737563745074,
+        0.3786291644899665
+      ]
+    },
+    "event_level_raw_p5::logistic_regression": {
+      "detection_rate": 0.7846153846153846,
+      "detection_ci95_wilson": [
+        0.6703320947133157,
+        0.8671336236895105
+      ],
+      "alerts_per_day": 0.388611845111557,
+      "false_alarm_windows_per_day": 0.26145868515685533,
+      "false_alarm_windows_per_day_ci95_poisson": [
+        0.24694567970819617,
+        0.27519845204017873
+      ]
+    },
+    "event_level_raw_p5::xgboost": {
+      "detection_rate": 0.6153846153846154,
+      "detection_ci95_wilson": [
+        0.49383980131435057,
+        0.7240517061462548
+      ],
+      "alerts_per_day": 0.2543063199094034,
+      "false_alarm_windows_per_day": 0.1748355949377148,
+      "false_alarm_windows_per_day_ci95_poisson": [
+        0.16289971053406038,
+        0.18600302589300788
+      ]
+    },
+    "event_level_raw_p5::centralized_mlp": {
+      "detection_rate": 0.8,
+      "detection_ci95_wilson": [
+        0.6872963771070257,
+        0.8792215422905478
+      ],
+      "alerts_per_day": 0.4347048655951364,
+      "false_alarm_windows_per_day": 0.3234458506347724,
+      "false_alarm_windows_per_day_ci95_poisson": [
+        0.3073461877888599,
+        0.3387701084007888
+      ]
+    },
+    "event_level_raw_p5::fedavg_mlp": {
+      "detection_rate": 0.0,
+      "detection_ci95_wilson": [
+        0.0,
+        0.055803467670710726
+      ],
+      "alerts_per_day": 0.0,
+      "false_alarm_windows_per_day": 0.0,
+      "false_alarm_windows_per_day_ci95_poisson": [
+        0.0,
+        0.0015264736852561936
+      ]
+    },
+    "event_level_raw_p5::fedprox_mlp": {
+      "detection_rate": 0.7384615384615385,
+      "detection_ci95_wilson": [
+        0.6204896660217755,
+        0.8298194493968086
+      ],
+      "alerts_per_day": 1.3899429797548328,
+      "false_alarm_windows_per_day": 1.2659686487989987,
+      "false_alarm_windows_per_day_ci95_poisson": [
+        1.2344918704778969,
+        1.2966604764001157
+      ]
+    },
+    "event_level_raw_p5::scaffold_mlp": {
+      "detection_rate": 0.8307692307692308,
+      "detection_ci95_wilson": [
+        0.721833508048396,
+        0.9027888133386723
+      ],
+      "alerts_per_day": 6.567460711660342,
+      "false_alarm_windows_per_day": 6.426797528460453,
+      "false_alarm_windows_per_day_ci95_poisson": [
+        6.356365430751632,
+        6.496439249135291
+      ]
+    },
+    "event_level_raw_scaffold::scaffold_lstm": {
+      "detection_rate": 0.8461538461538461,
+      "detection_ci95_wilson": [
+        0.7394445429998054,
+        0.9142299793820102
+      ],
+      "alerts_per_day": 0.5380168080583315,
+      "false_alarm_windows_per_day": 0.40689011185504537,
+      "false_alarm_windows_per_day_ci95_poisson": [
+        0.38887883619837377,
+        0.42412388976491505
+      ]
+    },
+    "event_level_raw_seed43::central_lstm": {
+      "detection_rate": 0.6615384615384615,
+      "detection_ci95_wilson": [
+        0.5403814981313132,
+        0.764666612313534
+      ],
+      "alerts_per_day": 0.38463830886297257,
+      "false_alarm_windows_per_day": 0.29245226789581386,
+      "false_alarm_windows_per_day_ci95_poisson": [
+        0.2771248415771544,
+        0.3070052861892146
+      ]
+    },
+    "event_level_raw_seed43::fedavg_lstm": {
+      "detection_rate": 0.5538461538461539,
+      "detection_ci95_wilson": [
+        0.4333760431730088,
+        0.6683066603086071
+      ],
+      "alerts_per_day": 0.24238571116365007,
+      "false_alarm_windows_per_day": 0.1764250094371486,
+      "false_alarm_windows_per_day_ci95_poisson": [
+        0.16443667689602093,
+        0.18764477000168697
+      ]
+    },
+    "event_level_raw_seed43::fedprox_lstm": {
+      "detection_rate": 0.6923076923076923,
+      "detection_ci95_wilson": [
+        0.5720212794770567,
+        0.7911312329572853
+      ],
+      "alerts_per_day": 0.437088987344287,
+      "false_alarm_windows_per_day": 0.332982337631375,
+      "false_alarm_windows_per_day_ci95_poisson": [
+        0.31665259206121693,
+        0.34853639971016925
+      ]
+    },
+    "event_level_raw_seed43::scaffold_lstm": {
+      "detection_rate": 0.7692307692307693,
+      "detection_ci95_wilson": [
+        0.6535506019179673,
+        0.8548629154901115
+      ],
+      "alerts_per_day": 0.4839767150775833,
+      "false_alarm_windows_per_day": 0.35920767687203226,
+      "false_alarm_windows_per_day_ci95_poisson": [
+        0.3422616901248419,
+        0.3753772725158119
+      ]
+    },
+    "event_level_raw_smote::fedavg_lstm": {
+      "detection_rate": 0.6153846153846154,
+      "detection_ci95_wilson": [
+        0.49383980131435057,
+        0.7240517061462548
+      ],
+      "alerts_per_day": 0.28291578089921127,
+      "false_alarm_windows_per_day": 0.2090080066755409,
+      "false_alarm_windows_per_day_ci95_poisson": [
+        0.19599243859011045,
+        0.2212528793587769
+      ]
+    },
+    "event_level_raw_smote::fedprox_lstm": {
+      "detection_rate": 0.5692307692307692,
+      "detection_ci95_wilson": [
+        0.44832757984982086,
+        0.6824073246265422
+      ],
+      "alerts_per_day": 0.27258458665289176,
+      "false_alarm_windows_per_day": 0.20503447042695647,
+      "false_alarm_windows_per_day_ci95_poisson": [
+        0.1921396535830063,
+        0.21715882342558343
+      ]
+    }
+  },
+  "elapsed_s": 5.8
+}

@@ -72,8 +72,9 @@
         }
       },
       "shipped_in_partition": {
-        "roc_auc": 0.818,
-        "pr_auc": 0.114
+        "roc_auc": 0.8236271595438993,
+        "pr_auc": 0.23481742271914388,
+        "source": "outputs/results.json"
       }
     },
     "xgboost": {
@@ -128,8 +129,9 @@
         }
       },
       "shipped_in_partition": {
-        "roc_auc": 0.977,
-        "pr_auc": 0.493
+        "roc_auc": 0.9766869855959834,
+        "pr_auc": 0.49275545501848395,
+        "source": "outputs/results.json"
       }
     },
     "centralized_mlp": {
@@ -184,8 +186,9 @@
         }
       },
       "shipped_in_partition": {
-        "roc_auc": 0.888,
-        "pr_auc": 0.153
+        "roc_auc": 0.8876854930711614,
+        "pr_auc": 0.15278863365568351,
+        "source": "outputs/results.json"
       }
     },
     "fedavg_mlp": {
@@ -240,8 +243,9 @@
         }
       },
       "shipped_in_partition": {
-        "roc_auc": 0.575,
-        "pr_auc": 0.199
+        "roc_auc": 0.5747842348614725,
+        "pr_auc": 0.19862870412298378,
+        "source": "outputs/results.json"
       }
     },
     "fedprox_mlp": {
@@ -296,8 +300,9 @@
         }
       },
       "shipped_in_partition": {
-        "roc_auc": 0.954,
-        "pr_auc": 0.307
+        "roc_auc": 0.9544154648080616,
+        "pr_auc": 0.30721543178019844,
+        "source": "outputs/results.json"
       }
     }
   },

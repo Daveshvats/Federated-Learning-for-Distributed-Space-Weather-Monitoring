@@ -11,15 +11,16 @@ Inputs:
 Outputs: clone/outputs/event_level_p5.json
 """
 import json
+import os
 import sys
 import numpy as np
 import pandas as pd
 
-sys.path.insert(0, "/home/z/my-project/scripts/clone")
+sys.path.insert(0, os.environ.get("SF9_CLONE", os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))  # v4.0: overridable
 from experiments.run_event_level import event_level_metrics
 
-CLONE = "/home/z/my-project/scripts/clone"
-RAW = "/tmp/swansf_raw"
+CLONE = os.environ.get("SF9_CLONE", os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # v4.0: overridable
+RAW = os.environ.get("SWANSF_RAW", "/tmp/swansf_raw")  # v4.0: overridable
 COOLDOWN = 5   # 5 windows = 1 h at 12-min cadence
 
 

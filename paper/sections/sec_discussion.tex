@@ -87,22 +87,24 @@ positive rate is skewed, but isolating \emph{why} (temporal
 separability versus effective capacity versus optimisation noise)
 would require ablations we leave queued.
 
-\subsection{Operational positioning: an upstream precursor alert}
+\subsection{Operational positioning: honestly, none}
 
-The operational layer of Fig.~\ref{fig:arch} is deliberately drawn at
-the flare-probability boundary, and we are explicit about what that
-means: this framework does not replace NOAA/SWPC or other national
-warning centres, and it does not itself predict GICs. It is an
-upstream component that would emit calibrated M/X flare-probability
-alerts at fixed false-positive budgets; converting those alerts into
-geomagnetic-hazard and GIC guidance requires the downstream pipeline
----CME detection and interplanetary propagation modelling, storm
-forecasting, and power-system response modelling---which is future
-integration, not evaluated here. Within that upstream role, the
-numbers of Table~\ref{tab:recallfpr} describe what a federated
-sentinel would contribute at the window level: at a 2\% window-level
-false-positive budget, FedProx's ranking recovers 51\% of positive
-windows (recall 0.506). Two cautions apply before reading that as an
+This paper makes no operational claim. The framework does not replace
+NOAA/SWPC or other national warning centres, does not itself predict
+GICs, and --- on the evidence of its own calibration tables --- does
+not currently emit probabilities that could responsibly be consumed as
+alerting inputs: no validation-fit calibrator or threshold survives
+the prevalence shift, and the frozen false-positive budgets are
+violated by an order of magnitude at test time
+(Section~\ref{sec:res-calib}). Converting flare probabilities into
+geomagnetic-hazard and GIC guidance would require the downstream
+pipeline --- CME detection and interplanetary propagation modelling,
+storm forecasting, and power-system response modelling --- none of
+which is evaluated here; flare class is neither necessary nor
+sufficient for geoeffectiveness. As a window-level ranking statistic
+only, Table~\ref{tab:recallfpr} describes what the federated models
+contribute: at a 2\% window-level false-positive budget, FedProx's
+ranking recovers 51\% of positive windows (recall 0.506). Two cautions apply before reading that as an
 operational detection rate: the figure is a window-level curve
 statistic over correlated sliding windows, not an event-level
 detection rate (the event-level evaluations on both substrates are
@@ -111,20 +113,16 @@ budget must be calibrated on natural-prevalence data before
 deployment---the re-executed frozen-FPR report quantifies how far
 short validation-frozen thresholds fall, realising 20--50\% test FPR
 against the 2\% target across models
-(Section~\ref{sec:res-calib}). If those conditions are
-met, the CME transit window (roughly one to three days between an
-Earth-directed eruption and storm onset) leaves time for the
-effective, if unglamorous, mitigations: restoring reactive reserves,
-suspending non-critical transformer switching, pre-positioning
-replacement phase-shift equipment, and briefing control-room staff.
-The framework's convergence within 50 rounds at a CPU-only compute
-footprint also matters operationally: the global model can be
-refreshed nightly, and the entire training programme fits inside the
-compute budget of a single agency, let alone six. The SCADA
-integration point is deliberately drawn at the decision threshold
-rather than inside the learning loop, so that existing grid-management
-infrastructure would consume a calibrated probability; that interface
-is specified as future work (Section~\ref{sec:limitations}).
+(Section~\ref{sec:res-calib}). The compute footprint is worth stating as an engineering fact rather
+than a deployment promise: the entire training programme converges
+within 50 rounds on a single CPU and fits inside the budget of one
+workstation, and the benchmark spans a single solar cycle (cycle~24),
+so any retraining cadence claim would additionally need to establish
+skill stability across cycle phases, which this single-cycle study
+cannot. No SCADA, grid-management, or control-room interface is
+claimed; the decision-threshold boundary in Fig.~\ref{fig:arch} is
+drawn to make explicit what is \emph{not} provided (a deployable
+calibrated alerting layer), not to promise one.
 
 \subsection{Engineering lessons for first FL deployments in the
 physical sciences}

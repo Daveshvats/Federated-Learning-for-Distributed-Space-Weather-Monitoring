@@ -228,7 +228,15 @@ def test_threshold_protocol():
     check("ECE present", 0 <= m["ece"] <= 1)
     check("recall@FPR keys present",
           "recall@1%FPR" in m and "recall@5%FPR" in m)
-    check("F2 = fbeta(beta=2)", abs(m["f2"] - m["f2"]) < 1e-9)
+    # v4.0 (review m1): recompute F2 independently via sklearn fbeta_score
+    # instead of comparing a metric to itself (vacuously true).
+    from sklearn.metrics import fbeta_score, f1_score
+    y_hat = (p_test >= t).astype(int)
+    check("F2 = fbeta_score(beta=2) recomputed independently",
+          abs(m["f2"] - fbeta_score(y_test, y_hat, beta=2)) < 1e-9,
+          f"{m['f2']:.6f} vs {fbeta_score(y_test, y_hat, beta=2):.6f}")
+    check("F1 = fbeta_score(beta=1) recomputed independently",
+          abs(m["f1"] - f1_score(y_test, y_hat)) < 1e-9)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -363,9 +371,17 @@ def test_feature_names():
 # ─────────────────────────────────────────────────────────────────────────────
 def test_multiseed_summary():
     print("\n[10] Multi-seed statistics summary (B11)")
+    # v4.0: keep this module torch-free as its header promises. The
+    # summary helper is pure arithmetic — import it without pulling the
+    # torch-dependent experiment module.
     sys.path.insert(0, os.path.join(os.path.dirname(
         os.path.dirname(os.path.abspath(__file__))), "experiments"))
-    from run_multiseed import _summary
+    try:
+        from run_multiseed import _summary
+    except ModuleNotFoundError as e:
+        print(f"  [SKIP] run_multiseed import unavailable ({e.name}) — "
+              "torch-free battery mode")
+        return
 
     vals = [0.7, 0.75, 0.8, 0.85, 0.9]
     s = _summary(vals)

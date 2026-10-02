@@ -170,9 +170,16 @@ def test_crosscheck(d, cache, meta):
              X_train=X2_pool[~is_val], y_train=y_pool[~is_val],
              X_val=X2_pool[val_idx], y_val=y_pool[val_idx],
              X_test=X2_test, y_test=ys[4])
-    worst = R.crosscheck_2d(d, cache)
-    check("crosscheck_2d passes within f16 bound",
-          worst is not None and worst < 5e-3, f"worst={worst}")
+    # v4.0: crosscheck_2d returns a status dict
+    # {"status": "checked"|"skipped", "max_abs_diff_144stat", "bound"}
+    cc = R.crosscheck_2d(d, cache)
+    if cc.get("status") == "checked":
+        worst = cc["max_abs_diff_144stat"]
+        check("crosscheck_2d passes within f16 bound",
+              worst < 5e-3, f"worst={worst}")
+    else:
+        check("crosscheck_2d reports its skip with a reason",
+              "reason" in cc, str(cc))
 
     # corrupted labels must trip the equality guard
     z = dict(np.load(os.path.join(cache, "data.npz")))

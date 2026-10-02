@@ -42,14 +42,28 @@ import config as cfg
 
 FPR_TARGETS = (0.005, 0.01, 0.02, 0.05)
 
-# reference (shipped, in-partition) numbers from outputs/results.json
-SHIPPED = {
-    "xgboost": {"roc_auc": 0.977, "pr_auc": 0.493},
-    "fedprox_mlp": {"roc_auc": 0.954, "pr_auc": 0.307},
-    "fedavg_mlp": {"roc_auc": 0.575, "pr_auc": 0.199},
-    "centralized_mlp": {"roc_auc": 0.888, "pr_auc": 0.153},
-    "logistic_regression": {"roc_auc": 0.818, "pr_auc": 0.114},
-}
+
+# v4.0 (review M1): reference numbers are READ from the machine-readable
+# artefacts at run time — never hand-typed. The previous hand-typed dict
+# injected a stale logistic-regression value (0.818/0.114 vs the artefact's
+# 0.8236/0.2348) into two tables.
+def load_shipped_reference(results_json=None):
+    """In-partition (shipped-protocol) reference metrics, read from
+    outputs/results.json. Returns {model: {roc_auc, pr_auc}}."""
+    import json as _json
+    path = results_json or cfg.RESULTS_JSON
+    with open(path) as f:
+        res = _json.load(f)
+    out = {}
+    for name, m in res.get("test_metrics", {}).items():
+        if isinstance(m, dict) and "roc_auc" in m and "pr_auc" in m:
+            out[name] = {"roc_auc": float(m["roc_auc"]),
+                         "pr_auc": float(m["pr_auc"]),
+                         "source": "outputs/results.json"}
+    return out
+
+
+SHIPPED = load_shipped_reference()
 
 
 def _atomic_json(obj, path):

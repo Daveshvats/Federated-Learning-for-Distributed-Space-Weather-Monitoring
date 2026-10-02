@@ -17,8 +17,8 @@ import sys, time, pickle
 import numpy as np
 import pandas as pd
 
-RAW = "/tmp/swansf_raw"
-CLONE = "/home/z/my-project/scripts/clone/data/cleaned"
+RAW = os.environ.get("SWANSF_RAW", "/tmp/swansf_raw")  # v4.0: overridable
+CLONE = os.environ.get("SF9_CLEANED", os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "cleaned"))  # v4.0: overridable
 REAL_CNT = 28
 BORDER_CNT = 16
 SPEAR_THR = 0.70

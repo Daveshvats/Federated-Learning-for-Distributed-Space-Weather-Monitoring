@@ -1,4 +1,6 @@
-[Manifest] written -> /home/z/my-project/repo/data_manifest/manifest.json
-[Manifest] partitions found: NONE (data missing)
+[Manifest] written -> /tmp/manifest_regenerated.json
+[Manifest] partitions found: ['1', '2', '3', '4', '5']
 [Manifest] base features: 24
 [Manifest] flat features: 144
+[Manifest] train prevalence: 0.4887
+[Manifest] test prevalence:  0.0188
