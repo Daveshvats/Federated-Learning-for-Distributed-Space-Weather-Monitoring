@@ -178,7 +178,8 @@ def persistence_predictions_24h(slim_df, lag_min=1440, tol_min=35):
 
     Forecast for a window at time t = the label of the same-AR window
     whose start time is nearest to t - 1440 min, matched only when
-    within tol_min (half the ~64-min median within-AR cadence);
+    within tol_min (a tolerance near half the measured 60-min
+    median within-AR cadence);
     windows without a match inside the tolerance are excluded.
     """
     df = slim_df.sort_values(["ar", "ts_start_min", "pool_row"])

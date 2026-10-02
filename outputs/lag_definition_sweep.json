@@ -1,0 +1,334 @@
+{
+ "purpose": "sensitivity sweep over candidate definitions of the 24-hour-lagged persistence floor \u2014 commits the R-FS9-R1 response letter's 'eight candidate definitions' claim as a regenerable artefact (Dossier R-FS9-R2 item F7)",
+ "input": "provenance/test_meta_slim.csv.gz",
+ "arm_reference": "outputs/standard_metrics.json block_a_derived.leakage_free_fold (fbeta_threshold), read at runtime",
+ "leakfree_arms_fbeta": {
+  "logistic_regression": {
+   "tss": 0.48910252100840335,
+   "hss": 0.024534297798331463
+  },
+  "xgboost": {
+   "tss": 0.8476762244291657,
+   "hss": 0.20098055343531285
+  },
+  "centralized_mlp": {
+   "tss": 0.05801680672268905,
+   "hss": 0.0016154889381637038
+  },
+  "fedavg_mlp": {
+   "tss": 0.16689747899159668,
+   "hss": 0.0052356070796322
+  },
+  "fedprox_mlp": {
+   "tss": 0.1904134453781512,
+   "hss": 0.0061412176713115975
+  }
+ },
+ "lag_min": 1440,
+ "definitions": [
+  {
+   "id": "nearest_30",
+   "role": "candidate",
+   "definition": "nearest same-AR start to t-1440 min, tolerance 30 min",
+   "pooled_test": {
+    "n_evaluated": 244340,
+    "confusion": {
+     "tp": 2164,
+     "fp": 2970,
+     "fn": 2769,
+     "tn": 236437
+    },
+    "tss": 0.42627263677436344,
+    "hss": 0.41793352106494097
+   },
+   "p5_test": {
+    "n_evaluated": 56648,
+    "confusion": {
+     "tp": 371,
+     "fp": 433,
+     "fn": 501,
+     "tn": 55343
+    },
+    "tss": 0.41769551995662857,
+    "hss": 0.43436706862288627
+   },
+   "p5_clears_floor": {
+    "tss": [
+     "logistic_regression",
+     "xgboost"
+    ],
+    "hss": []
+   }
+  },
+  {
+   "id": "nearest_60",
+   "role": "candidate",
+   "definition": "nearest same-AR start to t-1440 min, tolerance 60 min",
+   "pooled_test": {
+    "n_evaluated": 250723,
+    "confusion": {
+     "tp": 2208,
+     "fp": 3035,
+     "fn": 2833,
+     "tn": 242647
+    },
+    "tss": 0.42565496431916194,
+    "hss": 0.4174624283619588
+   },
+   "p5_test": {
+    "n_evaluated": 57968,
+    "confusion": {
+     "tp": 374,
+     "fp": 440,
+     "fn": 508,
+     "tn": 56646
+    },
+    "tss": 0.4163286120483532,
+    "hss": 0.4327529542568624
+   },
+   "p5_clears_floor": {
+    "tss": [
+     "logistic_regression",
+     "xgboost"
+    ],
+    "hss": []
+   }
+  },
+  {
+   "id": "nearest_120",
+   "role": "candidate",
+   "definition": "nearest same-AR start to t-1440 min, tolerance 120 min",
+   "pooled_test": {
+    "n_evaluated": 256614,
+    "confusion": {
+     "tp": 2248,
+     "fp": 3092,
+     "fn": 2890,
+     "tn": 248384
+    },
+    "tss": 0.4252289206208135,
+    "hss": 0.4171954773190558
+   },
+   "p5_test": {
+    "n_evaluated": 59166,
+    "confusion": {
+     "tp": 377,
+     "fp": 446,
+     "fn": 514,
+     "tn": 57829
+    },
+    "tss": 0.4154667221333888,
+    "hss": 0.43168779281040537
+   },
+   "p5_clears_floor": {
+    "tss": [
+     "logistic_regression",
+     "xgboost"
+    ],
+    "hss": []
+   }
+  },
+  {
+   "id": "most_recent_ge_24h",
+   "role": "candidate",
+   "definition": "latest same-AR window starting at or before t-1440 min (a most-recent-observation reading of the R-FS9-R1 rule; the panel's own variant scored 0.374)",
+   "pooled_test": {
+    "n_evaluated": 272870,
+    "confusion": {
+     "tp": 2291,
+     "fp": 3268,
+     "fn": 3150,
+     "tn": 264161
+    },
+    "tss": 0.4088422388367499,
+    "hss": 0.40454476961082664
+   },
+   "p5_test": {
+    "n_evaluated": 61773,
+    "confusion": {
+     "tp": 376,
+     "fp": 452,
+     "fn": 512,
+     "tn": 60433
+    },
+    "tss": 0.4159995916093477,
+    "hss": 0.43032558278359706
+   },
+   "p5_clears_floor": {
+    "tss": [
+     "logistic_regression",
+     "xgboost"
+    ],
+    "hss": []
+   }
+  },
+  {
+   "id": "exact_1440",
+   "role": "candidate",
+   "definition": "same-AR start exactly t-1440 min (equivalent to any tolerance below the 60-min grid: within-AR start gaps are multiples of the cadence)",
+   "pooled_test": {
+    "n_evaluated": 244340,
+    "confusion": {
+     "tp": 2164,
+     "fp": 2970,
+     "fn": 2769,
+     "tn": 236437
+    },
+    "tss": 0.42627263677436344,
+    "hss": 0.41793352106494097
+   },
+   "p5_test": {
+    "n_evaluated": 56648,
+    "confusion": {
+     "tp": 371,
+     "fp": 433,
+     "fn": 501,
+     "tn": 55343
+    },
+    "tss": 0.41769551995662857,
+    "hss": 0.43436706862288627
+   },
+   "p5_clears_floor": {
+    "tss": [
+     "logistic_regression",
+     "xgboost"
+    ],
+    "hss": []
+   }
+  },
+  {
+   "id": "index_offset_23",
+   "role": "candidate",
+   "definition": "same-AR window 23 positions earlier in ts_start_min order",
+   "pooled_test": {
+    "n_evaluated": 266307,
+    "confusion": {
+     "tp": 2326,
+     "fp": 3210,
+     "fn": 3004,
+     "tn": 257767
+    },
+    "tss": 0.424097814115886,
+    "hss": 0.4162188303382886
+   },
+   "p5_test": {
+    "n_evaluated": 60402,
+    "confusion": {
+     "tp": 370,
+     "fp": 454,
+     "fn": 518,
+     "tn": 59060
+    },
+    "tss": 0.4090382094969251,
+    "hss": 0.4240928031640653
+   },
+   "p5_clears_floor": {
+    "tss": [
+     "logistic_regression",
+     "xgboost"
+    ],
+    "hss": []
+   }
+  },
+  {
+   "id": "index_offset_24",
+   "role": "candidate",
+   "definition": "same-AR window 24 positions earlier in ts_start_min order",
+   "pooled_test": {
+    "n_evaluated": 263792,
+    "confusion": {
+     "tp": 2215,
+     "fp": 3296,
+     "fn": 3074,
+     "tn": 255207
+    },
+    "tss": 0.40604338723490174,
+    "hss": 0.3978642691855637
+   },
+   "p5_test": {
+    "n_evaluated": 59826,
+    "confusion": {
+     "tp": 353,
+     "fp": 465,
+     "fn": 530,
+     "tn": 58478
+    },
+    "tss": 0.3918845219470241,
+    "hss": 0.4066267596116318
+   },
+   "p5_clears_floor": {
+    "tss": [
+     "logistic_regression",
+     "xgboost"
+    ],
+    "hss": []
+   }
+  },
+  {
+   "id": "any_flare_in_lookback",
+   "role": "candidate",
+   "definition": "any positive label among same-AR windows starting in [t-1440, t)",
+   "pooled_test": {
+    "n_evaluated": 331185,
+    "confusion": {
+     "tp": 6033,
+     "fp": 3359,
+     "fn": 201,
+     "tn": 321592
+    },
+    "tss": 0.9574205159869383,
+    "hss": 0.7669001153059916
+   },
+   "p5_test": {
+    "n_evaluated": 75365,
+    "confusion": {
+     "tp": 961,
+     "fp": 473,
+     "fn": 29,
+     "tn": 73902
+    },
+    "tss": 0.9643474068415245,
+    "hss": 0.7896347552654102
+   },
+   "p5_clears_floor": {
+    "tss": [],
+    "hss": []
+   }
+  },
+  {
+   "id": "shipped_nearest_35",
+   "role": "shipped",
+   "definition": "nearest same-AR start to t-1440 min, tolerance 35 min (the definition stored in standard_metrics.json block C)",
+   "pooled_test": {
+    "n_evaluated": 244340,
+    "confusion": {
+     "tp": 2164,
+     "fp": 2970,
+     "fn": 2769,
+     "tn": 236437
+    },
+    "tss": 0.42627263677436344,
+    "hss": 0.41793352106494097
+   },
+   "p5_test": {
+    "n_evaluated": 56648,
+    "confusion": {
+     "tp": 371,
+     "fp": 433,
+     "fn": 501,
+     "tn": 55343
+    },
+    "tss": 0.41769551995662857,
+    "hss": 0.43436706862288627
+   },
+   "p5_clears_floor": {
+    "tss": [
+     "logistic_regression",
+     "xgboost"
+    ],
+    "hss": []
+   }
+  }
+ ],
+ "shipped_rule_consistency_vs_block_c": "PASS"
+}

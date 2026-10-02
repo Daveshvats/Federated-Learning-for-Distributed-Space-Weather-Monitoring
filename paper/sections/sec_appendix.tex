@@ -17,7 +17,7 @@ reimplementation would likely rediscover the hard way.
 \setlength{\LTcapwidth}{\textwidth}
 \begin{longtable}{@{}p{0.09\textwidth} >{\raggedright\arraybackslash}p{0.42\textwidth} >{\raggedright\arraybackslash}p{0.43\textwidth}@{}}
 \caption{Documented stability fixes and protocol revisions across
-framework versions (v2.1--v4.0), as recorded in the released source.}
+framework versions (v2.1--v4.2), as recorded in the released source.}
 \label{tab:evolution}\\
 \toprule
 \textbf{Version} & \textbf{Diagnosed failure mode} & \textbf{Fix} \\
@@ -265,9 +265,11 @@ its neutrality caption, and stale custodian/grid passages in the
 problem statement. & The corrected apparatus: persistence baselines
 recomputed on true time order with BOTH floors reported (label
 inertia 0.967; 24-hour-lag 0.418) and Section 6.1 rewritten around
-them (XGBoost is the only arm above the lagged floor); the two
+them (at TSS, XGBoost 0.848 and logistic regression 0.489 are the
+only arms above the lagged floor; at HSS none is); the two
 aggregation paths fixed (ten LSTM arms and 24 frozen-FPR cells now
-carry metrics) and the JSON regenerated as strict JSON, bit-exact;
+carry metrics) and the JSON regenerated as strict JSON, content-exact
+across the artefact-derived blocks;
 exact chi-square (Garwood) Poisson intervals; the six bib entries
 replaced with records read from arXiv/DBLP/IEEE/IOP; the
 \texttt{sec:limits} reference fixed; Figure 7 and the partition
@@ -276,6 +278,41 @@ custodian and grid-protection passages replaced with the honest
 public-data simulation framing; the manifest environment claim
 matched to artefacts; a leakage-gate failure-path test added
 (battery 219/219). \\
+\addlinespace[2pt]
+v4.2 & Re-review of v4.1 (Dossier R-FS9-R2, verdict: minor revision,
+conditional acceptance): all previous blocking items verified fixed,
+both persistence floors independently re-implemented by the panel to
+the last digit, and the rebuilt bibliography re-checked against live
+Crossref/arXiv records; one new substantive error --- the v4.1
+correction itself had introduced a false exclusivity, ``XGBoost
+alone clears the 24-hour-lagged floor,'' refuted by the paper's own
+artefact (logistic regression clears it at TSS $0.489$; at HSS no
+arm clears, XGBoost $0.201 < 0.434$) --- plus five minors: an
+event-level false-alarm range whose lower endpoint (8.6) belonged to
+logistic regression rather than the neural arms, two execution
+environments conflated in one parenthetical (the Python 3.12
+protocol run vs.\ the battery header's 3.13.5), a ``bit-exact''
+overstatement (the metrics artefact embeds wall-clock
+\texttt{elapsed\_s}; the artefact-derived blocks are content-exact),
+a response-letter arm miscount, and a stale docstring cadence. &
+The exclusivity clause corrected in all four places (abstract,
+Section 6.1, the v4.1 row above, response letter) to the
+artefact-backed statement --- at TSS two arms clear the lagged
+floor, at HSS none does --- and logistic regression's TSS/HSS added
+to Section 6.1's first finding; the false-alarm range re-attributed
+(11.6--12.7 for the neural arms); the environment parenthetical
+split; ``bit-exact'' softened to content-exact with block B's
+phase-cache dependency stated; the lag-definition sensitivity sweep
+committed (\texttt{experiments/run\_lag\_definition\_sweep.py} $\to$
+\texttt{outputs/lag\_definition\_sweep.json}: seven point-lag
+variants land at TSS $0.392$--$0.418$, two arms clearing each; the
+lookback-flare variant scores $0.964$, label inertia under another
+name); the docstring cadence corrected to 60 minutes; the battery
+re-verified in the current (torch-less) verification environment at
+195 passed / 0 failed with the 24 torch-dependent checks skipped ---
+the same delta the panel's own fresh run showed --- and the committed
+v4.1 log (219/219) retained as the full-battery record
+(\texttt{logs/test\_battery\_v4.2.log}). \\
 \end{longtable}
 \endgroup
 

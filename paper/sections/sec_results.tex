@@ -118,12 +118,19 @@ and raw-substrate 2-D arms, the ten raw-substrate LSTM cells, and
 the event-level tables; 10-bin reliability is recomputed for the six
 in-partition arms from the phase-cache models;
 \texttt{experiments/run\_standard\_metrics.py} $\to$
-\texttt{outputs/standard\_metrics.json}, strict JSON, bit-exact on
-re-execution). Four findings matter. First, on the leakage-free fold
+\texttt{outputs/standard\_metrics.json}, strict JSON; the
+artefact-derived blocks (A, C, D) are content-exact on re-execution,
+block B's reliability recomputation additionally requires the
+uncommitted phase-cache models, and the artefact embeds a wall-clock
+\texttt{elapsed\_s} field, so file-level equality is not claimed).
+Four findings matter. First, on the leakage-free fold
 at each arm's frozen $F_\beta$ threshold, XGBoost attains TSS
-$0.848$ / HSS $0.201$ (best frozen-FPR point $0.847$) while the
+$0.848$ / HSS $0.201$ (best frozen-FPR point $0.847$), logistic
+regression TSS $0.489$ / HSS $0.025$, while the
 neural arms sit at TSS $0.06$--$0.19$ / HSS $\le 0.006$: the
-prevalence-free TSS ranking matches the PR-AUC ranking, but HSS
+prevalence-free TSS ranking matches the PR-AUC ranking at the top
+of the table (XGBoost, logistic regression, then the neural arms),
+but HSS
 prices the neural arms' false-alarm load severely at 1.31\%
 prevalence. Second, the persistence baselines---computed on the true
 time order within each active region, as the operational
@@ -134,20 +141,31 @@ learned model at all: at a 24-hour label horizon on $\sim$60-minute
 windows, an active region that is flaring is still flaring, and
 \emph{no arm in this paper---XGBoost included---beats that floor}.
 The 24-hour-lagged variant (forecast = the label of the same-region
-window nearest $t-24$\,h, matched within half a cadence) scores TSS
-$0.418$ / HSS $0.434$; XGBoost is the only arm above it, and every
-neural arm at its frozen threshold sits below it. This is the
+window nearest $t-24$\,h, matched within $\pm$35 minutes) scores TSS
+$0.418$ / HSS $0.434$; on TSS, XGBoost ($0.848$) and logistic
+regression ($0.489$) are the only arms above it, and every
+neural arm at its frozen threshold sits below it, while on HSS no
+arm clears the floor at all (XGBoost's HSS is $0.201$). This is the
 classic Leka-era result, and a benchmark audit is the right vehicle
 for stating it plainly: at this window geometry the honest question
 is not whether models beat persistence, but whether anything beats
-\emph{lagged} persistence---and on this fold, one arm does. (An
+\emph{lagged} persistence---and on this fold, at TSS, two arms do,
+none at HSS. (An
 earlier implementation of this baseline ordered windows by pool row,
 whose within-region order is temporally scrambled---the median gap
 between pool-row-adjacent windows is two days---so its stored value
 measured randomly paired windows; that is precisely the class of
 evaluation-protocol defect this paper exists to audit, and the
 corrected ordering and both variants regenerate from the committed
-artefact.) Third, no arm's raw Brier beats the climatology floor
+artefact. A sensitivity sweep over eight candidate lag definitions
+is committed alongside it
+(\texttt{experiments/run\_lag\_definition\_sweep.py} $\to$
+\texttt{outputs/lag\_definition\_sweep.json}): the seven point-lag
+variants land at TSS $0.392$--$0.418$ with the same two arms
+clearing each and none at HSS, while a lookback-flare variant
+scores $0.964$---label inertia under another name, which no arm
+clears---so the paper reports inertia and lagged persistence as
+two distinct floors.) Third, no arm's raw Brier beats the climatology floor
 (pooled-test BSS: XGBoost $-2.4$, FedAvg $-6.3$, FedProx $-13.3$;
 all negative), and the 10-bin reliability tables confirm the
 systematic over-confidence that the calibration analysis of
@@ -171,7 +189,7 @@ boundary, not precursor physics --- an honest reading is ``detection
 fires early in the labelled window,'' not ``the model sees the flare
 23 hours ahead.'' What separates the arms is their false-alarm
 burden: XGBoost emits 1.7
-false-alarm windows per day versus 8.6--12.7 for the neural arms, a
+false-alarm windows per day versus 11.6--12.7 for the neural arms, a
 7$\times$ difference that mirrors the window-level calibration gap
 and confirms that the deployability boundary on this benchmark is
 calibration, not detection. After the 1-hour cooldown, roughly 70\%

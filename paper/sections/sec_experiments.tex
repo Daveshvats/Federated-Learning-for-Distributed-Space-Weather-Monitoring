@@ -271,10 +271,11 @@ start), and the frozen
 protocol was run end-to-end (data load and flattening, immutable
 splits, Dirichlet partition, pooled baselines, FedAvg and FedProx to
 50 rounds, validation-fit calibration and thresholds, single-pass test
-evaluation, figures, and SHAP attribution) on CPU only (Python 3.12;
-the torch (2.14.1) and numpy (2.2.4) versions of the verification
-environment are pinned in \texttt{requirements.txt} and recorded in
-the committed battery log header; the run manifest records them
+evaluation, figures, and SHAP attribution) on CPU only (the protocol
+run of record used Python 3.12; the committed battery log header
+records the v4.1 verification battery's environment --- python
+3.13.5, numpy 2.2.4, torch 2.14.1+cpu --- the library versions
+pinned in \texttt{requirements.txt}; the run manifest records them
 per-run from v4.0 onward --- the committed manifest documents the
 original v3.x execution and predates the field). Every test-set metric of every model
 reproduced \emph{exactly}, to all reported significant digits: all
