@@ -31,14 +31,14 @@ import numpy as np
 from collections import Counter
 
 CLIENT_NAMES = [
-    # Neutral labels (review R8): hypothetical regional custodians, not
-    # participating institutions (see paper figure captions).
-    "Client A (Americas)",
-    "Client B (Europe)",
-    "Client C (Asia-Pacific)",
-    "Client D (South Asia)",
-    "Client E (East Asia)",
-    "Client F (Oceania)",
+    # Plain neutral identifiers (v4.1): simulated shards, not regions
+    # or institutions (mirrors config.py).
+    "Client A",
+    "Client B",
+    "Client C",
+    "Client D",
+    "Client E",
+    "Client F",
 ]
 
 

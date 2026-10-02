@@ -37,7 +37,9 @@ the in-partition federated-versus-centralised gap does not survive
 0.973/0.382); the threshold-transfer and
 calibration failures persist (only XGBoost's posteriors are usable);
 and event-level detection is essentially solved for every arm (64--65
-of 65 events, 23.4\,h median lead) while the false-alarm burden
+of 65 events, 23.4\,h median first-alert lead---a label-boundary
+quantity at this 24-hour label horizon, not a usable warning time,
+Table~\ref{tab:eventlevel}) while the false-alarm burden
 separates the arms by roughly $7\times$. Retraining the identical
 frozen protocol on the RAW, unbalanced benchmark (natural 2.05\%
 training prevalence, no rebalancing, no synthetic positives, the

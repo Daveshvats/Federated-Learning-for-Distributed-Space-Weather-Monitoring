@@ -35,7 +35,7 @@ train if the audit fails.
 reported test metrics are recomputed from those predictions (the v2.x
 code reported a stale accuracy for federated models).
 \item \textbf{Protocol extensions released with this revision.} The
-following components are implemented, unit-tested (the 214-check
+following components are implemented, unit-tested (the 219-check
 integrity battery of \texttt{tests/run\_battery.py}, whose single
 authoritative count and log are committed at
 \texttt{logs/test\_battery.log}), and smoke-validated. Five of them were additionally
@@ -253,8 +253,9 @@ and tables are generated from these artefacts. The pipeline supports
 round-level crash recovery, and the integrity battery (partitioning
 disjointness, leakage audit, calibration, evaluation protocol,
 threshold-freezing arithmetic, event-level metrics, FL smoke tests,
-GPU-queue artefact guards, and an audit-artefact recomputation test)
-passes 214/214 checks (\texttt{tests/run\_battery.py};
+GPU-queue artefact guards, a leakage-gate failure-path test, and an
+audit-artefact recomputation test)
+passes 219/219 checks (\texttt{tests/run\_battery.py};
 \texttt{logs/test\_battery.log}).
 
 \paragraph{Independent re-execution from the public artefacts.}
@@ -271,9 +272,11 @@ protocol was run end-to-end (data load and flattening, immutable
 splits, Dirichlet partition, pooled baselines, FedAvg and FedProx to
 50 rounds, validation-fit calibration and thresholds, single-pass test
 evaluation, figures, and SHAP attribution) on CPU only (Python 3.12;
-the torch and numpy versions are recorded per-run in the run manifest,
-and the v4.0 verification environment is pinned in
-\texttt{requirements.txt}). Every test-set metric of every model
+the torch (2.14.1) and numpy (2.2.4) versions of the verification
+environment are pinned in \texttt{requirements.txt} and recorded in
+the committed battery log header; the run manifest records them
+per-run from v4.0 onward --- the committed manifest documents the
+original v3.x execution and predates the field). Every test-set metric of every model
 reproduced \emph{exactly}, to all reported significant digits: all
 six models' ROC-AUC, PR-AUC, Brier, ECE, precision, recall, F1, and
 accuracy match the published artefacts at three decimals, and the

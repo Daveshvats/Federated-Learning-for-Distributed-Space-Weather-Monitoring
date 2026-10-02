@@ -1,10 +1,13 @@
 """
-tests/run_battery.py  (v4.0 — review M10)
+tests/run_battery.py  (v4.1 — Dossier R-FS9-R1 D1)
 ─────────────────────────────────────────
 Single entry point for the integrity battery. Runs every test module,
 aggregates PASS/FAIL across all of them, prints ONE total, and writes
 logs/test_battery.log. The paper cites exactly this number — the
 reconciliation of the previous 78/58/66/142 four-way contradiction.
+The log header records the interpreter and (when importable) the
+torch/numpy versions, so the verification environment is an
+artefact-backed claim (R-FS9-R1 C5).
 
 Usage:
     python tests/run_battery.py
@@ -30,6 +33,7 @@ MODULES = [
     "tests/test_audit_artifact.py",
     "tests/test_gpu_queue.py",
     "tests/test_gpu_queue_artefacts.py",
+    "tests/test_leakage_gate.py",
     "tests/test_fl_smoke.py",
     "tests/test_event_level_lstm.py",
     "tests/test_raw_substrate.py",
@@ -37,7 +41,8 @@ MODULES = [
 ]
 
 # unittest-style modules run with -v so each test case emits one line
-UNITTEST_MODULES = {"tests/test_gpu_queue_artefacts.py"}
+UNITTEST_MODULES = {"tests/test_gpu_queue_artefacts.py",
+                    "tests/test_leakage_gate.py"}
 
 
 def run_module(mod):
@@ -72,6 +77,18 @@ def run_module(mod):
             "output": out}
 
 
+def _env_header():
+    """Interpreter + library versions for the log header (R-FS9-R1 C5)."""
+    env = [f"python {sys.version.split()[0]}"]
+    for lib in ("numpy", "torch"):
+        try:
+            mod = __import__(lib)
+            env.append(f"{lib} {mod.__version__}")
+        except Exception:
+            env.append(f"{lib} not-importable-in-this-env")
+    return ", ".join(env)
+
+
 def main():
     os.makedirs(os.path.dirname(LOG), exist_ok=True)
     total_p = total_f = 0
@@ -99,7 +116,8 @@ def main():
                f"battery verdict {verdict}")
 
     with open(LOG, "w") as f:
-        f.write("integrity battery — single authoritative count (v4.0)\n")
+        f.write("integrity battery — single authoritative count (v4.1)\n")
+        f.write("environment: " + _env_header() + "\n")
         f.write("=" * 60 + "\n")
         f.write("\n".join(lines) + "\n")
         f.write("=" * 60 + "\n")

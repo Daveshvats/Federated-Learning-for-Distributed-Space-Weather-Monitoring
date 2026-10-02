@@ -32,8 +32,8 @@ N = len(y)
 POOL_RATE = float(y.mean())
 
 N_CLIENTS = 6
-CLIENTS = ["Client A\nAmericas", "Client B\nEurope", "Client C\nAsia-Pacific",
-           "Client D\nSouth Asia", "Client E\nEast Asia", "Client F\nOceania"]
+CLIENTS = ["Client A", "Client B", "Client C",
+           "Client D", "Client E", "Client F"]
 
 rel_size = np.array([(a == k).sum() for k in range(N_CLIENTS)]) / N
 flare_rate = np.array([y[a == k].mean() for k in range(N_CLIENTS)])

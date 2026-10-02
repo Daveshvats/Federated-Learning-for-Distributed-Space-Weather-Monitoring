@@ -111,30 +111,52 @@ threshold re-freezing on this fold either.
 \paragraph{Standard verification metrics and baselines.}
 Because the toolkit of Leka et al.~\cite{leka2019}---TSS, HSS, Brier
 skill, reliability, persistence and climatology---is the standard
-vocabulary of flare-forecast evaluation, every operating point of this
-paper is accompanied by it (\texttt{experiments/run\_standard\_metrics.py}
-$\to$ \texttt{outputs/standard\_metrics.json}; derivation from the
-committed confusion components at full precision, plus recomputation
-from the phase-cache models). Three findings matter. First, on the
-leakage-free fold at each arm's frozen $F_\beta$ threshold, XGBoost
-attains TSS $0.848$ / HSS $0.201$ while the neural arms sit at TSS
-$0.06$--$0.19$ / HSS $\le 0.006$: the prevalence-free TSS ranking
-matches the PR-AUC ranking, but HSS prices the neural arms'
-false-alarm load severely at 1.31\% prevalence. Second, the
-same-active-region previous-window persistence baseline achieves TSS
-$0.348$ on the partition-5 test (HSS $0.349$) with no learned model
-at all --- the label-inertia floor every published arm on this fold
-must be read against, and every neural arm at its frozen threshold
-sits \emph{below} that floor on TSS while XGBoost sits above it.
-Third, no arm's raw Brier beats the climatology floor
+vocabulary of flare-forecast evaluation, it accompanies every stored
+operating point of every evaluation substrate (the $F_\beta$
+thresholds and frozen-FPR points of the in-partition, leakage-free
+and raw-substrate 2-D arms, the ten raw-substrate LSTM cells, and
+the event-level tables; 10-bin reliability is recomputed for the six
+in-partition arms from the phase-cache models;
+\texttt{experiments/run\_standard\_metrics.py} $\to$
+\texttt{outputs/standard\_metrics.json}, strict JSON, bit-exact on
+re-execution). Four findings matter. First, on the leakage-free fold
+at each arm's frozen $F_\beta$ threshold, XGBoost attains TSS
+$0.848$ / HSS $0.201$ (best frozen-FPR point $0.847$) while the
+neural arms sit at TSS $0.06$--$0.19$ / HSS $\le 0.006$: the
+prevalence-free TSS ranking matches the PR-AUC ranking, but HSS
+prices the neural arms' false-alarm load severely at 1.31\%
+prevalence. Second, the persistence baselines---computed on the true
+time order within each active region, as the operational
+verification culture mandates---set two floors, and neither is
+decorative. Same-region previous-window persistence (label inertia)
+achieves TSS $0.967$ / HSS $0.970$ on the partition-5 test with no
+learned model at all: at a 24-hour label horizon on $\sim$60-minute
+windows, an active region that is flaring is still flaring, and
+\emph{no arm in this paper---XGBoost included---beats that floor}.
+The 24-hour-lagged variant (forecast = the label of the same-region
+window nearest $t-24$\,h, matched within half a cadence) scores TSS
+$0.418$ / HSS $0.434$; XGBoost is the only arm above it, and every
+neural arm at its frozen threshold sits below it. This is the
+classic Leka-era result, and a benchmark audit is the right vehicle
+for stating it plainly: at this window geometry the honest question
+is not whether models beat persistence, but whether anything beats
+\emph{lagged} persistence---and on this fold, one arm does. (An
+earlier implementation of this baseline ordered windows by pool row,
+whose within-region order is temporally scrambled---the median gap
+between pool-row-adjacent windows is two days---so its stored value
+measured randomly paired windows; that is precisely the class of
+evaluation-protocol defect this paper exists to audit, and the
+corrected ordering and both variants regenerate from the committed
+artefact.) Third, no arm's raw Brier beats the climatology floor
 (pooled-test BSS: XGBoost $-2.4$, FedAvg $-6.3$, FedProx $-13.3$;
 all negative), and the 10-bin reliability tables confirm the
 systematic over-confidence that the calibration analysis of
-Section~\ref{sec:res-calib} dissects. Event-level detection rates
-carry Wilson 95\% intervals of $\pm$4--8 points at 65 events, and
-alert rates carry Poisson intervals (Block~D of the same artefact),
-so the between-arm event-level narrations of the next paragraph are
-read against those bands.
+Section~\ref{sec:res-calib} dissects. Fourth, event-level detection
+rates carry Wilson 95\% half-widths of $\pm$2.8--4.0 points on the
+leakage-free fold and up to $\pm$11.8 points on the raw substrate
+(65 events), and alert rates carry exact chi-square (Garwood)
+Poisson intervals, so the between-arm event-level narrations of the
+next paragraph are read against those bands.
 
 \paragraph{Event-level evaluation.}
 Table~\ref{tab:eventlevel} regroups the partition-5 test decisions
@@ -407,9 +429,10 @@ validation-frozen thresholds and the cooldown machinery, not just
 the ranking metrics. FedProx-LSTM is the standout: 49/65 (75.4\%)
 detection at 0.4 false-alarm windows per day, exceeding
 FedProx-MLP's raw detection while cutting its false-alarm burden
-$3.5\times$ (1.3), with a 23.2\,h median lead to flare peak---the
-joint-longest on this substrate and $4\times$ the 1-hour minimum
-warning horizon the event protocol is built around. SCAFFOLD-LSTM,
+$3.5\times$ (1.3), with a 23.2\,h median first-alert lead to flare
+peak---the joint-longest on this substrate, and (like every arm's
+lead at this label geometry) a label-boundary quantity rather than a
+usable warning time (Table~\ref{tab:eventlevel}). SCAFFOLD-LSTM,
 evaluated in-runner by the same machinery, supplies the sharpest
 event-level datum of the batch: 55/65 (84.6\%) detection at 0.41
 false-alarm windows per day and a 23.2\,h median lead---its MLP
@@ -579,8 +602,10 @@ compute).
 $F_2$-optimal threshold $\tau^\ast$ selected on \emph{validation}.
 Calibration: prior-shift (fit on validation). Brier and ECE (15 bins)
 are computed on the calibrated probabilities. Best value per column in
-bold; note that the climatology's Brier (0.239) is better than every
-neural model's---see Section~\ref{sec:res-calib}.}
+bold; the climatology row is the validation-fitted base rate (the
+prior-shift convention), and the honest Brier reference is the
+test-set climatology ($0.0185$ at 1.88\% prevalence), which no arm's
+calibrated Brier beats---see Section~\ref{sec:res-calib}.}
 \label{tab:main}
 \footnotesize
 \setlength{\tabcolsep}{2.8pt}
@@ -1198,7 +1223,8 @@ six-client cohort, and 70.5~MB aggregate over the 50-round run
 from the frozen configuration---bytes counted, not measured on a live
 deployment---and they quantify the \emph{training cadence} (one
 round-trip per round) separately from the \emph{observation cadence}
-(magnetogram windows arrive roughly every 12 minutes; the global model
+(magnetogram records arrive every 12 minutes and the pooled windows
+are spaced roughly 60 minutes apart; the global model
 is refreshed per training cycle, while alerts can be emitted per
 window). Wall-clock communication latency, aggregation compute,
 client training time, straggler recovery, and secure-aggregation
@@ -1216,7 +1242,8 @@ entire training feature set is $82{,}121 \times 144$ float32 values
 (47.3~MB): the cohort's 50-round parameter exchange (70.5~MB) is
 \emph{1.5 times larger}, so no bandwidth saving accrues for a single
 training cycle at this model size --- communication frugality here is
-a property of the 12-minute observation cadence and repeated
+a property of the continuous data stream (new records every
+12 minutes) and repeated
 retraining cycles, not of one run. On the raw 3D substrate the
 ordering reverses: centralising the training windows
 ($214{,}888 \times 60 \times 24$ float32, $\approx$1.24~GB) exceeds

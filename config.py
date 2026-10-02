@@ -78,15 +78,15 @@ FORCE_NON_IID    = True
 MIN_SAMPLES_PER_CLIENT = 100
 
 CLIENT_NAMES = [
-    # Neutral labels (review R8): clients are hypothetical regional
-    # custodians, NOT participating institutions. The paper figure
-    # captions state this explicitly.
-    "Client A (Americas)",
-    "Client B (Europe)",
-    "Client C (Asia-Pacific)",
-    "Client D (South Asia)",
-    "Client E (East Asia)",
-    "Client F (Oceania)",
+    # Plain neutral identifiers (v4.1, R-FS9-R1 C2): clients are
+    # simulated shards of a public benchmark, not institutions and
+    # not regions — no geographic naming anywhere.
+    "Client A",
+    "Client B",
+    "Client C",
+    "Client D",
+    "Client E",
+    "Client F",
 ]
 
 # ── Aggregation / loss ablation switches ──────────────────────────────────

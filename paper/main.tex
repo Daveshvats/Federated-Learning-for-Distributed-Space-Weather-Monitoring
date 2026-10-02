@@ -133,8 +133,12 @@ the outcome is encoder-conditional (federated MLPs degrade; FedProx-LSTM
 reaches 0.970/0.404). Calibration, not detection, is the deployability
 boundary: no validation-fit decision layer survives the prevalence
 shift. Standard verification metrics (TSS, HSS, Brier skill,
-reliability, persistence and climatology baselines) accompany every
-reported operating point. This is the first federated evaluation on
+persistence and climatology baselines, with reliability for the
+in-partition arms) accompany every stored operating point of every
+substrate; under the corrected persistence baselines, no arm beats
+same-region label inertia (TSS 0.967) at this 24-hour label
+geometry, and XGBoost (0.848) alone clears 24-hour-lagged
+persistence (0.418). This is the first federated evaluation on
 SWAN-SF and the first instance-level provenance audit of the cleaned
 export; prior federated flare forecasting (Fu et al., 2023 preprint)
 and prior random-split leakage warnings (the benchmark's own creators,

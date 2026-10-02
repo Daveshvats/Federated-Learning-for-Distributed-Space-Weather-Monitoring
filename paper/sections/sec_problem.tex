@@ -5,7 +5,8 @@
 
 \subsection{Federated risk minimisation}
 
-Let $K$ denote the number of participating agencies (clients), each
+Let $K$ denote the number of participating clients (simulated shards
+of the pooled benchmark), each
 holding a private dataset
 $\mathcal{D}_k = \{(x_i, y_i)\}_{i=1}^{n_k}$ of active-region
 observation windows $x_i \in \R^{d}$ and binary labels
@@ -45,12 +46,17 @@ $\mathcal{D}_k$. Formally, the communication transcript
     \mathcal{T} \;=\;
     \big\{\Delta \w_k^{(t)}\big\}_{k=1,\dots,K;\; t=1,\dots,T}
 \end{equation}
-is the only quantity that crosses the client boundary. This encodes
-the data-locality position that several public data custodians adopt
-for raw magnetogram time series, and it is the property that the
-released framework enforces by construction: the client-side pipeline
-never serialises raw shards. We stress the scope of this property: it
-is \emph{data locality}, not cryptographic privacy. The transcript
+is the only quantity that crosses the client boundary. This is the
+data-locality constraint that motivates cross-silo federated learning
+in settings where shards genuinely cannot be pooled---proprietary
+archives, cross-border data governance, organisational silos. We
+stress that no such constraint binds this benchmark: the SWAN-SF
+data is public and freely poolable, and the federated protocol here
+is a controlled simulation of the constraint, not a response to it.
+The released framework nonetheless enforces the property by
+construction: the client-side pipeline never serialises raw shards.
+We further stress the scope of the property: it is
+\emph{data locality}, not cryptographic privacy. The transcript
 $\mathcal{T}$ itself can leak information about training data
 (Section~\ref{sec:threatmodel}); defending against an adversary who
 observes it requires secure aggregation or differential privacy, which
@@ -58,14 +64,21 @@ are implemented but not evaluated for accuracy cost here.
 
 \subsection{Statistical heterogeneity}
 
-Because different custodians monitor different populations of active
-regions---different longitudes, hemispheres, and instrument
-footprints---the local class priors $p_k = \Pr(y=1 \mid k)$ differ from
-the pooled prior $\bar{p}$. We simulate this label skew by partitioning
-the pooled training data among $K$ clients with a symmetric Dirichlet
-distribution of concentration $\alpha$ (Section~\ref{sec:method}),
+In genuine cross-silo deployments, participating organisations sample
+different populations under different label distributions, so the
+local class priors $p_k = \Pr(y=1 \mid k)$ differ from the pooled
+prior $\bar{p}$ --- statistical heterogeneity, the defining
+difficulty of federated optimisation. Because SWAN-SF is a
+single-instrument, whole-disk benchmark, no physical mechanism
+produces such skew here; we therefore \emph{impose} it by
+partitioning the pooled training data among $K$ clients with a
+symmetric Dirichlet distribution of concentration $\alpha$
+(Section~\ref{sec:method}),
 so that the realised local priors span a wide range around $\bar{p}$.
-The consequence for optimisation is well documented
+The partition is a simulation instrument --- a test of federation
+under heterogeneity, not a claim about how the data is produced: the
+labels and windows come from one observatory pipeline for every
+shard. The consequence for optimisation is well documented
 \cite{zhao2018,li2020}: local objectives $F_k$ become misaligned, and
 plain averaging of locally optimised weights introduces drift that
 grows with the number of local epochs. FedProx counteracts this drift
@@ -80,10 +93,10 @@ this study.
 
 \subsection{A safety-critical, recall-weighted objective}
 
-Grid protection inverts the usual classification cost structure. A
-false-positive flare alert costs a operator a conservative derating or
-an unnecessary operational posture; a false negative can cost a fleet
-of high-voltage transformers. Following operational forecasting
+Rare-event forecasting inverts the usual classification cost
+structure: at 1--2\% positive prevalence an all-clear forecast is
+98--99\% accurate and useless, while a missed positive is the event
+the forecast exists to catch. Following rare-event evaluation
 practice, we therefore evaluate with the $F_\beta$ measure
 \begin{equation}\label{eq:fbeta}
     \Fbeta \;=\;

@@ -143,7 +143,7 @@ substrate for all four arms plus the pooled comparator
 (Section~\ref{sec:res-lstm}), with its cleaned-fold pairing remaining
 future work (Section~\ref{sec:limitations}).
 
-\subsection{Non-IID partitioning into regional observatories}
+\subsection{Non-IID partitioning into simulated clients}
 
 \begin{figure}[t]
     \centering
@@ -151,17 +151,19 @@ future work (Section~\ref{sec:limitations}).
         \includegraphics{figures/fig_partition.png}
     \end{adjustbox}
     \caption{Non-IID partitioning of the pooled, class-balanced
-    training data into six regional clients by label-aware Dirichlet
+    training data into six simulated clients by label-aware Dirichlet
     sampling (concentration $\alpha = 1.0$, RNG seed 42,
     Section~\ref{sec:method}); proportions are read directly from the
     frozen run's cached client assignment. (a)~Realised relative shard
     sizes. (b)~Realised local flare rates against the pooled rate of
-    48.9\%: label skew spans 28.6\%--80.5\%, emulating observatories
-    that monitor very different active-region populations.}
+    48.9\%: label skew spans 28.6\%--80.5\%, emulating the label
+    heterogeneity a federation would face if the shards sampled very
+    different active-region populations (no real institution or
+    region participates).}
     \label{fig:partition}
 \end{figure}
 
-To emulate geographic heterogeneity, the pooled training set is
+To emulate label heterogeneity, the pooled training set is
 partitioned by label-aware Dirichlet sampling: for each class $c$, a
 proportion vector is drawn from
 $\mathrm{Dirichlet}(\alpha,\dots,\alpha) \in \R^{K}$ and each client
@@ -173,9 +175,10 @@ used by every experiment in this paper ($\alpha=1.0$, seed 42) on the
 class-balanced pool: realised local flare rates span 28.6\% to
 80.5\% and shard sizes range from 2.3\% to 35.6\% of the pool. This
 is a deliberately hostile federation: some clients are flare-rich and
-tiny, others flare-poor and large, mirroring the real asymmetry between
-agencies whose instruments and coverage dominate the corpus and those
-monitoring smaller regional populations. The concentration $\alpha=1.0$
+tiny, others flare-poor and large, mirroring the real asymmetry a
+cross-silo federation faces when some participants' archives dominate
+the pooled corpus and others sample much smaller populations. The
+concentration $\alpha=1.0$
 itself is the outcome of a documented tuning process
 (Appendix~\ref{sec:appendix}): early experiments at $\alpha \le 0.5$
 produced pathological partitions (0.3\%--99.8\% local flare rates,

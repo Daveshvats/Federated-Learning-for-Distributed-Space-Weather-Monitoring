@@ -1,10 +1,12 @@
 {
-  "purpose": "standard flare-forecast verification apparatus (Leka et al. 2019 toolkit): TSS, HSS, Brier skill score, reliability, persistence and climatology baselines \u2014 review Tier-1 item 8",
+  "purpose": "standard flare-forecast verification apparatus (Leka et al. 2019 toolkit): TSS, HSS, Brier skill score, reliability, persistence and climatology baselines \u2014 v4.1 (Dossier R-FS9-R1 items A1-A6)",
   "definitions": {
     "tss": "TSS = POD - POFD = recall - FPR",
     "hss": "HSS = 2(TP*TN - FP*FN)/[(TP+FN)(FN+TN)+(TP+FP)(FP+TN)]",
     "bss": "BSS = 1 - Brier/Brier_climatology (test-set base rate)",
-    "persistence": "same active region, previous window (~12 min cadence): the label-inertia floor"
+    "persistence_prev_window": "same active region, immediately preceding window in ts_start_min order (hourly within-AR cadence; the 12-min figure is the MVTS record cadence, a different quantity): the label-inertia floor",
+    "persistence_24h_lag": "same active region, window nearest to t - 1440 min within +/-35 min: the Leka-style 24-hour-lagged floor",
+    "zero_alert_semantics": "stored precision = recall = 0 encodes a zero-alert forecast: fp = 0 and TSS = HSS = 0.0"
   },
   "block_a_derived": {
     "in_partition": {
@@ -309,6 +311,34 @@
           },
           "tss": 0.48910252100840335,
           "hss": 0.024534297798331463
+        },
+        "0.5%FPR": {
+          "frozen_threshold": 0.9379636200537531,
+          "realised_fpr": 0.2106218487394958,
+          "recall": 0.98989898989899,
+          "tss": 0.7792771411594941,
+          "hss": 0.08854091973705751
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.8424485171624503,
+          "realised_fpr": 0.2987563025210084,
+          "recall": 0.9949494949494949,
+          "tss": 0.6961931924284865,
+          "hss": 0.05767795069426533
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.669242225715616,
+          "realised_fpr": 0.3942588235294118,
+          "recall": 0.997979797979798,
+          "tss": 0.6037209744503862,
+          "hss": 0.038671629168759554
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.2778424075483979,
+          "realised_fpr": 0.5856806722689075,
+          "recall": 1.0,
+          "tss": 0.4143193277310925,
+          "hss": 0.018246197845272955
         }
       },
       "xgboost": {
@@ -328,6 +358,34 @@
           },
           "tss": 0.8476762244291657,
           "hss": 0.20098055343531285
+        },
+        "0.5%FPR": {
+          "frozen_threshold": 0.6232958295923255,
+          "realised_fpr": 0.05543529411764706,
+          "recall": 0.8737373737373737,
+          "tss": 0.8183020796197267,
+          "hss": 0.27346792926078595
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.35725410714065386,
+          "realised_fpr": 0.0863327731092437,
+          "recall": 0.9333333333333333,
+          "tss": 0.8470005602240896,
+          "hss": 0.20327005532335815
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.1465006931857869,
+          "realised_fpr": 0.15260504201680672,
+          "recall": 0.9646464646464646,
+          "tss": 0.812041422629658,
+          "hss": 0.12232156814688909
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.0375627068852635,
+          "realised_fpr": 0.38147226890756303,
+          "recall": 0.9939393939393939,
+          "tss": 0.6124671250318309,
+          "hss": 0.040465423726390844
         }
       },
       "centralized_mlp": {
@@ -347,6 +405,34 @@
           },
           "tss": 0.05801680672268905,
           "hss": 0.0016154889381637038
+        },
+        "0.5%FPR": {
+          "frozen_threshold": 0.6091761805300289,
+          "realised_fpr": 0.6307226890756302,
+          "recall": 1.0,
+          "tss": 0.3692773109243698,
+          "hss": 0.015148870207039462
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.47772985359179887,
+          "realised_fpr": 0.782763025210084,
+          "recall": 1.0,
+          "tss": 0.217236974789916,
+          "hss": 0.0072384218643536165
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.3541175816953127,
+          "realised_fpr": 0.8823126050420168,
+          "recall": 1.0,
+          "tss": 0.1176873949579832,
+          "hss": 0.003492076178494105
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.21814276660557172,
+          "realised_fpr": 0.9509243697478992,
+          "recall": 1.0,
+          "tss": 0.04907563025210082,
+          "hss": 0.0013540258345487504
         }
       },
       "fedavg_mlp": {
@@ -366,6 +452,34 @@
           },
           "tss": 0.16689747899159668,
           "hss": 0.0052356070796322
+        },
+        "0.5%FPR": {
+          "frozen_threshold": 0.35051926755452245,
+          "realised_fpr": 0.7296941176470588,
+          "recall": 1.0,
+          "tss": 0.2703058823529412,
+          "hss": 0.009638377698061551
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.35051926755452245,
+          "realised_fpr": 0.7296941176470588,
+          "recall": 1.0,
+          "tss": 0.2703058823529412,
+          "hss": 0.009638377698061551
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.3502668112615195,
+          "realised_fpr": 0.7851966386554622,
+          "recall": 1.0,
+          "tss": 0.2148033613445378,
+          "hss": 0.007135886631395269
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.3498645084019432,
+          "realised_fpr": 0.851818487394958,
+          "recall": 1.0,
+          "tss": 0.14818151260504198,
+          "hss": 0.004549483822230145
         }
       },
       "fedprox_mlp": {
@@ -385,6 +499,34 @@
           },
           "tss": 0.1904134453781512,
           "hss": 0.0061412176713115975
+        },
+        "0.5%FPR": {
+          "frozen_threshold": 0.5239835041133637,
+          "realised_fpr": 0.29598655462184875,
+          "recall": 1.0,
+          "tss": 0.7040134453781512,
+          "hss": 0.05881389779069684
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.5221760537708766,
+          "realised_fpr": 0.3794016806722689,
+          "recall": 1.0,
+          "tss": 0.6205983193277311,
+          "hss": 0.04120342387086245
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.5199870741933899,
+          "realised_fpr": 0.49411764705882355,
+          "recall": 1.0,
+          "tss": 0.5058823529411764,
+          "hss": 0.026193135146609568
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.5166780640510593,
+          "realised_fpr": 0.7014319327731092,
+          "recall": 1.0,
+          "tss": 0.2985680672268908,
+          "hss": 0.011059197298264531
         }
       }
     },
@@ -406,6 +548,34 @@
           },
           "tss": 0.6988860028860029,
           "hss": 0.4543549020101246
+        },
+        "0.5%FPR": {
+          "frozen_threshold": 0.9724870595811063,
+          "realised_fpr": 0.0020168067226890756,
+          "recall": 0.22525252525252526,
+          "tss": 0.22323571852983617,
+          "hss": 0.322347275117934
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.9517029888586761,
+          "realised_fpr": 0.004692436974789916,
+          "recall": 0.3525252525252525,
+          "tss": 0.3478328155504626,
+          "hss": 0.4070656375442964
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.9159086503504575,
+          "realised_fpr": 0.012894117647058823,
+          "recall": 0.6383838383838384,
+          "tss": 0.6254897207367796,
+          "hss": 0.48133291190897526
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.8086346599741775,
+          "realised_fpr": 0.03013109243697479,
+          "recall": 0.8171717171717172,
+          "tss": 0.7870406247347425,
+          "hss": 0.38836375419018376
         }
       },
       "xgboost": {
@@ -425,6 +595,34 @@
           },
           "tss": 0.3844889907478143,
           "hss": 0.3530010567747817
+        },
+        "0.5%FPR": {
+          "frozen_threshold": 0.7995309368283111,
+          "realised_fpr": 0.008242016806722688,
+          "recall": 0.34545454545454546,
+          "tss": 0.33721252864782275,
+          "hss": 0.34319841472375934
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.6564684374020486,
+          "realised_fpr": 0.014010084033613446,
+          "recall": 0.47373737373737373,
+          "tss": 0.4597272897037603,
+          "hss": 0.3649704520718052
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.45244236570531055,
+          "realised_fpr": 0.022198319327731093,
+          "recall": 0.6292929292929293,
+          "tss": 0.6070946099651983,
+          "hss": 0.37021284296201845
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.1815742239775056,
+          "realised_fpr": 0.039852100840336135,
+          "recall": 0.8232323232323232,
+          "tss": 0.783380222391987,
+          "hss": 0.3277966065526656
         }
       },
       "centralized_mlp": {
@@ -444,6 +642,34 @@
           },
           "tss": 0.5914573635514812,
           "hss": 0.3668078014622409
+        },
+        "0.5%FPR": {
+          "frozen_threshold": 0.35743555800279436,
+          "realised_fpr": 0.0034016806722689075,
+          "recall": 0.30707070707070705,
+          "tss": 0.3036690263984381,
+          "hss": 0.38722227939566595
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.3106519492916251,
+          "realised_fpr": 0.008430252100840335,
+          "recall": 0.398989898989899,
+          "tss": 0.39055964688905864,
+          "hss": 0.3844293480912677
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.25170390178469,
+          "realised_fpr": 0.01594621848739496,
+          "recall": 0.5333333333333333,
+          "tss": 0.5173871148459384,
+          "hss": 0.38021102907463344
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.17563420303453317,
+          "realised_fpr": 0.03393613445378151,
+          "recall": 0.7717171717171717,
+          "tss": 0.7377810372633902,
+          "hss": 0.3439286387077379
         }
       },
       "fedavg_mlp": {
@@ -457,12 +683,40 @@
           "threshold": 0.05,
           "confusion": {
             "tp": 0.0,
-            "fp": NaN,
+            "fp": 0.0,
             "fn": 990.0,
-            "tn": NaN
+            "tn": 74375.0
           },
-          "tss": NaN,
-          "hss": NaN
+          "tss": 0.0,
+          "hss": 0.0
+        },
+        "0.5%FPR": {
+          "frozen_threshold": 0.004054269879359642,
+          "realised_fpr": 0.0031596638655462185,
+          "recall": 0.0,
+          "tss": -0.0031596638655462185,
+          "hss": -0.00506549186737077
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.003903113347808805,
+          "realised_fpr": 0.006736134453781513,
+          "recall": 0.010101010101010102,
+          "tss": 0.003364875647228589,
+          "hss": 0.004419901921384491
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.0037540395539788435,
+          "realised_fpr": 0.014050420168067226,
+          "recall": 0.046464646464646465,
+          "tss": 0.03241422629657924,
+          "hss": 0.03086095994498378
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.0035919648571152555,
+          "realised_fpr": 0.03606050420168067,
+          "recall": 0.12727272727272726,
+          "tss": 0.0912122230710466,
+          "hss": 0.04785631625712211
         }
       },
       "fedprox_mlp": {
@@ -482,6 +736,34 @@
           },
           "tss": 0.6029259315847552,
           "hss": 0.14409191670819183
+        },
+        "0.5%FPR": {
+          "frozen_threshold": 0.16213755113626507,
+          "realised_fpr": 0.0025546218487394958,
+          "recall": 0.03838383838383838,
+          "tss": 0.035829216535098886,
+          "hss": 0.05776351215466341
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.16188505000902317,
+          "realised_fpr": 0.0039932773109243695,
+          "recall": 0.11818181818181818,
+          "tss": 0.1141885408708938,
+          "hss": 0.16016050252617467
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.16147052262929332,
+          "realised_fpr": 0.010527731092436975,
+          "recall": 0.2101010101010101,
+          "tss": 0.1995732790085731,
+          "hss": 0.19947387562778748
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.16091655793829135,
+          "realised_fpr": 0.03151596638655462,
+          "recall": 0.4686868686868687,
+          "tss": 0.4371709023003141,
+          "hss": 0.22937045337223363
         }
       },
       "scaffold_mlp": {
@@ -501,6 +783,34 @@
           },
           "tss": 0.3629813428401664,
           "hss": 0.021710380896545967
+        },
+        "0.5%FPR": {
+          "frozen_threshold": 0.3693259124766081,
+          "realised_fpr": 0.00614453781512605,
+          "recall": 0.06565656565656566,
+          "tss": 0.059512027841439614,
+          "hss": 0.07761264956828971
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.369138012850153,
+          "realised_fpr": 0.010823529411764706,
+          "recall": 0.12525252525252525,
+          "tss": 0.11442899584076055,
+          "hss": 0.11801645980525474
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.3688828210273035,
+          "realised_fpr": 0.019549579831932774,
+          "recall": 0.1707070707070707,
+          "tss": 0.1511574908751379,
+          "hss": 0.11491008152922225
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.3683575067712699,
+          "realised_fpr": 0.04625210084033613,
+          "recall": 0.27474747474747474,
+          "tss": 0.22849537390713862,
+          "hss": 0.09696600279519876
         }
       }
     },
@@ -510,9 +820,20 @@
         "n_windows": 75365,
         "n_pos": 990,
         "prevalence": 0.013136071152985096,
-        "roc_auc": null,
-        "brier": null,
-        "bss_vs_climatology": null,
+        "roc_auc": 0.9622052728970375,
+        "brier": 0.011129681459962295,
+        "bss_vs_climatology": 0.14146112051599835,
+        "fbeta_threshold": {
+          "threshold": 0.22499999999999992,
+          "confusion": {
+            "tp": 470.0,
+            "fp": 1376.0,
+            "fn": 520.0,
+            "tn": 72999.0
+          },
+          "tss": 0.4562466344113403,
+          "hss": 0.3198210244227843
+        },
         "0.5%FPR": {
           "frozen_threshold": 0.3712297636722697,
           "realised_fpr": 0.005095798319327731,
@@ -547,9 +868,20 @@
         "n_windows": 75365,
         "n_pos": 990,
         "prevalence": 0.013136071152985096,
-        "roc_auc": null,
-        "brier": null,
-        "bss_vs_climatology": null,
+        "roc_auc": 0.9581284576861048,
+        "brier": 0.01118207571825736,
+        "bss_vs_climatology": 0.13741944978446308,
+        "fbeta_threshold": {
+          "threshold": 0.10499999999999998,
+          "confusion": {
+            "tp": 313.0,
+            "fp": 796.0,
+            "fn": 677.0,
+            "tn": 73579.0
+          },
+          "tss": 0.3054590951532128,
+          "hss": 0.28835910873348986
+        },
         "0.5%FPR": {
           "frozen_threshold": 0.16777417289941238,
           "realised_fpr": 0.006749579831932773,
@@ -584,9 +916,20 @@
         "n_windows": 75365,
         "n_pos": 990,
         "prevalence": 0.013136071152985096,
-        "roc_auc": null,
-        "brier": null,
-        "bss_vs_climatology": null,
+        "roc_auc": 0.9697419098548511,
+        "brier": 0.010571705373798392,
+        "bss_vs_climatology": 0.18450315774925874,
+        "fbeta_threshold": {
+          "threshold": 0.16999999999999993,
+          "confusion": {
+            "tp": 653.0,
+            "fp": 1935.0,
+            "fn": 337.0,
+            "tn": 72440.0
+          },
+          "tss": 0.6335791528732706,
+          "hss": 0.3527079719321384
+        },
         "0.5%FPR": {
           "frozen_threshold": 0.28711663690332895,
           "realised_fpr": 0.0024470588235294116,
@@ -621,9 +964,20 @@
         "n_windows": 75365,
         "n_pos": 990,
         "prevalence": 0.013136071152985096,
-        "roc_auc": null,
-        "brier": null,
-        "bss_vs_climatology": null,
+        "roc_auc": 0.9696844546303369,
+        "brier": 0.012010286976002727,
+        "bss_vs_climatology": 0.07353158670781823,
+        "fbeta_threshold": {
+          "threshold": 0.15999999999999995,
+          "confusion": {
+            "tp": 730.0,
+            "fp": 2227.0,
+            "fn": 260.0,
+            "tn": 72148.0
+          },
+          "tss": 0.7074308802308802,
+          "hss": 0.3572502862934138
+        },
         "0.5%FPR": {
           "frozen_threshold": 0.26772285535619994,
           "realised_fpr": 0.005902521008403361,
@@ -658,9 +1012,20 @@
         "n_windows": 75365,
         "n_pos": 990,
         "prevalence": 0.013136071152985096,
-        "roc_auc": null,
-        "brier": null,
-        "bss_vs_climatology": null,
+        "roc_auc": 0.961899281894576,
+        "brier": 0.010411587370741595,
+        "bss_vs_climatology": 0.19685459219274415,
+        "fbeta_threshold": {
+          "threshold": 0.1999999999999999,
+          "confusion": {
+            "tp": 493.0,
+            "fp": 1412.9999999999998,
+            "fn": 497.0,
+            "tn": 72962.0
+          },
+          "tss": 0.47898147865206686,
+          "hss": 0.3288650260468002
+        },
         "0.5%FPR": {
           "frozen_threshold": 0.3345263742650449,
           "realised_fpr": 0.0035495798319327733,
@@ -695,9 +1060,20 @@
         "n_windows": 75365,
         "n_pos": 990,
         "prevalence": 0.013136071152985096,
-        "roc_auc": null,
-        "brier": null,
-        "bss_vs_climatology": null,
+        "roc_auc": 0.9605887038451745,
+        "brier": 0.012766520370686998,
+        "bss_vs_climatology": 0.015196065279263649,
+        "fbeta_threshold": {
+          "threshold": 0.15499999999999997,
+          "confusion": {
+            "tp": 340.0,
+            "fp": 791.0,
+            "fn": 650.0,
+            "tn": 73584.0
+          },
+          "tss": 0.33279904931669635,
+          "hss": 0.3109503639003124
+        },
         "0.5%FPR": {
           "frozen_threshold": 0.1296902135437373,
           "realised_fpr": 0.012423529411764707,
@@ -732,9 +1108,20 @@
         "n_windows": 75365,
         "n_pos": 990,
         "prevalence": 0.013136071152985096,
-        "roc_auc": null,
-        "brier": null,
-        "bss_vs_climatology": null,
+        "roc_auc": 0.9653247024870554,
+        "brier": 0.010920801549182003,
+        "bss_vs_climatology": 0.1575740277176244,
+        "fbeta_threshold": {
+          "threshold": 0.21999999999999992,
+          "confusion": {
+            "tp": 578.0,
+            "fp": 1761.0,
+            "fn": 412.0,
+            "tn": 72614.0
+          },
+          "tss": 0.5601610729140141,
+          "hss": 0.334975636308565
+        },
         "0.5%FPR": {
           "frozen_threshold": 0.32910270930706076,
           "realised_fpr": 0.004289075630252101,
@@ -769,9 +1156,20 @@
         "n_windows": 75365,
         "n_pos": 990,
         "prevalence": 0.013136071152985096,
-        "roc_auc": null,
-        "brier": null,
-        "bss_vs_climatology": null,
+        "roc_auc": 0.9677407554536966,
+        "brier": 0.012398841308014072,
+        "bss_vs_climatology": 0.04355867130824265,
+        "fbeta_threshold": {
+          "threshold": 0.1999999999999999,
+          "confusion": {
+            "tp": 696.0,
+            "fp": 1950.0,
+            "fn": 294.0,
+            "tn": 72425.0
+          },
+          "tss": 0.676811815635345,
+          "hss": 0.37080888191238853
+        },
         "0.5%FPR": {
           "frozen_threshold": 0.311826839799271,
           "realised_fpr": 0.006803361344537815,
@@ -806,9 +1204,20 @@
         "n_windows": 75365,
         "n_pos": 990,
         "prevalence": 0.013136071152985096,
-        "roc_auc": null,
-        "brier": null,
-        "bss_vs_climatology": null,
+        "roc_auc": 0.9612461217214159,
+        "brier": 0.012171906630982556,
+        "bss_vs_climatology": 0.061064315475651054,
+        "fbeta_threshold": {
+          "threshold": 0.08499999999999999,
+          "confusion": {
+            "tp": 392.0,
+            "fp": 928.0,
+            "fn": 598.0,
+            "tn": 73447.0
+          },
+          "tss": 0.3834822850352262,
+          "hss": 0.32932533354560356
+        },
         "0.5%FPR": {
           "frozen_threshold": 0.08570412842365818,
           "realised_fpr": 0.012423529411764707,
@@ -843,9 +1252,20 @@
         "n_windows": 75365,
         "n_pos": 990,
         "prevalence": 0.013136071152985096,
-        "roc_auc": null,
-        "brier": null,
-        "bss_vs_climatology": null,
+        "roc_auc": 0.9455332077073253,
+        "brier": 0.012034810453508708,
+        "bss_vs_climatology": 0.07163985611563761,
+        "fbeta_threshold": {
+          "threshold": 0.22999999999999993,
+          "confusion": {
+            "tp": 339.0,
+            "fp": 913.0,
+            "fn": 651.0,
+            "tn": 73462.0
+          },
+          "tss": 0.3301486121721416,
+          "hss": 0.2920217068513143
+        },
         "0.5%FPR": {
           "frozen_threshold": 0.34451674474320204,
           "realised_fpr": 0.007825210084033614,
@@ -1695,43 +2115,69 @@
     }
   },
   "block_c_baselines": {
+    "within_ar_window_cadence_min": 60.0,
     "pooled_test": {
-      "n_windows": 331185,
       "climatology": {
-        "brier": 0.018468999037854178,
+        "brier": 0.01853395676776287,
         "tss": 0.0,
         "auc": 0.5,
         "note": "base-rate forecast, no discrimination"
       },
-      "persistence_same_ar_prev_window": {
+      "persistence_prev_window": {
         "confusion": {
-          "tp": 2198,
-          "fp": 3999,
-          "fn": 4036,
-          "tn": 320952
+          "tp": 5996,
+          "fp": 201,
+          "fn": 200,
+          "tn": 321593
         },
-        "tss": 0.340276140663648,
-        "hss": 0.34126946187429946,
-        "auc": 0.340276140663648
+        "tss": 0.967096487187652,
+        "hss": 0.9670199539068389,
+        "n_evaluated": 327990,
+        "definition": "same active region, immediately preceding window in ts_start_min order (label inertia; ~60-min within-AR cadence)"
+      },
+      "persistence_24h_lag": {
+        "confusion": {
+          "tp": 2164,
+          "fp": 2970,
+          "fn": 2769,
+          "tn": 236437
+        },
+        "tss": 0.42627263677436344,
+        "hss": 0.41793352106494097,
+        "n_evaluated": 244340,
+        "definition": "same active region, window nearest to t - 1440 min within +/-35 min (Leka-style 24-hour-lagged persistence)"
       }
     },
     "p5_test": {
-      "n_windows": 75365,
       "climatology": {
-        "brier": 0.012963514756062612,
+        "brier": 0.013053443608964816,
         "tss": 0.0,
-        "auc": 0.5
+        "auc": 0.5,
+        "note": "base-rate forecast, no discrimination"
       },
-      "persistence_same_ar_prev_window": {
+      "persistence_prev_window": {
         "confusion": {
-          "tp": 353,
-          "fp": 630,
-          "fn": 637,
-          "tn": 73745
+          "tp": 955,
+          "fp": 26,
+          "fn": 32,
+          "tn": 73599
         },
-        "tss": 0.34809506833036247,
-        "hss": 0.34931357703389815,
-        "auc": 0.34809506833036247
+        "tss": 0.967225379853202,
+        "hss": 0.9701345870979834,
+        "n_evaluated": 74612,
+        "definition": "same active region, immediately preceding window in ts_start_min order (label inertia; ~60-min within-AR cadence)"
+      },
+      "persistence_24h_lag": {
+        "confusion": {
+          "tp": 371,
+          "fp": 433,
+          "fn": 501,
+          "tn": 55343
+        },
+        "tss": 0.41769551995662857,
+        "hss": 0.43436706862288627,
+        "n_evaluated": 56648,
+        "definition": "same active region, window nearest to t - 1440 min within +/-35 min (Leka-style 24-hour-lagged persistence)"
       }
     }
   },
@@ -1745,8 +2191,8 @@
       "alerts_per_day": 8.819661057357996,
       "false_alarm_windows_per_day": 8.645620169669998,
       "false_alarm_windows_per_day_ci95_poisson": [
-        8.563992571887347,
-        8.72645679363941
+        8.48391294772429,
+        8.809634974157024
       ]
     },
     "event_level_p5::xgboost": {
@@ -1758,8 +2204,8 @@
       "alerts_per_day": 1.8715355730832655,
       "false_alarm_windows_per_day": 1.7038523433930026,
       "false_alarm_windows_per_day_ci95_poisson": [
-        1.6673975410515514,
-        1.7395208483854265
+        1.6324859960297116,
+        1.7775355843606875
       ]
     },
     "event_level_p5::centralized_mlp": {
@@ -1771,8 +2217,8 @@
       "alerts_per_day": 12.847237398923172,
       "false_alarm_windows_per_day": 12.673196511235174,
       "false_alarm_windows_per_day_ci95_poisson": [
-        12.574451065527578,
-        12.771150333333672
+        12.477254645881715,
+        12.871444662772573
       ]
     },
     "event_level_p5::fedavg_mlp": {
@@ -1784,8 +2230,8 @@
       "alerts_per_day": 11.7990185365466,
       "false_alarm_windows_per_day": 11.624977648858602,
       "false_alarm_windows_per_day_ci95_poisson": [
-        11.530387365767615,
-        11.718776444365558
+        11.43734586743736,
+        11.814915987888238
       ]
     },
     "event_level_p5::fedprox_mlp": {
@@ -1797,8 +2243,8 @@
       "alerts_per_day": 12.062861343452605,
       "false_alarm_windows_per_day": 11.888820455764607,
       "false_alarm_windows_per_day_ci95_poisson": [
-        11.793167222991508,
-        11.983682165026995
+        11.699062837444393,
+        12.080884560007748
       ]
     },
     "event_level_raw_lstm_p5::central_lstm": {
@@ -1810,8 +2256,8 @@
       "alerts_per_day": 0.37430711461665306,
       "false_alarm_windows_per_day": 0.2860946098980788,
       "false_alarm_windows_per_day_ci95_poisson": [
-        0.2709305819074235,
-        0.30048445417132025
+        0.25730103096229245,
+        0.31722904195744017
       ]
     },
     "event_level_raw_lstm_p5::fedavg_lstm": {
@@ -1823,8 +2269,8 @@
       "alerts_per_day": 0.24476983291280074,
       "false_alarm_windows_per_day": 0.18357737468460056,
       "false_alarm_windows_per_day_ci95_poisson": [
-        0.17135590414108023,
-        0.19502975906352402
+        0.16066539928671209,
+        0.20884021288122895
       ]
     },
     "event_level_raw_lstm_p5::fedprox_lstm": {
@@ -1836,8 +2282,8 @@
       "alerts_per_day": 0.4807978860787157,
       "false_alarm_windows_per_day": 0.36238650587089977,
       "false_alarm_windows_per_day_ci95_poisson": [
-        0.34536737563745074,
-        0.3786291644899665
+        0.32988431059152834,
+        0.39722504734353287
       ]
     },
     "event_level_raw_p5::logistic_regression": {
@@ -1849,8 +2295,8 @@
       "alerts_per_day": 0.388611845111557,
       "false_alarm_windows_per_day": 0.26145868515685533,
       "false_alarm_windows_per_day_ci95_poisson": [
-        0.24694567970819617,
-        0.27519845204017873
+        0.2339664981328784,
+        0.2912935845896887
       ]
     },
     "event_level_raw_p5::xgboost": {
@@ -1862,8 +2308,8 @@
       "alerts_per_day": 0.2543063199094034,
       "false_alarm_windows_per_day": 0.1748355949377148,
       "false_alarm_windows_per_day_ci95_poisson": [
-        0.16289971053406038,
-        0.18600302589300788
+        0.15249435726796726,
+        0.19952893468033484
       ]
     },
     "event_level_raw_p5::centralized_mlp": {
@@ -1875,8 +2321,8 @@
       "alerts_per_day": 0.4347048655951364,
       "false_alarm_windows_per_day": 0.3234458506347724,
       "false_alarm_windows_per_day_ci95_poisson": [
-        0.3073461877888599,
-        0.3387701084007888
+        0.2927818483515518,
+        0.3564483011684363
       ]
     },
     "event_level_raw_p5::fedavg_mlp": {
@@ -1889,7 +2335,7 @@
       "false_alarm_windows_per_day": 0.0,
       "false_alarm_windows_per_day_ci95_poisson": [
         0.0,
-        0.0015264736852561936
+        0.0029315792455160117
       ]
     },
     "event_level_raw_p5::fedprox_mlp": {
@@ -1901,8 +2347,8 @@
       "alerts_per_day": 1.3899429797548328,
       "false_alarm_windows_per_day": 1.2659686487989987,
       "false_alarm_windows_per_day_ci95_poisson": [
-        1.2344918704778969,
-        1.2966604764001157
+        1.2045572833523321,
+        1.3296995828847007
       ]
     },
     "event_level_raw_p5::scaffold_mlp": {
@@ -1914,8 +2360,8 @@
       "alerts_per_day": 6.567460711660342,
       "false_alarm_windows_per_day": 6.426797528460453,
       "false_alarm_windows_per_day_ci95_poisson": [
-        6.356365430751632,
-        6.496439249135291
+        6.287480506134324,
+        6.568423323367231
       ]
     },
     "event_level_raw_scaffold::scaffold_lstm": {
@@ -1927,8 +2373,8 @@
       "alerts_per_day": 0.5380168080583315,
       "false_alarm_windows_per_day": 0.40689011185504537,
       "false_alarm_windows_per_day_ci95_poisson": [
-        0.38887883619837377,
-        0.42412388976491505
+        0.372404342437715,
+        0.44371020325601335
       ]
     },
     "event_level_raw_seed43::central_lstm": {
@@ -1940,8 +2386,8 @@
       "alerts_per_day": 0.38463830886297257,
       "false_alarm_windows_per_day": 0.29245226789581386,
       "false_alarm_windows_per_day_ci95_poisson": [
-        0.2771248415771544,
-        0.3070052861892146
+        0.26333204752945377,
+        0.3239128999097887
       ]
     },
     "event_level_raw_seed43::fedavg_lstm": {
@@ -1953,8 +2399,8 @@
       "alerts_per_day": 0.24238571116365007,
       "false_alarm_windows_per_day": 0.1764250094371486,
       "false_alarm_windows_per_day_ci95_poisson": [
-        0.16443667689602093,
-        0.18764477000168697
+        0.15397895688749433,
+        0.20122293195706023
       ]
     },
     "event_level_raw_seed43::fedprox_lstm": {
@@ -1966,8 +2412,8 @@
       "alerts_per_day": 0.437088987344287,
       "false_alarm_windows_per_day": 0.332982337631375,
       "false_alarm_windows_per_day_ci95_poisson": [
-        0.31665259206121693,
-        0.34853639971016925
+        0.3018583632654259,
+        0.3664442117031504
       ]
     },
     "event_level_raw_seed43::scaffold_lstm": {
@@ -1979,8 +2425,8 @@
       "alerts_per_day": 0.4839767150775833,
       "false_alarm_windows_per_day": 0.35920767687203226,
       "false_alarm_windows_per_day_ci95_poisson": [
-        0.3422616901248419,
-        0.3753772725158119
+        0.32685171246643285,
+        0.39390014621786235
       ]
     },
     "event_level_raw_smote::fedavg_lstm": {
@@ -1992,8 +2438,8 @@
       "alerts_per_day": 0.28291578089921127,
       "false_alarm_windows_per_day": 0.2090080066755409,
       "false_alarm_windows_per_day_ci95_poisson": [
-        0.19599243859011045,
-        0.2212528793587769
+        0.1845089422601513,
+        0.23585477879177424
       ]
     },
     "event_level_raw_smote::fedprox_lstm": {
@@ -2005,10 +2451,10 @@
       "alerts_per_day": 0.27258458665289176,
       "false_alarm_windows_per_day": 0.20503447042695647,
       "false_alarm_windows_per_day_ci95_poisson": [
-        0.1921396535830063,
-        0.21715882342558343
+        0.1807767492470001,
+        0.23164035357947504
       ]
     }
   },
-  "elapsed_s": 5.8
+  "elapsed_s": 5.7
 }

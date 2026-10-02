@@ -1,9 +1,12 @@
-# v4.0 (review m7): exact pins for the environment in which the v4.0
-# battery (194 checks + artefact-audit tests) and the verification runs
-# executed. The GPU arms additionally ran on the owner machine's
-# cuda-enabled build of the same major versions; the CPU protocol is
-# bit-stable under these pins. torch/numpy versions are also recorded
-# per-run in outputs/run_manifest.json from v4.0 onward.
+# v4.1 (Dossier R-FS9-R1 C5): exact pins for the environment in which
+# the v4.0/v4.1 battery and verification runs executed (torch 2.14.1
+# and numpy 2.2.4 are the installed versions of this revision's
+# re-verification; the battery log header records them per run). The
+# GPU arms additionally ran on the owner machine's cuda-enabled build
+# of the same major versions; the CPU protocol is bit-stable under
+# these pins. The pipeline records torch/numpy per-run in
+# outputs/run_manifest.json from v4.0 onward; the committed manifest
+# documents the original v3.x execution and predates those fields.
 torch==2.14.1
 scikit-learn==1.9.1
 xgboost==3.4.1
