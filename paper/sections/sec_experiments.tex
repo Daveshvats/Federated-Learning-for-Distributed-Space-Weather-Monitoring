@@ -35,10 +35,11 @@ train if the audit fails.
 reported test metrics are recomputed from those predictions (the v2.x
 code reported a stale accuracy for federated models).
 \item \textbf{Protocol extensions released with this revision.} The
-following components are implemented, unit-tested (the 219-check
-integrity battery of \texttt{tests/run\_battery.py}, whose single
-authoritative count and log are committed at
-\texttt{logs/test\_battery.log}), and smoke-validated. Five of them were additionally
+following components are implemented, unit-tested (the integrity
+battery of \texttt{tests/run\_battery.py}, whose canonical 219/219
+record and log are committed at \texttt{logs/test\_battery.log} and
+whose v4.3 extension adds the sweep-coverage checks of
+\texttt{tests/test\_lag\_sweep\_artifact.py}), and smoke-validated. Five of them were additionally
 \emph{executed} end-to-end in the independent re-execution of
 Section~\ref{sec:repro} and their results are reported in
 Section~\ref{sec:results}: (ii)\ the validation-frozen fixed-FPR
@@ -254,9 +255,13 @@ round-level crash recovery, and the integrity battery (partitioning
 disjointness, leakage audit, calibration, evaluation protocol,
 threshold-freezing arithmetic, event-level metrics, FL smoke tests,
 GPU-queue artefact guards, a leakage-gate failure-path test, and an
-audit-artefact recomputation test)
-passes 219/219 checks (\texttt{tests/run\_battery.py};
-\texttt{logs/test\_battery.log}).
+audit-artefact recomputation test, joined at v4.3 by a
+lag-definition-sweep cross-artefact test)
+passes its canonical 219/219 record (\texttt{tests/run\_battery.py};
+\texttt{logs/test\_battery.log}, torch-equipped) and 224/0 in the
+v4.3 torch-less verification environment
+(\texttt{logs/test\_battery\_v4.3.log}, 24 torch-dependent checks
+skipped --- the same delta an independent torch-less re-run shows).
 
 \paragraph{Independent re-execution from the public artefacts.}
 Following an external review, the entire headline pipeline was

@@ -1,5 +1,6 @@
 """
-tests/run_battery.py  (v4.1 — Dossier R-FS9-R1 D1)
+tests/run_battery.py  (v4.1 — Dossier R-FS9-R1 D1; v4.3 — R-FS9-R3
+N2/N3: title made version-bearing, sweep-coverage module added)
 ─────────────────────────────────────────
 Single entry point for the integrity battery. Runs every test module,
 aggregates PASS/FAIL across all of them, prints ONE total, and writes
@@ -25,12 +26,18 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 LOG = os.path.join(ROOT, "logs", "test_battery.log")
 
+# Single source of truth for the log's title line. Dossier R-FS9-R3
+# (N2) caught a v4.2-era log whose title still read "(v4.1)" because
+# this string was hardcoded; bump BATTERY_VERSION with every release.
+BATTERY_VERSION = "v4.3"
+
 # Ordered battery (torch-free synthetic tests first; runners that need
 # the dataset/torch are guarded by availability and reported as SKIPPED
 # with the reason — never silently).
 MODULES = [
     "tests/test_pipeline_integrity.py",
     "tests/test_audit_artifact.py",
+    "tests/test_lag_sweep_artifact.py",
     "tests/test_gpu_queue.py",
     "tests/test_gpu_queue_artefacts.py",
     "tests/test_leakage_gate.py",
@@ -116,7 +123,8 @@ def main():
                f"battery verdict {verdict}")
 
     with open(LOG, "w") as f:
-        f.write("integrity battery — single authoritative count (v4.1)\n")
+        f.write(f"integrity battery — single authoritative count "
+                f"({BATTERY_VERSION})\n")
         f.write("environment: " + _env_header() + "\n")
         f.write("=" * 60 + "\n")
         f.write("\n".join(lines) + "\n")

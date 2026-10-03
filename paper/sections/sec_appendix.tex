@@ -17,7 +17,7 @@ reimplementation would likely rediscover the hard way.
 \setlength{\LTcapwidth}{\textwidth}
 \begin{longtable}{@{}p{0.09\textwidth} >{\raggedright\arraybackslash}p{0.42\textwidth} >{\raggedright\arraybackslash}p{0.43\textwidth}@{}}
 \caption{Documented stability fixes and protocol revisions across
-framework versions (v2.1--v4.2), as recorded in the released source.}
+framework versions (v2.1--v4.3), as recorded in the released source.}
 \label{tab:evolution}\\
 \toprule
 \textbf{Version} & \textbf{Diagnosed failure mode} & \textbf{Fix} \\
@@ -313,6 +313,34 @@ re-verified in the current (torch-less) verification environment at
 the same delta the panel's own fresh run showed --- and the committed
 v4.1 log (219/219) retained as the full-battery record
 (\texttt{logs/test\_battery\_v4.2.log}). \\
+\addlinespace[2pt]
+v4.3 & Re-review of v4.2 (Dossier R-FS9-R3, verdict: accept,
+conditional on four clerical items): all seven third-round findings
+verified resolved (one out-of-band), zero new substantive errors,
+and the lag-definition sweep re-executed byte-for-byte in the
+referee's torch-less environment; a four-item clerical residue
+register --- a response-letter erratum claim unverifiable from the
+repository, a mistitled battery log, the new sweep artefact lacking
+battery coverage, and a missing ledger hash --- stood between the
+revision and closure. & The corrected response letters committed
+under \texttt{docs/response\_letters/} (the R-FS9-R1 errata, the
+R-FS9-R2 and R-FS9-R3 letters, with a README), so every
+letter-level ledger claim is verifiable in-repo; the battery log
+title made version-bearing (a \texttt{BATTERY\_VERSION} constant;
+the v4.2 log retitled in place) so the title cannot trail the
+release again; \texttt{tests/test\_lag\_sweep\_artifact.py} added
+--- 29 checks validating the sweep artefact against
+\texttt{standard\_metrics.json} at run time (strict-JSON structure,
+the shipped rule vs block C at $10^{-9}$, the clears-the-floor
+lists recomputed from block A for every definition, point-lag
+invariance, and the lookback variant's disclosed $n$), so a silent
+edit that broke cross-artefact agreement now fails the battery; the
+sweep digest appended to the RUNLOG ledger; an environments
+manifest added at \texttt{docs/ENVIRONMENTS.md} (the panel's
+recorded observation); the battery re-verified at 224 passed /
+0 failed (the v4.2 count of 195 plus the 29 new checks; the same 24
+torch-dependent skips; \texttt{logs/test\_battery\_v4.3.log}; the
+canonical v4.1 log retained untouched). \\
 \end{longtable}
 \endgroup
 

@@ -1,8 +1,9 @@
-integrity battery — single authoritative count (v4.2)
+integrity battery — single authoritative count (v4.3)
 environment: python 3.12.14, numpy 2.1.3, torch not-importable-in-this-env
 ============================================================
 [  OK] tests/test_pipeline_integrity.py: 75 passed, 0 failed
 [  OK] tests/test_audit_artifact.py: 20 passed, 0 failed
+[  OK] tests/test_lag_sweep_artifact.py: 29 passed, 0 failed
 [  OK] tests/test_gpu_queue.py: 34 passed, 0 failed
 [  OK] tests/test_gpu_queue_artefacts.py: 17 passed, 0 failed
 [  OK] tests/test_leakage_gate.py: 5 passed, 0 failed
@@ -11,4 +12,4 @@ environment: python 3.12.14, numpy 2.1.3, torch not-importable-in-this-env
 [  OK] tests/test_raw_substrate.py: 18 passed, 0 failed
 [  OK] tests/test_raw_lstm.py: 13 passed, 0 failed
 ============================================================
-RESULT: 195 passed, 0 failed — battery verdict PASS
+RESULT: 224 passed, 0 failed — battery verdict PASS
