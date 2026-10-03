@@ -1,10 +1,16 @@
 """
 tests/run_battery.py  (v4.1 — Dossier R-FS9-R1 D1; v4.3 — R-FS9-R3
-N2/N3: title made version-bearing, sweep-coverage module added)
+N2/N3: title made version-bearing, sweep-coverage module added;
+v4.4 — R-FS9-R4 P2: default log path versioned + refuse-to-overwrite
+guard)
 ─────────────────────────────────────────
 Single entry point for the integrity battery. Runs every test module,
-aggregates PASS/FAIL across all of them, prints ONE total, and writes
-logs/test_battery.log. The paper cites exactly this number — the
+aggregates PASS/FAIL across all of them, prints ONE total, and
+writes a versioned log, logs/test_battery_<BATTERY_VERSION>.log
+(since v4.4 / R-FS9-R4 P2 the battery never writes the un-versioned
+canonical v4.1 filename logs/test_battery.log, and never silently
+overwrites a log that already exists — pass --force-log to do so
+deliberately). The paper cites exactly this number — the
 reconciliation of the previous 78/58/66/142 four-way contradiction.
 The log header records the interpreter and (when importable) the
 torch/numpy versions, so the verification environment is an
@@ -12,7 +18,9 @@ artefact-backed claim (R-FS9-R1 C5).
 
 Usage:
     python tests/run_battery.py
-Exit code 0 iff every check passes.
+Exit code 0 iff every check passes. The default log is the versioned
+logs/test_battery_<BATTERY_VERSION>.log; an existing log is an error,
+not a silent overwrite (--force-log overrides).
 """
 
 import os
@@ -24,12 +32,21 @@ import contextlib
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
-LOG = os.path.join(ROOT, "logs", "test_battery.log")
 
 # Single source of truth for the log's title line. Dossier R-FS9-R3
 # (N2) caught a v4.2-era log whose title still read "(v4.1)" because
 # this string was hardcoded; bump BATTERY_VERSION with every release.
-BATTERY_VERSION = "v4.3"
+BATTERY_VERSION = "v4.4"
+
+# Default write path, versioned off BATTERY_VERSION. Dossier R-FS9-R4
+# (P2): the previous default was the un-versioned logs/test_battery.log
+# — the canonical v4.1 record's own filename — so any documented
+# verification run in a fresh clone silently shadowed the canonical
+# 219/219 torch-equipped log in the working tree (reproduced by the
+# panel in rounds 3 and 4). The guard in main() additionally refuses
+# to overwrite a log that already exists unless --force-log is given.
+LOG = os.path.join(ROOT, "logs",
+                   f"test_battery_{BATTERY_VERSION}.log")
 
 # Ordered battery (torch-free synthetic tests first; runners that need
 # the dataset/torch are guarded by availability and reported as SKIPPED
@@ -97,6 +114,10 @@ def _env_header():
 
 
 def main():
+    if os.path.exists(LOG) and "--force-log" not in sys.argv:
+        sys.exit(f"[battery] {LOG} already exists — refusing to silently "
+                 "overwrite a log (R-FS9-R4 P2); move the file aside or "
+                 "pass --force-log to overwrite deliberately.")
     os.makedirs(os.path.dirname(LOG), exist_ok=True)
     total_p = total_f = 0
     lines = []

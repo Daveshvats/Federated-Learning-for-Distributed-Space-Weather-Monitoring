@@ -11,7 +11,7 @@ converged on.
 |---|---|---|---|
 | 1 | python 3.12.14; torch 2.14.1, numpy 2.2.4 (pinned) | The protocol run of record: training, frozen-threshold evaluation, and every result artefact of the v3.x–v4.0 era | `outputs/run_manifest.json` (`python` field; torch/numpy predicated by the `requirements.txt` pins — the v3.x manifest predates those fields) |
 | 2 | python 3.13.5, numpy 2.2.4, torch 2.14.1+cpu | The v4.1 verification battery (219/219) and the v4.1 regeneration of `outputs/standard_metrics.json` | `logs/test_battery.log` (canonical v4.1 battery log, header line 2) |
-| 3 | python 3.12.14, numpy 2.1.3, torch not importable | The v4.2 and v4.3 verification batteries (195/0, then 224/0 with 29 new sweep-coverage checks; 24 torch-dependent skips each) and the lag-definition sweep generation + re-execution | `logs/test_battery_v4.2.log`, `logs/test_battery_v4.3.log` (header line 2); sweep determinism in the RUNLOG v4.2/v4.3 rows |
+| 3 | python 3.12.14, numpy 2.1.3, torch not importable | The v4.2, v4.3, and v4.4 verification batteries (195/0, then 224/0 with 29 new sweep-coverage checks at v4.3 and again at v4.4; 24 torch-dependent skips each) and the lag-definition sweep generation + re-execution | `logs/test_battery_v4.2.log`, `logs/test_battery_v4.3.log`, `logs/test_battery_v4.4.log` (header line 2); sweep determinism in the RUNLOG v4.2/v4.3 rows |
 
 Notes, stated to the same standard:
 
@@ -26,3 +26,16 @@ Notes, stated to the same standard:
   them. The canonical full-battery record remains the v4.1 log (219/219);
   the torch-less runs document the same skip delta the R-FS9-R3 panel's
   own fresh run showed.
+* Since v4.4 (Dossier R-FS9-R4, P2) the battery's default write path is
+  the versioned `logs/test_battery_<BATTERY_VERSION>.log`, and a run
+  refuses to overwrite a log that already exists unless `--force-log`
+  is passed. The canonical v4.1 record at `logs/test_battery.log` is
+  therefore no longer a write target at all, and a documented
+  verification re-run in a fresh clone can no longer shadow a committed
+  log — the defect the panel reproduced in rounds 3 and 4.
+* The v4.4 battery re-run changed nothing in the apparatus: 224/0 with
+  the same 24 skips, per-file counts identical to the v4.3 log, same
+  environment as row 3. It exists to validate the P2 fix and to record
+  the post-closure battery state; no paper, artefact, or number changed
+  in that revision (the accepted v4.3 manuscript, commit 092554c,
+  remains the paper of record).

@@ -1,7 +1,7 @@
 # Response to Dossier R-FS9-R2 — Re-Review of the v4.1 Corrected Apparatus
 
 **Manuscript:** "Federated Solar-Flare Prediction on SWAN-SF: A Benchmark Audit of Provenance, Leakage, and Evaluation Protocols"
-**Revision:** v4.2, improvements branch (commit in the RUNLOG), PDF 51 pp
+**Revision:** v4.2, improvements branch (commit in the RUNLOG), PDF 51 pp *[Erratum, v4.4: the v4.2 PDF was 52 pp — the count was carried over from the 51-page v4.1 build rather than re-measured; caught by Dossier R-FS9-R4 (its P3); see the erratum at the end.]*
 **Referee dossier:** R-FS9-R2, "The Corrected Apparatus, Audited" — Minor Revision (conditional acceptance)
 
 We thank both chairs for a round that verified our work at the level of re-implementation, retracted the panel's own expired-prior error where we were right, and caught the one false clause we shipped under the sentence announcing our correction. The verdict's framing — that the remaining distance to acceptance is one clause long — is accepted, and that clause (and everything behind it) is fixed in this revision. No new experiment, retraining, or artefact regeneration was required for items 1–4 of the panel's Chapter 7; the optional item 5 (F7) was executed rather than dropped, because dropping a sensitivity claim is weaker than committing the artefact that backs it.
@@ -51,3 +51,19 @@ All three are acknowledged and stand as stated by the panel: block B's phase-cac
 The battery was re-run in this revision's verification environment (python 3.12.14, pandas/numpy/scipy/matplotlib/sklearn, torch not importable — the sandbox has changed since v4.1, and the log header says so): **195 passed, 0 failed, 24 torch-dependent checks skipped** — the same delta the panel's own torch-less fresh run showed, and a consistent skip accounting with the committed v4.1 log (219/219, `logs/test_battery.log`, retained untouched; the fresh run is committed as `logs/test_battery_v4.2.log`). The paper's appendix v4.2 row states exactly this. The new sweep artefact is strict JSON, deterministic (no wall-clock fields), and reproduces block C's shipped-rule values to 1e-9.
 
 One closing observation, offered in the register the dossier itself set: the panel's retraction of the torch sub-claim and its disclosure of the R1 omission are the first time in this cycle that either side has corrected the other's *facts* rather than framing, and both corrections went to the live record rather than to memory. We have adopted the same standard on our side — every number in this letter regenerates from a committed artefact, including the ones that refute our own previous letter.
+
+---
+
+## Erratum (v4.4, against Dossier R-FS9-R4)
+
+Dossier R-FS9-R4 — the cycle's closing round — registered, as a trivial
+non-blocking item (its P3), that this letter's header reads "PDF 51 pp"
+while the v4.2 paper it accompanied was fifty-two pages: the count was
+carried over from the fifty-one-page v4.1 build rather than re-measured
+when the letter was written, and v4.3's freezing of the letters into
+this archive converted a transient slip into a permanent one. The
+header is corrected above in place with the inline erratum marker, and
+the slip is recorded here so the archived letter carries its own
+correction — the convention this directory's R-FS9-R1 letter
+established, and the one the panel noted would have caught this at
+commit time. No other statement in this letter is affected.
