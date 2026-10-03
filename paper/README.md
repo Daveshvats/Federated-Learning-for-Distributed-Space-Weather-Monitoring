@@ -1,26 +1,27 @@
-# paper/ — manuscript & audit artifacts
+# paper/ — manuscript of record & audit artifacts
 
-## Status (v3.1, 2026-09): REAL RESULTS EDITION ✅
+## Status (v4.5, 2026-10): R-FS9 CYCLE CLOSED — ACCEPT SUSTAINED
 
 | File | Status |
 |---|---|
-| `SF9_Federated_Space_Weather_Paper.pdf` + `main.tex` + `sections/` + `refs.bib` | **24 pp, regenerated with real frozen-protocol numbers** from the completed experiment programme (headline run, 24-cell ablation, 9-config sweep, 5-seed study, interpretability, communication). Every value is machine-generated from `outputs/*.json`. |
-| `SF9_Research_Review_and_Code_Audit.pdf` + `review.tex` | Companion audit (rating 7/10, findings B1-B25) — the bug register that drove the `improvements` branch. Historical document: describes the v2.x state it audited. |
-| `figures/` | All result figures regenerated from `outputs/results.json` et al. by the pipeline + `scripts/fig_analysis.py` (ablation/multiseed/client figures). `fig_architecture.png`, `fig_partition.png` are protocol-independent illustrations. |
+| `main.pdf` + `main.tex` + `sections/` + `refs.bib` | **The manuscript of record** (v4.5), compiled with `tectonic`. Every printed number regenerates from a committed artefact in `outputs/` — the standard the R-FS9 referee cycle (six rounds, v3.9 reject-as-framed -> v4.5 accept-sustained, rating 7.9/10) converged on. |
+| `review.tex` | Source of the historical v2.x-era companion audit (findings B1-B25) that drove the `improvements` branch — kept as a historical document. Its compiled PDF and the superseded manuscript PDF were removed at v4.5 (R-FS9-R5 front-door finding; preserved in git history). |
+| `figures/` | The live figure set referenced by `main.tex` (8 figures). Root-level duplicate figures and the two unreferenced `figures/` leftovers were removed at v4.5; the live set regenerates from `outputs/*.json` by the pipeline + `scripts/fig_analysis.py`. |
 
-## Key real results in this edition
+## The honest headline (as corrected at v4.2)
 
-- Test (331,185 windows, 1.88% prevalence, single pass): XGBoost AUC
-  0.977 / PR 0.493; **FedProx 0.954 / 0.307**; Centralised MLP 0.888 /
-  0.153; FedAvg 0.575 (diverged); LR 0.824; climatology 0.500
-- FedProx **exceeds the same-architecture pooled MLP** — federation
-  costs no ranking skill within the hypothesis class
-- FedAvg training divergence (val AUC 0.99 → 0.05 after round ~20);
-  FedProx stable on all 5 seeds (Wilcoxon p = 0.031)
-- Threshold-transfer failure under 26× prevalence shift documented;
-  recall-at-FPR operating points reported
-- SMOTE arm inert (pre-balanced benchmark) — reported null
-- Physical-group SHAP consistency (helicity, R-value, Lorentz force)
+- Under the corrected persistence baselines on the leakage-free fold:
+  **no arm beats same-region label inertia (TSS 0.967) at this 24-hour
+  label geometry; on TSS, XGBoost (0.848) and logistic regression
+  (0.489) alone clear 24-hour-lagged persistence (0.418); on HSS, no
+  arm clears it (0.434)**
+- Random-split leakage: 100% test-positive overlap in the same-partition
+  pairing — the community-tolerated defect this benchmark audit exists
+  to surface
+- Calibration, not detection, is the deployability boundary under the
+  benchmark's prevalence shift
+- Six simulated clients, one public benchmark: a scope boundary the
+  paper states plainly
 
 ## Regenerating after future runs
 

@@ -2,7 +2,9 @@
 tests/run_battery.py  (v4.1 — Dossier R-FS9-R1 D1; v4.3 — R-FS9-R3
 N2/N3: title made version-bearing, sweep-coverage module added;
 v4.4 — R-FS9-R4 P2: default log path versioned + refuse-to-overwrite
-guard)
+guard; v4.5 — R-FS9-R5 R7-1: default-path log deliberately NOT
+committed — the path is gitignored, so a fresh clone's first run
+succeeds)
 ─────────────────────────────────────────
 Single entry point for the integrity battery. Runs every test module,
 aggregates PASS/FAIL across all of them, prints ONE total, and
@@ -19,8 +21,11 @@ artefact-backed claim (R-FS9-R1 C5).
 Usage:
     python tests/run_battery.py
 Exit code 0 iff every check passes. The default log is the versioned
-logs/test_battery_<BATTERY_VERSION>.log; an existing log is an error,
-not a silent overwrite (--force-log overrides).
+logs/test_battery_<BATTERY_VERSION>.log — uncommitted by design
+(R-FS9-R5 R7-1: a log at the default write path made every fresh
+clone's first documented run exit 1 at the guard); the path is
+gitignored, historical logs stay frozen, and an existing log is an
+error, not a silent overwrite (--force-log overrides).
 """
 
 import os
@@ -36,7 +41,7 @@ ROOT = os.path.dirname(HERE)
 # Single source of truth for the log's title line. Dossier R-FS9-R3
 # (N2) caught a v4.2-era log whose title still read "(v4.1)" because
 # this string was hardcoded; bump BATTERY_VERSION with every release.
-BATTERY_VERSION = "v4.4"
+BATTERY_VERSION = "v4.5"
 
 # Default write path, versioned off BATTERY_VERSION. Dossier R-FS9-R4
 # (P2): the previous default was the un-versioned logs/test_battery.log
@@ -45,6 +50,11 @@ BATTERY_VERSION = "v4.4"
 # 219/219 torch-equipped log in the working tree (reproduced by the
 # panel in rounds 3 and 4). The guard in main() additionally refuses
 # to overwrite a log that already exists unless --force-log is given.
+# Dossier R-FS9-R5 (R7-1): the v4.4 batch SHIPPED a log at this path,
+# so every fresh clone's first battery run hit the guard; the fix is
+# to keep the default-path log out of git (.gitignore covers it) —
+# the run record lives in the RUNLOG and the historical logs stay
+# frozen where they are.
 LOG = os.path.join(ROOT, "logs",
                    f"test_battery_{BATTERY_VERSION}.log")
 

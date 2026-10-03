@@ -47,7 +47,7 @@ from centralized_baseline import (train_centralized, evaluate_centralized,
                                   model_probs, compute_shap,
                                   training_budget_report)
 from federated_learning import (run_fedavg, run_fedprox, run_scaffold,
-                                get_model_probs)
+                                get_model_probs, LOCAL_BATCH_SIZE)
 from evaluation import (make_calibrator, select_calibration,
                         find_optimal_threshold_fbeta, compute_all_metrics,
                         select_fpr_thresholds_on_validation,
@@ -605,7 +605,10 @@ def main():
             len(y_train), n_val=len(y_val), central_epochs=30,
             central_batch=256, central_lr=cfg.LR,
             fl_rounds=args.rounds, fl_local_epochs=cfg.LOCAL_EPOCHS,
-            fl_batch=cfg.BATCH_SIZE, fl_lr=cfg.LR),
+            # R-FS9-R5 (R7-2): report the loader-true batch size (the
+            # federated local path has trained at 512 since v3.0.1;
+            # the stale cfg.BATCH_SIZE=256 never reached the loader).
+            fl_batch=LOCAL_BATCH_SIZE, fl_lr=cfg.LR),
         "fl_convergence_val": {
             "fedavg": fedavg_history,
             "fedprox": fedprox_history,

@@ -11,6 +11,7 @@ is verifiable in-repo rather than out-of-band.
 | `RESPONSE_R-FS9-R1_v4.1_ERRATA.md` | R-FS9-R1 (re-review of v4.0) | v4.1 | Corrected in place at v4.2; inline erratum markers plus a closing erratum section list the statements Dossier R-FS9-R2 refuted |
 | `RESPONSE_R-FS9-R2_v4.2.md` | R-FS9-R2 (re-review of v4.1) | v4.2 | As delivered; one erratum added at v4.4 (header page count — the v4.2 PDF was 52 pp, Dossier R-FS9-R4 P3) |
 | `RESPONSE_R-FS9-R3_v4.3.md` | R-FS9-R3 (re-review of v4.2) | v4.3 | As delivered; closes the cycle's four clerical residue items (N1-N4); errata added at v4.4 (the letter's minimality claim understated its own Section 4 battery-sentence rewrites, Dossier R-FS9-R4 P1) |
+| `RESPONSE_R-FS9-R5_v4.5.md` | R-FS9-R5 (full-body re-audit of v4.4/v4.5) | v4.5 | As delivered; discharges the sixth round's seven non-blocking findings (R7-1-R7-4, C1-C3) and the front-door refresh. The intervening R-FS9-R4 round (v4.4) was discharged via its commit message and RUNLOG entry — both verified against the diff by Dossier R-FS9-R5 — and carried no separate letter |
 
 The first-round response to the original R-FS9 forensic audit predates
 this convention and is documented in the repository history

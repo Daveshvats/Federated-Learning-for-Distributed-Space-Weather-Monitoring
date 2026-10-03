@@ -17,7 +17,7 @@ reimplementation would likely rediscover the hard way.
 \setlength{\LTcapwidth}{\textwidth}
 \begin{longtable}{@{}p{0.09\textwidth} >{\raggedright\arraybackslash}p{0.42\textwidth} >{\raggedright\arraybackslash}p{0.43\textwidth}@{}}
 \caption{Documented stability fixes and protocol revisions across
-framework versions (v2.1--v4.3), as recorded in the released source.}
+framework versions (v2.1--v4.5), as recorded in the released source.}
 \label{tab:evolution}\\
 \toprule
 \textbf{Version} & \textbf{Diagnosed failure mode} & \textbf{Fix} \\
@@ -341,6 +341,29 @@ recorded observation); the battery re-verified at 224 passed /
 0 failed (the v4.2 count of 195 plus the 29 new checks; the same 24
 torch-dependent skips; \texttt{logs/test\_battery\_v4.3.log}; the
 canonical v4.1 log retained untouched). \\
+\addlinespace[2pt]
+v4.5 & Post-acceptance full-body re-audit (Dossier R-FS9-R5, verdict:
+accept sustained, composite rating 7.9/10): every bibliography entry
+verified field-by-field against publisher records, eleven exact-phrase
+plagiarism probes clean, both novelty firsts re-derived independently,
+the headline numbers reality-checked against the operational
+forecasting literature, and the never-audited code paths read
+line-by-line; seven new non-blocking findings registered (R7-1--R7-4,
+C1--C3), discharged as one-line errata. The intervening v4.4 was a
+repository-only errata batch (Dossier R-FS9-R4) that did not touch
+the manuscript. & The bibliography's three defects fixed (a one-letter
+author misspelling restored to the Crossref record, a
+twelve-of-twenty-eight consortium roster marked ``and others'', and
+two orphaned BibTeX lines deleted); the SCAFFOLD protocol disclosure
+completed (optimiser SGD with momentum $0.9$ at half the global
+learning rate, and the arm's pre-v4.5 focal-prevalence asymmetry
+stated plainly, with the call site aligned so all three federated
+arms share one loss definition); the budget artefact's federated
+batch size regenerated to the loader-true value it had always
+trained at; the battery's default-path log un-shipped and gitignored
+so a fresh clone's first documented run succeeds; dead configuration
+constants deleted; the repository front door refreshed to the v4.5
+state. \\
 \end{longtable}
 \endgroup
 

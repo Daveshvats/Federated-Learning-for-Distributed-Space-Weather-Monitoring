@@ -42,6 +42,14 @@ from model import (SolarMLP, SolarLSTM, get_weights, set_weights,
                    clone_model, make_fresh_model, get_device, is_lstm_model)
 from evaluation import compute_all_metrics
 
+# R-FS9-R5 (R7-2): single source of truth for the federated local
+# training batch size. The FastLoader has hardcoded 512 since v3.0.1;
+# the stale cfg.BATCH_SIZE (256) never reached this path, which is how
+# outputs/results.json's training_budget block came to record 256
+# while every federated arm trained at 512. main.py reports THIS
+# constant to the budget generator; cfg.BATCH_SIZE is deleted.
+LOCAL_BATCH_SIZE = 512
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # MIXUP AUGMENTATION
@@ -117,7 +125,7 @@ def _make_loader(X, y, rng=None):
     dominated round time — ~4x slowdown). Same semantics: batch 512,
     reshuffled per epoch, last partial batch kept."""
     class _FastLoader:
-        def __init__(self, X, y, batch_size=512):
+        def __init__(self, X, y, batch_size=LOCAL_BATCH_SIZE):
             self.X = torch.as_tensor(X, dtype=torch.float32)
             self.y = torch.as_tensor(y, dtype=torch.float32)
             self.batch_size = batch_size
@@ -281,7 +289,8 @@ def local_train_fedprox(model, global_model, X, y, epochs=LOCAL_EPOCHS,
 
 def local_train_scaffold(model, X, y, c_global, c_local,
                          epochs=LOCAL_EPOCHS, current_round=0,
-                         total_rounds=50, seed=None) -> Tuple[nn.Module, list]:
+                         total_rounds=50, seed=None,
+                         global_pos_rate=None) -> Tuple[nn.Module, list]:
     """
     SCAFFOLD local training (SGD — control variate math requires it).
     Retained from v2.3 with the std(correction=0) NaN fix.
@@ -292,7 +301,15 @@ def local_train_scaffold(model, X, y, c_global, c_local,
     X, y = _maybe_smote(X, y, seed=(seed if seed is not None else cfg.SEED))
     X, y = mixup_data(X, y, alpha=MIXUP_ALPHA, rng=rng)
     loader = _make_loader(X, y)
-    criterion = get_criterion(device, current_round, total_rounds, focal_alpha=0.25)
+    # R-FS9-R5 (R7-4): the B13 fix (computed global prevalence) now
+    # reaches the SCAFFOLD local path too, so all three federated arms
+    # share one loss definition. The published SCAFFOLD operating
+    # points were trained before this fix — under the hardcoded 0.4887
+    # default — which the paper discloses at v4.5; re-running the arm
+    # would require the owner-GPU queue.
+    criterion = get_criterion(device, current_round, total_rounds,
+                              focal_alpha=0.25,
+                              global_pos_rate=global_pos_rate)
     pos_rate = float(y.mean())
 
     scaffold_lr = LR * 0.5
@@ -522,7 +539,8 @@ def _run_fl_loop(shards, X_monitor, y_monitor, n_rounds, algorithm, mu=0.0,
             elif algorithm == "scaffold":
                 local, new_c = local_train_scaffold(
                     local, X_c, y_c, c_global, c_locals[cid],
-                    current_round=rnd, total_rounds=n_rounds, seed=seed)
+                    current_round=rnd, total_rounds=n_rounds, seed=seed,
+                    global_pos_rate=global_pos_rate)
                 updated_c.append(new_c)
                 c_locals[cid] = new_c
             else:

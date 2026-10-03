@@ -219,7 +219,11 @@ Figure~\ref{fig:partition}. \textbf{SCAFFOLD} \cite{karimireddy2020}:
 variance reduction via client and server control variates; it is
 implemented with the SGD-based update required for exactness of the
 control-variate correction (AdamW's adaptive steps would invalidate
-the correction terms). Three implementation details depart from the
+the correction terms; the shipped optimiser is SGD with momentum
+$0.9$ at a learning rate of $2.5\times10^{-4}$ --- half the global
+rate --- a fourth departure of the same, milder class, since momentum
+biases the average-gradient estimate that the control-variate update
+divides by; disclosed at v4.5). Three implementation details depart from the
 reference algorithm and are disclosed for exactness: (i)\ the
 control-variate correction is damped, rescaled to 10\% of each
 parameter's gradient norm (the undamped correction destabilised
@@ -227,7 +231,16 @@ training on this benchmark's loss scale); (ii)\ gradients are clipped
 to max-norm 1.0; and (iii)\ the SCAFFOLD arm is warm-started from
 the converged FedAvg model of the same run, so its trajectory should
 be read as ``FedAvg-initialised variance-reduced refinement,'' not a
-from-scratch run. The raw-substrate arms of
+from-scratch run. One further arm-level asymmetry is disclosed at
+v4.5: the published SCAFFOLD operating points were trained before the
+imbalance factor's global-prevalence fix (founding-audit finding B13)
+was extended to the SCAFFOLD local path, so that arm's focal weight
+used the hardcoded cleaned-substrate prevalence $0.4887$ as
+$\bar{p}$ rather than the computed global rate the FedAvg and
+FedProx arms use; on the roughly two-percent-positive raw substrate
+the imbalance factor saturates at its clamp either way, which bounds
+the effect. The call site is aligned at v4.5, so all three federated
+arms share one loss definition in the released code. The raw-substrate arms of
 Sections~\ref{sec:res-raw} and~\ref{sec:res-lstm} report this
 configuration as implemented; a vanilla-SCAFFOLD replication is
 queued future work. It was held out of the cleaned-substrate

@@ -12,3 +12,9 @@ paper/main.aux
 paper/main.bbl
 .venv/
 paper/main.out
+
+# R-FS9-R5 (R7-1): the battery's default write path must never hold a
+# committed log (a shipped v4.4 log made every fresh clone's first
+# documented battery run exit 1 at the overwrite guard). Current-version
+# logs are run records; the canonical/historical logs are tracked and frozen.
+logs/test_battery_v*.log

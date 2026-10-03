@@ -115,7 +115,11 @@ INPUT_DIM   = len(FEATURE_COLS)
 HIDDEN_DIMS = [128, 64, 32]
 DROPOUT     = 0.3
 LR          = 0.0005
-BATCH_SIZE  = 256
+# BATCH_SIZE (256) deleted at v4.5 — R-FS9-R5 R7-2: the federated
+# local loader has trained at LOCAL_BATCH_SIZE = 512 (federated_
+# learning.py, single source of truth) since v3.0.1; this stale
+# constant never reached the loader and only mis-fed the budget
+# report in main.py.
 
 # ── LSTM ──────────────────────────────────────────────────────────────────
 USE_LSTM          = True
@@ -126,7 +130,9 @@ LSTM_BIDIRECTIONAL = False
 
 # ── SCAFFOLD ──────────────────────────────────────────────────────────────
 USE_SCAFFOLD     = False
-SCAFFOLD_LR      = 0.001
+# SCAFFOLD_LR (0.001) deleted at v4.5 — R-FS9-R5 R7-3: dead constant,
+# imported nowhere; the scaffold path uses LR * 0.5 (federated_
+# learning.py local_train_scaffold), now disclosed in the paper.
 
 # ── Temporal features ─────────────────────────────────────────────────────
 FLATTEN_METHOD   = "concat_stats_enhanced"

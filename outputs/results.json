@@ -322,7 +322,7 @@
     "federated": {
       "rounds": 50,
       "local_epochs_per_round": 10,
-      "batch_size": 256,
+      "batch_size": 512,
       "lr": 0.0005,
       "effective_passes_per_client_shard": 500,
       "checkpoint_rule": "best validation F1 round"

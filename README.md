@@ -27,9 +27,22 @@ transport, checkpoint selection, novelty repositioning).
 > **v3.1–v3.8 (review-2 response + executed re-run programme)**: see
 > `docs/REVIEW2_RESPONSE.md` for the complete mapping. Headline frozen
 > seed-42 numbers are unchanged throughout; the revisions ship protocol
-> code (78/78 checks), executed re-runs, the provenance/leakage-free
-> evaluation, the raw-substrate and LSTM arms, SCAFFOLD, seed
-> replication, and the SMOTE ablation.
+> code (78/78 checks — the count of that era), executed re-runs, the
+> provenance/leakage-free evaluation, the raw-substrate and LSTM arms,
+> SCAFFOLD, seed replication, and the SMOTE ablation.
+>
+> **v4.x (R-FS9 referee cycle, closed at v4.5)**: six rounds,
+> v3.9 reject-as-framed -> v4.5 accept-sustained (Dossier R-FS9-R5,
+> composite rating 7.9/10). The manuscript of record is
+> `paper/main.pdf`, compiled from `paper/main.tex` (v4.5). Verification
+> apparatus: `python tests/run_battery.py` — the single-entry integrity
+> battery, **224 checks torch-less / 248 with torch** (canonical 219/219
+> v4.1 record at `logs/test_battery.log`); it writes a versioned,
+> gitignored log and refuses to overwrite an existing log
+> (`--force-log` overrides), so a fresh clone's first documented run
+> succeeds. Execution environments of record:
+> `docs/ENVIRONMENTS.md`; response letters to every dossier:
+> `docs/response_letters/`; the review-cycle ledger: `RUNLOG.md`.
 
 ## What this repo demonstrates
 
@@ -54,9 +67,9 @@ pip install -r requirements.txt
 # 1. data provenance manifest (before anything else)
 python data_manifest/generate_manifest.py
 
-# 2. integrity tests (no dataset required — synthetic fixtures)
-python tests/test_pipeline_integrity.py
-python tests/test_fl_smoke.py
+# 2. integrity battery (no dataset required — synthetic fixtures;
+#    single entry point, one authoritative count)
+python tests/run_battery.py     # 224 checks torch-less / 248 with torch
 
 # 3. place the Cleaned SWAN-SF pkl files under data/cleaned/{train,test}/
 #    https://github.com/samresume/Cleaned-SWANSF-Dataset
@@ -82,7 +95,7 @@ python experiments/run_bn_diagnostic.py C             # faithful FedAvg re-run w
 python experiments/run_nobn_control.py fedavg         # controlled no-BN FedAvg (v3.9, resumable)
 python experiments/run_nobn_control.py fedprox        # controlled no-BN FedProx (v3.9, resumable)
 python experiments/run_partition_disjoint.py           # leakage-free fold P1-4 -> P5 (v3.4: executed)
-python experiments/run_event_level.py --input outputs/event_scores.json  # v3.1
+python experiments/run_event_level.py --self-check  # deterministic synthetic fixture (standalone)
 python experiments/run_federated_lstm.py               # LSTM arms on the raw substrate (v3.6: EXECUTED on owner GPU)
 python experiments/run_event_level_lstm.py              # LSTM event-level pass (v3.6: torch-free CPU, standalone)
 python experiments/run_gpu_queue.py                    # v3.8: one-command owner-GPU queue — EXECUTED 2026-10-01 (8.7 h; artefacts committed + guarded)
@@ -132,7 +145,7 @@ SF9/
 ├── privacy_analysis/           # threat model
 ├── limitations/                # honest limitations
 ├── docs/                       # GIC boundary, lit-search, review-2 response
-├── tests/                      # integrity + substrate + LSTM + queue + artefact suites (193 checks)
+├── tests/                      # integrity battery (run_battery.py: 224 checks torch-less / 248 with torch) + substrate + LSTM + queue + artefact suites
 ├── logs/                       # execution logs
 ├── paper/                      # manuscript (LaTeX + PDF) + review
 └── outputs/                    # results.json, figures (regenerated)
