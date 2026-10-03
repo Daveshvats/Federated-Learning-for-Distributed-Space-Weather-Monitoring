@@ -241,7 +241,11 @@ def train_centralized_lstm(X_train, y_train, X_val, y_val, seed=None,
     model = SolarLSTM(input_size=N_FEATS).to(device)
     opt = torch.optim.AdamW(model.parameters(), lr=cfg.LR,
                             weight_decay=1e-4)
-    crit = get_criterion(device, 0, 1, focal_alpha=0.25)
+    # R-FS9-R6 (R8-5): B13 computed-prevalence plumbing extended to
+    # the pooled central LSTM comparator at v4.6 (published points
+    # predate the alignment — hardcoded 0.4887 fallback, disclosed).
+    crit = get_criterion(device, 0, 1, focal_alpha=0.25,
+                         global_pos_rate=float(y_train.mean()))
     start_epoch, best_vl, best_state, wait = 0, np.inf, None, 0
 
     if cache_path and os.path.exists(cache_path):

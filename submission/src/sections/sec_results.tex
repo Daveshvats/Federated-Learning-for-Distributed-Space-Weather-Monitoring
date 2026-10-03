@@ -366,9 +366,9 @@ re-run item~8 asks exactly that question: does the same frozen
 protocol survive natural prevalence when the federated encoder is
 sequential? The LSTM arms were executed on owner-side GPU hardware
 (RTX\,4060 Laptop, cuDNN; 2.6\,h total wall-clock for both
-federated arms plus the pooled comparator, against an estimated
-$\sim$74\,h on the 2-core CPU sandbox---the one experiment where a
-GPU was a practical requirement rather than a convenience). The
+federated arms plus the pooled comparator, against a CPU-only
+sandbox run that would have been impractically slow---the one experiment where a GPU was a
+practical requirement rather than a convenience). The
 substrate is identical by construction: the runner rebuilds the 3D
 series from the same cached stage-A/B arrays, asserts label equality
 with the frozen 2D split at startup, runs the 144-statistic feature

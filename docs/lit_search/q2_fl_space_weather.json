@@ -1,83 +1,89 @@
-[
-  {
-    "url": "https://www.ijcai.org",
-    "name": "Prompt Federated Learning for Weather Forecasting",
-    "snippet": "by S Chen · Cited by 109 — This paper will design a novel machine- learning approach to train foundation models on weather forecasting tasks. 9 pages",
-    "host_name": "www.ijcai.org",
-    "rank": 0,
-    "date": "",
-    "favicon": ""
-  },
-  {
-    "url": "https://www.nas.nasa.gov",
-    "name": "Forecasting Space Weather Using Machine Learning",
-    "snippet": "Nov 16, 2024 — The ability to forecast space weather phenomena is critical because it can help protect essential technologies like satellites, power grids, ...",
-    "host_name": "www.nas.nasa.gov",
-    "rank": 1,
-    "date": "Nov 16, 2024",
-    "favicon": ""
-  },
-  {
-    "url": "https://www.spaceweather.gov",
-    "name": "Machine Learning in Space Weather",
-    "snippet": "Dst forecasting with Machine Learning Correlation coefficient = 0.96 Root Mean Square Error (RMSE) = 5.25. RMSE) = 7.6 26 pages",
-    "host_name": "www.spaceweather.gov",
-    "rank": 2,
-    "date": "",
-    "favicon": ""
-  },
-  {
-    "url": "https://ui.adsabs.harvard.edu",
-    "name": "Federated Prompt Learning for Weather Foundation",
-    "snippet": "Federated Learning is a promising solution for such forecasting by enabling collaborative model training without sharing raw data.",
-    "host_name": "ui.adsabs.harvard.edu",
-    "rank": 3,
-    "date": "",
-    "favicon": ""
-  },
-  {
-    "url": "https://arxiv.org",
-    "name": "Bringing Federated Learning to Space",
-    "snippet": "Nov 18, 2025 — Federated learning (FL) in time-sensitive contexts such as emergency management and extreme weather forecasting",
-    "host_name": "arxiv.org",
-    "rank": 4,
-    "date": "Nov 18, 2025",
-    "favicon": ""
-  },
-  {
-    "url": "https://swe.ssa.esa.int",
-    "name": "Machine learning in Support of Space Weather Prediction",
-    "snippet": "ML-enabled time series predictors across different products from different space weather domains. Machine Learning (ML) technologies in the Space Weather (SW) ...",
-    "host_name": "swe.ssa.esa.int",
-    "rank": 5,
-    "date": "",
-    "favicon": ""
-  },
-  {
-    "url": "https://www.sciencedirect.com",
-    "name": "A solar forecasting framework based on federated learning",
-    "snippet": "by H Wen · 2022 · Cited by 47 — To tackle the deficiencies of AI forecasting models, we present a flexible distributed solar forecasting framework based on a novel spatial and temporal ... Read more",
-    "host_name": "www.sciencedirect.com",
-    "rank": 6,
-    "date": "",
-    "favicon": ""
-  },
-  {
-    "url": "https://ricerca.uniparthenope.it",
-    "name": "Federated Learning for Distributed Weather Forecasting",
-    "snippet": "by A Di Vicino · 2025 — This paper presents an application of a federated learning framework to improve weather forecast accuracy through the collaborative analysis of distributed data ... Read more",
-    "host_name": "ricerca.uniparthenope.it",
-    "rank": 7,
-    "date": "",
-    "favicon": ""
-  },
-  {
-    "url": "https://ecamporeale.github.io",
-    "name": "The Challenge of Machine Learning in Space Weather",
-    "snippet": "by E Camporeale · 2019 · Cited by 543 — The clearest opportunity lies in creating space weather forecasting models that can respond in real time and that are built on both physics predictions and on ... Read more",
-    "host_name": "ecamporeale.github.io",
-    "rank": 8,
-    "date": "",
-    "favicon": ""
-  }
-]
+{
+  "query": "(ii) federated learning space weather forecasting",
+  "query_date": "2026-09-29",
+  "date_source": "paper of record, sec_related.tex: 'The search was last repeated on 29~September 2026'",
+  "embedded_at": "v4.6 (R-FS9-R6 register item 6)",
+  "records": [
+    {
+      "url": "https://www.ijcai.org",
+      "name": "Prompt Federated Learning for Weather Forecasting",
+      "snippet": "by S Chen · Cited by 109 — This paper will design a novel machine- learning approach to train foundation models on weather forecasting tasks. 9 pages",
+      "host_name": "www.ijcai.org",
+      "rank": 0,
+      "date": "",
+      "favicon": ""
+    },
+    {
+      "url": "https://www.nas.nasa.gov",
+      "name": "Forecasting Space Weather Using Machine Learning",
+      "snippet": "Nov 16, 2024 — The ability to forecast space weather phenomena is critical because it can help protect essential technologies like satellites, power grids, ...",
+      "host_name": "www.nas.nasa.gov",
+      "rank": 1,
+      "date": "Nov 16, 2024",
+      "favicon": ""
+    },
+    {
+      "url": "https://www.spaceweather.gov",
+      "name": "Machine Learning in Space Weather",
+      "snippet": "Dst forecasting with Machine Learning Correlation coefficient = 0.96 Root Mean Square Error (RMSE) = 5.25. RMSE) = 7.6 26 pages",
+      "host_name": "www.spaceweather.gov",
+      "rank": 2,
+      "date": "",
+      "favicon": ""
+    },
+    {
+      "url": "https://ui.adsabs.harvard.edu",
+      "name": "Federated Prompt Learning for Weather Foundation",
+      "snippet": "Federated Learning is a promising solution for such forecasting by enabling collaborative model training without sharing raw data.",
+      "host_name": "ui.adsabs.harvard.edu",
+      "rank": 3,
+      "date": "",
+      "favicon": ""
+    },
+    {
+      "url": "https://arxiv.org",
+      "name": "Bringing Federated Learning to Space",
+      "snippet": "Nov 18, 2025 — Federated learning (FL) in time-sensitive contexts such as emergency management and extreme weather forecasting",
+      "host_name": "arxiv.org",
+      "rank": 4,
+      "date": "Nov 18, 2025",
+      "favicon": ""
+    },
+    {
+      "url": "https://swe.ssa.esa.int",
+      "name": "Machine learning in Support of Space Weather Prediction",
+      "snippet": "ML-enabled time series predictors across different products from different space weather domains. Machine Learning (ML) technologies in the Space Weather (SW) ...",
+      "host_name": "swe.ssa.esa.int",
+      "rank": 5,
+      "date": "",
+      "favicon": ""
+    },
+    {
+      "url": "https://www.sciencedirect.com",
+      "name": "A solar forecasting framework based on federated learning",
+      "snippet": "by H Wen · 2022 · Cited by 47 — To tackle the deficiencies of AI forecasting models, we present a flexible distributed solar forecasting framework based on a novel spatial and temporal ... Read more",
+      "host_name": "www.sciencedirect.com",
+      "rank": 6,
+      "date": "",
+      "favicon": ""
+    },
+    {
+      "url": "https://ricerca.uniparthenope.it",
+      "name": "Federated Learning for Distributed Weather Forecasting",
+      "snippet": "by A Di Vicino · 2025 — This paper presents an application of a federated learning framework to improve weather forecast accuracy through the collaborative analysis of distributed data ... Read more",
+      "host_name": "ricerca.uniparthenope.it",
+      "rank": 7,
+      "date": "",
+      "favicon": ""
+    },
+    {
+      "url": "https://ecamporeale.github.io",
+      "name": "The Challenge of Machine Learning in Space Weather",
+      "snippet": "by E Camporeale · 2019 · Cited by 543 — The clearest opportunity lies in creating space weather forecasting models that can respond in real time and that are built on both physics predictions and on ... Read more",
+      "host_name": "ecamporeale.github.io",
+      "rank": 8,
+      "date": "",
+      "favicon": ""
+    }
+  ]
+}

@@ -1,0 +1,115 @@
+% ════════════════════════════════════════════════════════════════════
+% SECTION 3 — PROBLEM FORMULATION
+% ════════════════════════════════════════════════════════════════════
+\section{Problem Formulation}\label{sec:problem}
+
+\subsection{Federated risk minimisation}
+
+Let $K$ denote the number of participating clients (simulated shards
+of the pooled benchmark), each
+holding a private dataset
+$\mathcal{D}_k = \{(x_i, y_i)\}_{i=1}^{n_k}$ of active-region
+observation windows $x_i \in \R^{d}$ and binary labels
+$y_i \in \{0,1\}$ indicating whether an M- or X-class flare occurs
+within the forecasting horizon. Let
+$\mathcal{D} = \bigcup_{k=1}^{K} \mathcal{D}_k$ with
+$n = \sum_k n_k$. The goal of standard centralised learning is to
+solve
+\begin{equation}\label{eq:central}
+    \min_{\w \in \R^{p}} \;
+    F(\w) \;=\; \frac{1}{n}\sum_{i=1}^{n}
+    \ell\big(f_{\w}(x_i),\, y_i\big),
+\end{equation}
+where $f_{\w}$ is the prediction model, $\ell$ a per-sample loss, and
+$p$ the number of parameters. In the federated setting this objective
+is decomposed as a weighted sum of local empirical risks
+\begin{equation}\label{eq:fedobj}
+    \min_{\w} \; F(\w) \;=\; \sum_{k=1}^{K} \rho_k \, F_k(\w),
+    \qquad
+    F_k(\w) \;=\; \frac{1}{n_k}\sum_{(x_i,y_i)\in\mathcal{D}_k}
+    \ell\big(f_{\w}(x_i),\, y_i\big),
+\end{equation}
+with aggregation weights $\rho_k \ge 0$, $\sum_k \rho_k = 1$. The
+vanilla FedAvg choice is $\rho_k = n_k / n$; Section~\ref{sec:method}
+describes the distribution-aware weights used in this work.
+
+\subsection{The data-locality constraint}
+
+The operational constraint that distinguishes cross-silo FL from
+distributed optimisation is not an algorithmic preference but an
+institutional invariant: for every round $t$ and client $k$, the
+server may observe only the weight increment
+$\Delta \w_k^{(t)} = \w_k^{(t+1)} - \w^{(t)}$ (or equivalently the
+locally trained weights), never $x_i$ or $y_i$ for any sample in
+$\mathcal{D}_k$. Formally, the communication transcript
+\begin{equation}\label{eq:privacy}
+    \mathcal{T} \;=\;
+    \big\{\Delta \w_k^{(t)}\big\}_{k=1,\dots,K;\; t=1,\dots,T}
+\end{equation}
+is the only quantity that crosses the client boundary. This is the
+data-locality constraint that motivates cross-silo federated learning
+in settings where shards genuinely cannot be pooled---proprietary
+archives, cross-border data governance, organisational silos. We
+stress that no such constraint binds this benchmark: the SWAN-SF
+data is public and freely poolable, and the federated protocol here
+is a controlled simulation of the constraint, not a response to it.
+The released framework nonetheless enforces the property by
+construction: the client-side pipeline never serialises raw shards.
+We further stress the scope of the property: it is
+\emph{data locality}, not cryptographic privacy. The transcript
+$\mathcal{T}$ itself can leak information about training data
+(Section~\ref{sec:threatmodel}); defending against an adversary who
+observes it requires secure aggregation or differential privacy, which
+are implemented but not evaluated for accuracy cost here.
+
+\subsection{Statistical heterogeneity}
+
+In genuine cross-silo deployments, participating organisations sample
+different populations under different label distributions, so the
+local class priors $p_k = \Pr(y=1 \mid k)$ differ from the pooled
+prior $\bar{p}$ --- statistical heterogeneity, the defining
+difficulty of federated optimisation. Because SWAN-SF is a
+single-instrument, whole-disk benchmark, no physical mechanism
+produces such skew here; we therefore \emph{impose} it by
+partitioning the pooled training data among $K$ clients with a
+symmetric Dirichlet distribution of concentration $\alpha$
+(Section~\ref{sec:method}),
+so that the realised local priors span a wide range around $\bar{p}$.
+The partition is a simulation instrument --- a test of federation
+under heterogeneity, not a claim about how the data is produced: the
+labels and windows come from one observatory pipeline for every
+shard. The consequence for optimisation is well documented
+\cite{zhao2018,li2020}: local objectives $F_k$ become misaligned, and
+plain averaging of locally optimised weights introduces drift that
+grows with the number of local epochs. FedProx counteracts this drift
+by locally solving
+\begin{equation}\label{eq:fedprox}
+    \min_{\w} \;
+    F_k(\w) \;+\; \frac{\mu}{2}\,\norm{\w - \w^{(t)}}^{2},
+\end{equation}
+which keeps client updates in a trust region around the global model.
+The strength of this anchor, $\mu$, is a central hyperparameter of
+this study.
+
+\subsection{A safety-critical, recall-weighted objective}
+
+Rare-event forecasting inverts the usual classification cost
+structure: at 1--2\% positive prevalence an all-clear forecast is
+98--99\% accurate and useless, while a missed positive is the event
+the forecast exists to catch. Following rare-event evaluation
+practice, we therefore evaluate with the $F_\beta$ measure
+\begin{equation}\label{eq:fbeta}
+    \Fbeta \;=\;
+    \frac{(1+\beta^{2})\, P\, R}{\beta^{2} P + R},
+    \qquad \beta = 2,
+\end{equation}
+where $P$ and $R$ are precision and recall; $\beta = 2$ weights recall
+twice as heavily as precision. Because the deployed decision rule is a
+threshold $\tau$ on the predicted flare probability, the framework
+treats $\tau$ as a free, per-model parameter selected on held-out
+validation evidence to maximise Eq.~\eqref{eq:fbeta}, rather than
+fixing $\tau = 0.5$ by convention. Section~\ref{sec:results} shows this
+choice is not cosmetic: at the conventional threshold, every federated
+model trained on rebalanced local data is operationally unusable, and
+threshold optimisation is what converts a well-ranked model into a
+usable detector.

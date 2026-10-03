@@ -86,7 +86,16 @@ def train_centralized_mlp(X_train, y_train, X_val, y_val, seed=None,
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=cfg.LR,
                                   weight_decay=1e-4)
-    criterion = get_criterion(device, 0, 1, focal_alpha=0.25)
+    # R-FS9-R6 (R8-5): the B13 computed-prevalence plumbing is
+    # extended to the centralised comparators at v4.6. The published
+    # centralised operating points PREDATE this alignment and trained
+    # under the hardcoded 0.4887 fallback (losses.py FedFocalLoss
+    # default) — disclosed in the paper alongside the SCAFFOLD
+    # arm's identical asymmetry; on the raw substrate the focal
+    # imbalance factor saturates at its clamp either way, which
+    # bounds the effect.
+    criterion = get_criterion(device, 0, 1, focal_alpha=0.25,
+                              global_pos_rate=float(y_train.mean()))
 
     ds = torch.utils.data.TensorDataset(X_t, y_t)
     loader = torch.utils.data.DataLoader(ds, batch_size=batch_size,

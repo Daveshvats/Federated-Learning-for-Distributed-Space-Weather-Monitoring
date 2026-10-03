@@ -311,8 +311,8 @@ remain the owner-side artefacts embedded in the repository.
 The raw-substrate LSTM arms of Section~\ref{sec:res-lstm} were
 executed on owner-side GPU hardware (an NVIDIA RTX\,4060 Laptop
 with CUDA and cuDNN), because the CPU-only protocol above would
-have needed an estimated 74\,h---the one experiment where GPU was
-a practical requirement. Two batches: the seed-42 arms (2.6\,h total: 0.08\,h
+have been impractically slow for the sequence arms---the one
+experiment where GPU was a practical requirement. Two batches: the seed-42 arms (2.6\,h total: 0.08\,h
 pooled comparator, 1.16\,h FedAvg-LSTM, 1.33\,h FedProx-LSTM) and,
 as a second single resumable queue, the remaining programme (8.7\,h:
 1.5\,h SCAFFOLD-LSTM, 3.9\,h the seed-43 replication of all four

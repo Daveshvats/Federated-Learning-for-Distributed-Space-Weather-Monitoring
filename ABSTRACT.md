@@ -26,7 +26,7 @@ than a federated-learning failure: the same weights score 0.951 with
 local statistics, and a controlled no-BatchNorm run leaves both FedAvg
 and FedProx stable. On the raw, unbalanced substrate the outcome is
 encoder-conditional (federated MLPs degrade; FedProx-LSTM reaches
-0.970/0.404). Calibration, not detection, is the deployability
+ROC-AUC 0.970 and TSS 0.404). Calibration, not detection, is the deployability
 boundary: no validation-fit decision layer survives the prevalence
 shift. Standard verification metrics (TSS, HSS, Brier skill,
 persistence and climatology baselines, with reliability for the

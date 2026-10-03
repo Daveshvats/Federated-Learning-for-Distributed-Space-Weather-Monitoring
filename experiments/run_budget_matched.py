@@ -61,7 +61,11 @@ def _train_budget_matched(X_train, y_train, X_val, y_val, seed,
     model = SolarMLP(input_dim=X_train.shape[1]).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=cfg.LR,
                                   weight_decay=1e-4)
-    criterion = get_criterion(device, 0, 1, focal_alpha=0.25)
+    # R-FS9-R6 (R8-5): B13 computed-prevalence plumbing extended to
+    # the budget-matched centralised re-run at v4.6 (published points
+    # predate the alignment — hardcoded 0.4887 fallback, disclosed).
+    criterion = get_criterion(device, 0, 1, focal_alpha=0.25,
+                              global_pos_rate=float(y_train.mean()))
     start_epoch, best_val_loss, best_state, wait = 0, np.inf, None, 0
     stopped_early = None
 

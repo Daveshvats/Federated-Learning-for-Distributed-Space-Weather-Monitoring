@@ -341,6 +341,26 @@ def local_train_scaffold(model, X, y, c_global, c_local,
             n_steps += 1
 
     new_c_local = []
+    # R-FS9-R6 (R8-2, major): the client control-variate update below
+    # computes delta = (p_new - p_init) / (n_steps * scaffold_lr) and
+    # new_c = c_local + delta - c_global, i.e. it implements
+    #     c_i^+ = c_i - c + (y_i^+ - y_i) / (eta * K)
+    # — the SIGN-INVERTED form of Karimireddy et al.'s Eq. 11
+    # (c_i^+ = c_i - c + (y_i - y_i^+) / (eta * K), which estimates the
+    # client's average local gradient; this form estimates its negative,
+    # confirmed by scalar one-client simulation at ratio -1.0000). The
+    # wrongly-signed variates push the correction term (c - c_i) the
+    # wrong way over rounds; the 10-per-cent norm-matched damping and
+    # the clamping below bound the damage, which is why the arm still
+    # trains. Every published SCAFFOLD operating point was produced by
+    # this code as-is, so the arithmetic is deliberately NOT changed at
+    # v4.6 (a silent sign fix without re-running the arm would create a
+    # new record-versus-code contradiction). The inversion is disclosed
+    # in the paper as the fifth departure from the reference algorithm,
+    # and tests/test_scaffold_algebra.py pins this algebra to the
+    # letter so it cannot drift silently in either direction. A
+    # sign-corrected + warm-started re-run under the frozen protocol is
+    # queued owner-GPU work (R-FS9-R6 register item 3, optional form).
     with torch.no_grad():
         for i, (p_init, p_new) in enumerate(zip(initial_params, model.parameters())):
             if n_steps > 0:

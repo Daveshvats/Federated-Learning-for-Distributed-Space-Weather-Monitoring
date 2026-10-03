@@ -4,7 +4,16 @@ N2/N3: title made version-bearing, sweep-coverage module added;
 v4.4 — R-FS9-R4 P2: default log path versioned + refuse-to-overwrite
 guard; v4.5 — R-FS9-R5 R7-1: default-path log deliberately NOT
 committed — the path is gitignored, so a fresh clone's first run
-succeeds)
+succeeds; v4.6 — R-FS9-R6: six new guards closing the round's
+defect classes — test_import_graph (AST import resolution in every
+environment, R8-1), test_scaffold_algebra (the shipped control-
+variate algebra + cold-start record pinned, R8-2/R8-3),
+test_central_criterion (B13 plumbing reaches every trainer, R8-5),
+test_interpretability_artifact (artefact integrity + fallback
+contract, R8-11), test_submission_apparatus (the regenerated
+submission cannot drift, register item 4), and test_letters_manifest
+(response letters' diff manifests machine-checked — the R2-F1 /
+R3-N1 / R4-P1 drift species, ended)
 ─────────────────────────────────────────
 Single entry point for the integrity battery. Runs every test module,
 aggregates PASS/FAIL across all of them, prints ONE total, and
@@ -41,7 +50,7 @@ ROOT = os.path.dirname(HERE)
 # Single source of truth for the log's title line. Dossier R-FS9-R3
 # (N2) caught a v4.2-era log whose title still read "(v4.1)" because
 # this string was hardcoded; bump BATTERY_VERSION with every release.
-BATTERY_VERSION = "v4.5"
+BATTERY_VERSION = "v4.6"
 
 # Default write path, versioned off BATTERY_VERSION. Dossier R-FS9-R4
 # (P2): the previous default was the un-versioned logs/test_battery.log
@@ -68,6 +77,12 @@ MODULES = [
     "tests/test_gpu_queue.py",
     "tests/test_gpu_queue_artefacts.py",
     "tests/test_leakage_gate.py",
+    "tests/test_import_graph.py",
+    "tests/test_scaffold_algebra.py",
+    "tests/test_central_criterion.py",
+    "tests/test_interpretability_artifact.py",
+    "tests/test_submission_apparatus.py",
+    "tests/test_letters_manifest.py",
     "tests/test_fl_smoke.py",
     "tests/test_event_level_lstm.py",
     "tests/test_raw_substrate.py",

@@ -10,6 +10,14 @@ This module computes attributions for BOTH:
   2. the federated global model (DeepLiftShap / GradientShap / Kernel
      fallback, batched for GPU memory safety)
 
+v4.6 (R-FS9-R6 R8-11): the DeepExplainer->GradientExplainer fallback
+is no longer silent — it prints a warning naming the exception and is
+recorded in the artefact (fl_explainer field); the FL attribution row
+count default is aligned to 500, matching the XGBoost side and the
+artefact note (the committed v3.0 artefact predates this: its FL
+vector was computed over 300 rows with no explainer recorded —
+disclosed in RUNLOG/letter, artefact frozen as the published record).
+
 Consistency check: rank correlation (Spearman) between the two
 importance rankings. High agreement -> the federated decision structure
 is consistent with the centralized surrogate (supports the physical
@@ -34,7 +42,7 @@ def shap_xgboost(xgb_model, X_sample, feature_names, sample_size=500):
     return mean_abs, feature_names
 
 
-def shap_torch_model(model, X_sample, feature_names, sample_size=300,
+def shap_torch_model(model, X_sample, feature_names, sample_size=500,
                      batch_size=256, method="deeplift"):
     """
     Attributions for the FL global model (SolarMLP path).
@@ -79,11 +87,21 @@ def shap_torch_model(model, X_sample, feature_names, sample_size=300,
     try:
         if method == "deeplift":
             explainer = shap.DeepExplainer(wrapped, background)
+            explainer_used = f"DeepExplainer ({method})"
         else:
             explainer = shap.GradientExplainer(wrapped, background)
+            explainer_used = "GradientExplainer (requested)"
         shap_vals = explainer.shap_values(test_tensor)
-    except Exception:
+    except Exception as e:  # noqa: BLE001 — the fallback must be loud
+        # R-FS9-R6 (R8-11): the fallback was previously silent and the
+        # artefact recorded no explainer field; from v4.6 the exception
+        # is printed and the fallback is recorded in the report.
+        print(f"[Interpretability] WARNING (R-FS9-R6 R8-11): primary "
+              f"explainer failed ({type(e).__name__}: {e}) — falling "
+              f"back to GradientExplainer; the fallback is recorded in "
+              f"the artefact (fl_explainer)")
         explainer = shap.GradientExplainer(wrapped, background)
+        explainer_used = "GradientExplainer (fallback, R8-11-loud)"
         shap_vals = explainer.shap_values(test_tensor)
 
     if isinstance(shap_vals, list):
@@ -92,7 +110,10 @@ def shap_torch_model(model, X_sample, feature_names, sample_size=300,
     if arr.ndim == 3:  # (N, features, outputs) for some versions
         arr = arr.squeeze(-1)
     mean_abs = np.abs(arr[:n]).mean(axis=0)
-    return mean_abs, feature_names
+    # v4.6 (R8-11): attribution rows actually used + which explainer,
+    # so the artefact can never again disagree with its own note.
+    return mean_abs, feature_names, {"explainer": explainer_used,
+                                     "rows": int(n)}
 
 
 def consistency_report(importance_a, importance_b, feature_names,
@@ -129,11 +150,19 @@ def run_interpretability(xgb_model, fl_model, X_sample, feature_names):
     imp_xgb, names = shap_xgboost(xgb_model, X_sample, feature_names)
 
     print("[Interpretability] FL global model attributions ...")
-    imp_fl, _ = shap_torch_model(fl_model, X_sample, feature_names)
+    imp_fl, _, fl_meta = shap_torch_model(fl_model, X_sample,
+                                          feature_names)
 
     report = consistency_report(imp_xgb, imp_fl, feature_names)
     report["xgboost_importance"] = imp_xgb.tolist()
     report["fl_importance"] = imp_fl.tolist()
+    # v4.6 (R8-11): provenance fields — which explainer produced the FL
+    # attributions and over how many rows; the frozen v3.0 artefact
+    # predates them (300 rows, explainer unrecorded), which the paper
+    # and RUNLOG disclose.
+    report["fl_explainer"] = fl_meta["explainer"]
+    report["fl_attribution_rows"] = fl_meta["rows"]
+    report["xgboost_attribution_rows"] = int(min(500, len(X_sample)))
     print(f"[Interpretability] Spearman rho = {report['spearman_rho']:.3f} "
           f"| top-15 overlap = {report['top15_overlap_fraction']:.0%} -> "
           f"{report['verdict']}")

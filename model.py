@@ -25,9 +25,19 @@ import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 
-from config import (INPUT_DIM, HIDDEN_DIMS, DROPOUT, LR, BATCH_SIZE, RANDOM_STATE,
+from config import (INPUT_DIM, HIDDEN_DIMS, DROPOUT, LR, EVAL_BATCH_SIZE,
+                    RANDOM_STATE,
                     USE_LSTM, LSTM_HIDDEN_SIZE, LSTM_NUM_LAYERS,
                     LSTM_DROPOUT, LSTM_BIDIRECTIONAL)
+# R-FS9-R6 (R8-1, critical): this import list previously named
+# BATCH_SIZE, which v4.5 deleted as a stale constant (R-FS9-R5 R7-2:
+# the federated loader's truth is LOCAL_BATCH_SIZE = 512 in
+# federated_learning.py) — leaving `import model` broken by
+# ImportError in every torch-equipped environment, invisible to the
+# torch-less battery. The import now names the surviving batch-size
+# constant, EVAL_BATCH_SIZE, which make_loader takes as its default;
+# tests/test_import_graph.py resolves every local import by AST so
+# this class of defect can never ship silently again.
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -56,10 +66,12 @@ class SolarDataset(Dataset):
         return self.X[idx], self.y[idx]
 
 
-def make_loader(X: np.ndarray, y: np.ndarray, shuffle: bool = True) -> DataLoader:
+def make_loader(X: np.ndarray, y: np.ndarray, shuffle: bool = True,
+                batch_size: int = EVAL_BATCH_SIZE) -> DataLoader:
+    # default batch since v4.6: the surviving config constant (R8-1)
     return DataLoader(
         SolarDataset(X, y),
-        batch_size=BATCH_SIZE,
+        batch_size=batch_size,
         shuffle=shuffle,
         drop_last=False
     )

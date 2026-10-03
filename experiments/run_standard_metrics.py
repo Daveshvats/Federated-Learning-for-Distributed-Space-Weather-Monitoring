@@ -225,12 +225,34 @@ def counts_tss_hss(y, pred):
 # Block A — derived from stored artefacts
 # ─────────────────────────────────────────────────────────────────────────────
 
+def _self_check(label, value, expected, tol=0):
+    """R-FS9-R6 (R8-12): block-A self-check — the artefact-derived
+    value must equal the constant every published block-A number was
+    computed with; a mismatch is a loud failure, never a silent
+    re-derivation."""
+    ok = (abs(value - expected) <= tol) if tol else (value == expected)
+    if not ok:
+        raise AssertionError(
+            f"[block A self-check] {label}: artefact says {value!r}, "
+            f"published block-A value is {expected!r} — the artefact "
+            f"and the published operating points have drifted; "
+            f"refusing to re-derive silently (R-FS9-R6 R8-12)")
+
 def block_a():
     derived = {}
 
     # 1. in-partition protocol (results.json)
     r = json.load(open(os.path.join(ROOT, "outputs", "results.json")))
-    n_win = 331185
+    # R-FS9-R6 (R8-12): block A no longer embeds its denominators as
+    # bare literals (a silent-drift risk of exactly the species this
+    # cycle has been eliminating). Every count is now READ from the
+    # committed artefact that owns it — the R-FS9-R3 N3 sweep-test
+    # convention — and a self-check asserts each equals the value every
+    # published block-A number was computed with, so an artefact change
+    # fails loudly here instead of silently re-deriving different
+    # operating points.
+    n_win = int(r["protocol"]["split"]["test"])
+    _self_check("in-partition test windows", n_win, 331185)
     prev = r["test_metrics"]["fedprox_mlp"]["prevalence"]
     n_pos = round(prev * n_win)
     derived["in_partition"] = {}
@@ -247,7 +269,13 @@ def block_a():
     # 2. leakage-free fold (partition_disjoint_eval.json)
     d = json.load(open(os.path.join(ROOT, "outputs",
                                     "partition_disjoint_eval.json")))
-    n_win_p5, prev_p5 = 75365, 0.013136071152985096
+    # R8-12: denominators read from the artefact's own sizes block
+    # (formerly the hardcoded pair 75365 / 0.013136071152985096).
+    n_win_p5 = int(d["sizes"]["test"])
+    prev_p5 = float(d["sizes"]["test_pos"])
+    _self_check("leakage-free fold test windows", n_win_p5, 75365)
+    _self_check("leakage-free fold test prevalence", prev_p5,
+                0.013136071152985096, tol=1e-12)
     n_pos_p5 = round(prev_p5 * n_win_p5)
     derived["leakage_free_fold"] = {}
     for name, entry in d["results"].items():
@@ -265,8 +293,17 @@ def block_a():
     d = json.load(open(os.path.join(ROOT, "outputs",
                                     "raw_substrate_eval.json")))
     sub = d.get("substrate", {})
-    n_win_raw = sub.get("test", 75365)
-    prev_raw = sub.get("test_pos", prev_p5)
+    # R8-12: the counts are artefact-owned keys, not defaults — a
+    # missing key is an error, not a silent fall-back to old numbers.
+    for key in ("test", "test_pos"):
+        if key not in sub:
+            raise AssertionError(
+                f"[block A self-check] raw_substrate_eval.json is "
+                f"missing substrate.{key} — refusing silent default "
+                f"(R-FS9-R6 R8-12)")
+    n_win_raw = int(sub["test"])
+    prev_raw = float(sub["test_pos"])
+    _self_check("raw-substrate test windows", n_win_raw, 75365)
     n_pos_raw = round(prev_raw * n_win_raw)
     derived["raw_substrate_2d"] = {}
     for name, entry in d["results"].items():

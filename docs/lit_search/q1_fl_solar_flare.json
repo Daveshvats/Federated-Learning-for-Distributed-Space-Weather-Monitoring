@@ -1,83 +1,89 @@
-[
-  {
-    "url": "https://www.icck.org/article/tais/358/578",
-    "name": "From Data-driven Towards Physics-informed Machine",
-    "snippet": "by ALS Gradvohl · 2025 — Solar flares are phenomena characterized by the sudden release of accumulated magnetic energy in active regions of the solar magnetosphere.",
-    "host_name": "www.icck.org",
-    "rank": 0,
-    "date": "",
-    "favicon": ""
-  },
-  {
-    "url": "https://stemgateway.nasa.gov/s/course-offering/a0Bt0000004lMIXEA2/machine-learning-solar-flare-prediction",
-    "name": "Machine Learning Solar Flare Prediction",
-    "snippet": "Students will work on developing machine learning programs designed to predict qualities of Solar Flares including rapid flare likelihood forecasting and flare ...",
-    "host_name": "stemgateway.nasa.gov",
-    "rank": 1,
-    "date": "",
-    "favicon": ""
-  },
-  {
-    "url": "https://helioshine.org/solar-flare-prediction-using-deep-learning-models",
-    "name": "Solar Flare Prediction using Deep Learning Models",
-    "snippet": "To improve on solar flare predictability, we compare a novel spatiotemporal explanation supervision (STES) framework for prediction to other ...",
-    "host_name": "helioshine.org",
-    "rank": 2,
-    "date": "Jun 28, 2024",
-    "favicon": ""
-  },
-  {
-    "url": "https://www.sciencedirect.com/science/article/pii/S2590174525005781",
-    "name": "Federated learning-enhanced non-IID solar power",
-    "snippet": "by R Abhishek · 2025 · Cited by 5 — The federated learning architecture employed in this research on solar power forecasting enables numerous clients to train models in a decentralized fashion ...",
-    "host_name": "www.sciencedirect.com",
-    "rank": 3,
-    "date": "",
-    "favicon": ""
-  },
-  {
-    "url": "http://ui.adsabs.harvard.edu/abs/2017ApJ...835..156N/abstract",
-    "name": "Solar Flare Prediction Model with Three Machine-learning",
-    "snippet": "by N Nishizuka · 2017 · Cited by 244 — We developed a flare prediction model using machine learning, which is optimized to predict the maximum class of flares occurring in the following 24 hr.",
-    "host_name": "ui.adsabs.harvard.edu",
-    "rank": 4,
-    "date": "",
-    "favicon": ""
-  },
-  {
-    "url": "https://commons.erau.edu/cgi/viewcontent.cgi?article=1218&context=db-srs",
-    "name": "Predicting Solar Flares with Machine Learning",
-    "snippet": "by EE Larsen · 2021 · Cited by 2 — This paper reports the results from a survey of machine learning models using open-source solar flare prediction data. The rise of edge computing supports ...",
-    "host_name": "commons.erau.edu",
-    "rank": 5,
-    "date": "",
-    "favicon": ""
-  },
-  {
-    "url": "https://www.frontiersin.org/research-topics/33887/machine-learning-and-statistical-methods-for-solar-flare-predictions/magazine",
-    "name": "Machine Learning and Statistical Methods for Solar Flare",
-    "snippet": "y and Space Sciences Machine Learning and Statistical Methods for Solar Flare Predictions. Operational solar flare forecasting via video-based deep learning",
-    "host_name": "www.frontiersin.org",
-    "rank": 6,
-    "date": "",
-    "favicon": ""
-  },
-  {
-    "url": "https://github.com/Luckilyeee/Solar-flare-prediction",
-    "name": "Luckilyeee/Solar-flare-prediction",
-    "snippet": "This project is about Solar flare prediction based on the time series of Solar MagneticField Parameters. The dataset consists of 5 classes,namely X, M, C, B, ...",
-    "host_name": "github.com",
-    "rank": 7,
-    "date": "",
-    "favicon": ""
-  },
-  {
-    "url": "https://arxiv.org/abs/2307.15878",
-    "name": "Explaining Full-disk Deep Learning Model for Solar Flare",
-    "snippet": "by C Pandey · 2023 · Cited by 22 — We present a solar flare prediction model, which is trained using hourly full-disk line-of-sight magnetogram images and employs a binary ...",
-    "host_name": "arxiv.org",
-    "rank": 8,
-    "date": "",
-    "favicon": ""
-  }
-]
+{
+  "query": "(i) federated learning solar flare prediction",
+  "query_date": "2026-09-29",
+  "date_source": "paper of record, sec_related.tex: 'The search was last repeated on 29~September 2026'",
+  "embedded_at": "v4.6 (R-FS9-R6 register item 6)",
+  "records": [
+    {
+      "url": "https://www.icck.org/article/tais/358/578",
+      "name": "From Data-driven Towards Physics-informed Machine",
+      "snippet": "by ALS Gradvohl · 2025 — Solar flares are phenomena characterized by the sudden release of accumulated magnetic energy in active regions of the solar magnetosphere.",
+      "host_name": "www.icck.org",
+      "rank": 0,
+      "date": "",
+      "favicon": ""
+    },
+    {
+      "url": "https://stemgateway.nasa.gov/s/course-offering/a0Bt0000004lMIXEA2/machine-learning-solar-flare-prediction",
+      "name": "Machine Learning Solar Flare Prediction",
+      "snippet": "Students will work on developing machine learning programs designed to predict qualities of Solar Flares including rapid flare likelihood forecasting and flare ...",
+      "host_name": "stemgateway.nasa.gov",
+      "rank": 1,
+      "date": "",
+      "favicon": ""
+    },
+    {
+      "url": "https://helioshine.org/solar-flare-prediction-using-deep-learning-models",
+      "name": "Solar Flare Prediction using Deep Learning Models",
+      "snippet": "To improve on solar flare predictability, we compare a novel spatiotemporal explanation supervision (STES) framework for prediction to other ...",
+      "host_name": "helioshine.org",
+      "rank": 2,
+      "date": "Jun 28, 2024",
+      "favicon": ""
+    },
+    {
+      "url": "https://www.sciencedirect.com/science/article/pii/S2590174525005781",
+      "name": "Federated learning-enhanced non-IID solar power",
+      "snippet": "by R Abhishek · 2025 · Cited by 5 — The federated learning architecture employed in this research on solar power forecasting enables numerous clients to train models in a decentralized fashion ...",
+      "host_name": "www.sciencedirect.com",
+      "rank": 3,
+      "date": "",
+      "favicon": ""
+    },
+    {
+      "url": "http://ui.adsabs.harvard.edu/abs/2017ApJ...835..156N/abstract",
+      "name": "Solar Flare Prediction Model with Three Machine-learning",
+      "snippet": "by N Nishizuka · 2017 · Cited by 244 — We developed a flare prediction model using machine learning, which is optimized to predict the maximum class of flares occurring in the following 24 hr.",
+      "host_name": "ui.adsabs.harvard.edu",
+      "rank": 4,
+      "date": "",
+      "favicon": ""
+    },
+    {
+      "url": "https://commons.erau.edu/cgi/viewcontent.cgi?article=1218&context=db-srs",
+      "name": "Predicting Solar Flares with Machine Learning",
+      "snippet": "by EE Larsen · 2021 · Cited by 2 — This paper reports the results from a survey of machine learning models using open-source solar flare prediction data. The rise of edge computing supports ...",
+      "host_name": "commons.erau.edu",
+      "rank": 5,
+      "date": "",
+      "favicon": ""
+    },
+    {
+      "url": "https://www.frontiersin.org/research-topics/33887/machine-learning-and-statistical-methods-for-solar-flare-predictions/magazine",
+      "name": "Machine Learning and Statistical Methods for Solar Flare",
+      "snippet": "y and Space Sciences Machine Learning and Statistical Methods for Solar Flare Predictions. Operational solar flare forecasting via video-based deep learning",
+      "host_name": "www.frontiersin.org",
+      "rank": 6,
+      "date": "",
+      "favicon": ""
+    },
+    {
+      "url": "https://github.com/Luckilyeee/Solar-flare-prediction",
+      "name": "Luckilyeee/Solar-flare-prediction",
+      "snippet": "This project is about Solar flare prediction based on the time series of Solar MagneticField Parameters. The dataset consists of 5 classes,namely X, M, C, B, ...",
+      "host_name": "github.com",
+      "rank": 7,
+      "date": "",
+      "favicon": ""
+    },
+    {
+      "url": "https://arxiv.org/abs/2307.15878",
+      "name": "Explaining Full-disk Deep Learning Model for Solar Flare",
+      "snippet": "by C Pandey · 2023 · Cited by 22 — We present a solar flare prediction model, which is trained using hourly full-disk line-of-sight magnetogram images and employs a binary ...",
+      "host_name": "arxiv.org",
+      "rank": 8,
+      "date": "",
+      "favicon": ""
+    }
+  ]
+}
