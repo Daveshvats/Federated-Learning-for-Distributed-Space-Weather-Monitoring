@@ -2,8 +2,10 @@
 
 This directory is the **journal-formatted submission manuscript** of
 the SF9 paper, regenerated programmatically from the repository of
-record at **v4.6**, per **Dossier R-FS9-R6, register item 4**
-(R8-6/R8-7/R8-8/R8-9/R8-10).
+record (current build: **v4.7**), per **Dossier R-FS9-R6, register
+item 4** (R8-6/R8-7/R8-8/R8-9/R8-10) and re-verified at **Dossier
+R-FS9-R7** (B1: the two v4.5-truncated bibliography entries restored
+and the rendered bibliography now guarded).
 
 ## Why this exists
 
@@ -12,7 +14,7 @@ the repository and drifted from the record: eleven defective
 bibliography entries (v3.9-era), the skill-score floor apparatus and
 both SCAFFOLD disclosures dropped, six prior-art citations missing,
 and two untraceable constants — the fourth documented instance of the
-hand-prepared-artefact drift species (R2-F1, R3-N1, R4-P1, R6-4).
+hand-prepared-artefact drift species (R2-F1, R3-N1, R4-P1, R8-6).
 This directory ends that species structurally: **the submission is a
 generated artefact, and the battery verifies it.**
 
@@ -58,7 +60,13 @@ Declared, machine-checked transformations in `tools/build_submission.py`
    inversion, cold start, optimiser constants, prevalence asymmetry)
    and the corrected budget-table scheduler cell are present;
 5. the six prior-art citations are cited; no GIC-framing keys; no
-   untraceable constants; the 5e-3 fp16 bound present.
+   untraceable constants; the 5e-3 fp16 bound present;
+6. the **rendered bibliography** of both this PDF and the paper of
+   record is extracted and checked: the entry count, a year on every
+   entry, and title-fragment + year for a pinned list of load-bearing
+   entries (Dossier R-FS9-R7 B1/B7 — source byte-identity alone
+   faithfully inherited the record's own rendering defect through two
+   compiles; the rendered output is now pinned).
 
 ## Rebuild
 

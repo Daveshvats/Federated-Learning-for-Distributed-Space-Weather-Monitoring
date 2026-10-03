@@ -31,7 +31,20 @@ Checks:
   5. the six prior-art citations are cited; no GIC-framing keys
      (bolduc/baker are not even in refs.bib);
   6. no untraceable constants (74-hour CPU estimate, 4.4e-4), the
-     5e-3 fp16 bound present, abstract pair carries metric names.
+     5e-3 fp16 bound present, abstract pair carries metric names;
+  7. RENDERED bibliography pinned (Dossier R-FS9-R7, register item 1 —
+     B1 + B7): pdftotext extracts the compiled pages of BOTH the
+     paper of record and the submission; the entry count must equal
+     the refs.bib entry count, every rendered entry must carry a
+     year (a truncated entry — the B1 species, a bare author list —
+     carries none), the page count is pinned, and each of a pinned
+     list of load-bearing entries ([7] Georgoulis, [22] Hassani, the
+     six prior-art entries, and the Fu/Leka/Karimireddy anchors) must
+     contain its title's first words and its year. Source
+     byte-identity alone guaranteed fidelity to the record INCLUDING
+     the record's own rendering defect — the rendered output is now
+     checked directly. pdftotext (poppler-utils) is a battery
+     dependency since v4.7; its absence fails this check loudly.
 
 Run:  python tests/test_submission_apparatus.py  (or via the battery)
 """
@@ -51,6 +64,46 @@ PAPER = os.path.join(ROOT, "paper")
 
 SIX_KEYS = ["li2021fedbn", "wang2023bn", "guerraoui2024bn",
             "bnscaffold2024", "angryk2019", "ahmadzadeh2021"]
+
+# Dossier R-FS9-R7 register item 1: pinned load-bearing entries of the
+# RENDERED bibliography. Each tuple: (why load-bearing, anchor fragment
+# unique to the entry, the title's first words, the year). Matching is
+# case-insensitive and whitespace-normalised, so renumbering cannot
+# break the pin — content is what is pinned, not position.
+PINNED_ENTRIES = [
+    ("B1: georgoulis2021", "bloomfield",
+     "flare likelihood and region eruption forecasting", "2021"),
+    ("B1: hassani2025", "hassani",
+     "solar flare prediction using", "2025"),
+    ("prior art: angryk2019", "hostetter",
+     "challenges with extreme", "2019"),
+    ("prior art: ahmadzadeh2021", "how to train your flare prediction model",
+     "robust sampling", "2021"),
+    ("prior art: li2021fedbn", "fedbn",
+     "federated learning on non-iid features", "2021"),
+    ("prior art: wang2023bn", "yanmeng wang",
+     "why batch normalization damage", "2025"),
+    ("prior art: guerraoui2024bn", "guerraoui",
+     "overcoming the challenges of batch normalization", "2024"),
+    ("prior art: bnscaffold2024", "quintana",
+     "controlling the drift of batch normalization", "2024"),
+    ("anchor: fu2023", "junfeng fu",
+     "federated transfer learning", "2023"),
+    ("anchor: leka2019", "k. d. leka",
+     "comparison of flare forecasting methods", "2019"),
+    ("anchor: karimireddy2020", "karimireddy",
+     "stochastic controlled averaging", "2020"),
+]
+
+# B7 (Dossier R-FS9-R7): tectonic PDFs are not byte-reproducible
+# (same size, ~67 differing bytes across rebuilds) — the available pin
+# for the compiled artefact is rendered content: page count + key
+# strings. Deliberately bump these when the documents legitimately
+# reflow (a disclosed recompile), never silently.
+PINNED_PAGE_COUNTS = {
+    os.path.join("paper", "main.pdf"): 55,
+    os.path.join("submission", "main.pdf"): 55,
+}
 
 
 def read(path):
@@ -246,6 +299,118 @@ def check_pdf():
     return True
 
 
+def _norm(s):
+    """Squash to lowercase alphanumerics — immune to line-wrap
+    hyphenation (LaTeX splits 'Overcoming' as 'Over-' + 'coming'),
+    spacing, punctuation, and case. Pinned fragments are chosen to
+    avoid ff/ffi/ffl-ligature words, which pdftotext renders as
+    single non-ASCII glyphs."""
+    return re.sub(r"[^a-z0-9]", "", s.lower())
+
+
+def _pdf_text(path):
+    proc = subprocess.run(["pdftotext", "-layout", path, "-"],
+                          capture_output=True, text=True)
+    return proc.returncode, proc.stdout
+
+
+def _bibliography_entries(text):
+    """Parse the rendered bibliography from pdftotext output.
+
+    The bibliography is the document's last [N]-numbered run: its
+    first entry is the LAST line starting with [1] (earlier ones are
+    in-text citations that happen to start a line). Returns
+    (entries, None) or (None, reason)."""
+    lines = text.splitlines()
+    starts = []
+    for i, line in enumerate(lines):
+        m = re.match(r"^\s{0,8}\[(\d{1,3})\]\s+\S", line)
+        if m:
+            starts.append((int(m.group(1)), i))
+    if not starts:
+        return None, "no [N]-numbered entry lines found in the PDF text"
+    ones = [i for n, i in starts if n == 1]
+    if not ones:
+        return None, "no [1] bibliography start found"
+    bib = sorted(x for x in starts if x[1] >= ones[-1])
+    nums = [n for n, _ in bib]
+    if nums != list(range(1, len(bib) + 1)):
+        return None, ("entry numbering is not the consecutive run 1..N "
+                      f"(found {nums[:10]}...)")
+    entries = []
+    for k, (n, i) in enumerate(bib):
+        j = bib[k + 1][1] if k + 1 < len(bib) else len(lines)
+        entries.append("\n".join(lines[i:j]))
+    return entries, None
+
+
+def check_rendered_bibliography():
+    """Dossier R-FS9-R7, register item 1 (B1 + B7): pin the RENDERED
+    bibliography of both compiled PDFs. Source byte-identity alone
+    faithfully inherited the record's own rendering defect through
+    two guarded compiles; the rendered output is now checked
+    directly, so a bib entry that stops rendering fails the battery."""
+    if shutil.which("pdftotext") is None:
+        print("[FAIL] pdftotext (poppler-utils) is not available — it "
+              "is a battery dependency since v4.7 (Dossier R-FS9-R7 "
+              "B1): the rendered-bibliography check cannot run; "
+              "install poppler-utils")
+        return False
+    bib_src = read(os.path.join(SUB_SRC, "refs.bib"))
+    expected = len(re.findall(r"@\w+\{", bib_src))
+    ok = True
+    for label, rel in (("paper of record", os.path.join("paper", "main.pdf")),
+                       ("submission", os.path.join("submission", "main.pdf"))):
+        pdf = os.path.join(ROOT, rel)
+        rc, text = _pdf_text(pdf)
+        if rc != 0 or not text:
+            print(f"[FAIL] {label}: pdftotext failed on {rel}")
+            ok = False
+            continue
+        pages = text.count("\f")
+        if pages != PINNED_PAGE_COUNTS[rel]:
+            print(f"[FAIL] {label}: rendered page count {pages} != pinned "
+                  f"{PINNED_PAGE_COUNTS[rel]} — the document reflowed; "
+                  f"bump the pin deliberately (Dossier R-FS9-R7 B7) "
+                  f"with a disclosed recompile")
+            ok = False
+        entries, err = _bibliography_entries(text)
+        if entries is None:
+            print(f"[FAIL] {label}: {err}")
+            ok = False
+            continue
+        if len(entries) != expected:
+            print(f"[FAIL] {label}: {len(entries)} entries render, "
+                  f"refs.bib carries {expected} — entries were lost or "
+                  f"gained at render time")
+            ok = False
+            continue
+        for i, e in enumerate(entries, 1):
+            if not re.search(r"\b(19|20)\d{2}\b", e):
+                print(f"[FAIL] {label}: entry [{i}] renders no year — "
+                      f"truncated (the B1 species)? "
+                      f"{e[:80].strip()!r}")
+                ok = False
+        for why, anchor, title_frag, year in PINNED_ENTRIES:
+            hits = [e for e in entries
+                    if _norm(anchor) in _norm(e)
+                    and _norm(title_frag) in _norm(e)
+                    and year in _norm(e)]
+            if len(hits) != 1:
+                print(f"[FAIL] {label}: pinned entry ({why}) matched "
+                      f"{len(hits)} rendered entries — need exactly 1 "
+                      f"(anchor {anchor!r}, title {title_frag!r}, "
+                      f"year {year})")
+                ok = False
+        if ok:
+            print(f"[PASS] {label}: {expected} entries render, every "
+                  f"entry carries a year, {pages} pages (pinned), all "
+                  f"{len(PINNED_ENTRIES)} pinned load-bearing entries "
+                  f"carry title fragments + years — the B1 truncation "
+                  f"species is guarded at render time")
+    return ok
+
+
 def main():
     if not os.path.isdir(SUB_SRC):
         print("[FAIL] submission/src does not exist — run "
@@ -258,6 +423,7 @@ def main():
         check_scaffold_disclosures(),
         check_citations_and_constants(),
         check_pdf(),
+        check_rendered_bibliography(),
     ]
     passed = sum(1 for r in results if r)
     failed = sum(1 for r in results if not r)

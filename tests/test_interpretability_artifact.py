@@ -19,8 +19,7 @@ Checks:
      (a frozen published record must never change silently);
   2. internal consistency — Spearman rho, p-value and top-15 overlap
      recomputed from the artefact's own 144-dim vectors via the
-     shipped consistency_report must match the stored values; the
-     stored top-15 lists must match the vectors' argmax sets; every
+     shipped consistency_report must match the stored values; every
      listed feature must be a <stat>_<BASE> name with BASE in
      config.FEATURE_COLS;
   3. frozen-record disclosure fields — sample_size 500 and the
@@ -28,7 +27,15 @@ Checks:
   4. source contract — shap_torch_model defaults to 500 rows, the
      fallback prints the R8-11 warning and returns which explainer
      ran, and run_interpretability records fl_explainer /
-     fl_attribution_rows for future runs.
+     fl_attribution_rows for future runs;
+  5. top-15-vs-argmax — Dossier R-FS9-R7 (B5): check 2's docstring
+     promised from v4.6 that "the stored top-15 lists must match the
+     vectors' argmax sets" while the code checked only list length
+     and name pattern; this check implements the promise — the
+     top-15 features by importance value of each 144-dim vector must
+     equal the stored list as a SET (index i maps to the feature name
+     <STATS[i//24]>_<FEATURE_COLS[i%24]>, the stat-major layout of
+     concat_stats_enhanced).
 
 Run:  python tests/test_interpretability_artifact.py  (or via battery)
 """
@@ -166,12 +173,52 @@ def check_source_contract():
     return ok
 
 
+def check_top15_matches_vectors():
+    """Dossier R-FS9-R7 (B5): the promised argmax-set check, at last.
+
+    The v4.6 docstring of check 2 claimed "the stored top-15 lists
+    must match the vectors' argmax sets" while the code verified only
+    list length and the <stat>_<BASE> name pattern — the panel's
+    fault-injection found the gap. This check derives each vector's
+    top-15 feature set by value and requires set equality with the
+    stored list."""
+    with open(ARTEFACT, "r", encoding="utf-8") as f:
+        d = json.load(f)
+    xgb = np.asarray(d["xgboost_importance"], dtype=float)
+    fl = np.asarray(d["fl_importance"], dtype=float)
+    if xgb.shape != (144,) or fl.shape != (144,):
+        print(f"[FAIL] importance vectors are {xgb.shape}/{fl.shape}, "
+              f"expected (144,)")
+        return False
+    import config as cfg  # noqa: E402
+    names = [f"{STATS[i // 24]}_{cfg.FEATURE_COLS[i % 24]}"
+             for i in range(144)]
+    ok = True
+    for vec, list_key in ((xgb, "top_features_a"),
+                          (fl, "top_features_b")):
+        top = {names[i] for i in np.argsort(-vec)[:15]}
+        stored = set(d[list_key])
+        if top != stored:
+            missing = sorted(top - stored)
+            extra = sorted(stored - top)
+            print(f"[FAIL] {list_key} does not equal the vector's "
+                  f"top-15-by-value set: missing {missing}, "
+                  f"unexpected {extra} (R-FS9-R7 B5)")
+            ok = False
+    if ok:
+        print("[PASS] the stored top-15 lists equal the vectors' "
+              "top-15-by-value sets (the argmax-set check check 2's "
+              "docstring promised since v4.6 — now real, R-FS9-R7 B5)")
+    return ok
+
+
 def main():
     results = [
         check_record_integrity(),
         check_internal_consistency(),
         check_frozen_record_fields(),
         check_source_contract(),
+        check_top15_matches_vectors(),
     ]
     passed = sum(1 for r in results if r)
     failed = sum(1 for r in results if not r)

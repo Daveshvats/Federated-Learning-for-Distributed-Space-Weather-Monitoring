@@ -33,11 +33,19 @@ Convention (mandatory for every letter written at v4.6 and later):
 
 This module finds every letter carrying the marker, resolves the
 diff, and byte-compares the file lists in both directions. Letters
-without the marker (the pre-v4.6 archive) are reported as such —
-their drift was handled by the errata convention and they are frozen.
+without the marker whose filename version predates v4.6 (the
+pre-v4.6 archive) are reported as such — their drift was handled by
+the errata convention and they are frozen.
+
+Dossier R-FS9-R7 (B2) hardening, v4.7: a filename version of v4.6 or
+later WITHOUT the manifest block is a FAILURE, not a silent pass as
+frozen archive — the convention's entry point is no longer author
+discipline. (A registry of manifest-bearing letters, realised as the
+filename version threshold the panel suggested.)
 
 Graceful degradation: if .git is unavailable (e.g. a source export),
-the test SKIPS with a message instead of failing.
+the test SKIPS with a message instead of failing (and counts zero
+passes — R-FS9-R7 B9: no vacuous passes).
 
 Run:  python tests/test_letters_manifest.py   (or via the battery)
 """
@@ -78,23 +86,38 @@ def parse_letter(path):
     return base, entries
 
 
+def _letter_version(fn):
+    """Filename version (major, minor), or None if unversioned."""
+    m = re.search(r"_v(\d+)\.(\d+)(?:[._-]|$)", fn)
+    return (int(m.group(1)), int(m.group(2))) if m else None
+
+
 def main():
     if not os.path.isdir(os.path.join(ROOT, ".git")):
         print("[SKIP] .git unavailable (source export) — letter "
-              "manifests cannot be verified against history")
-        print("RESULT: 1 passed, 0 failed")
+              "manifests cannot be verified against history (not "
+              "counted as a pass — R-FS9-R7 B9)")
+        print("RESULT: 0 passed, 0 failed")
         sys.exit(0)
 
     checked = skipped = 0
     failures = []
     legacy = []
+    unregistered = []
     for fn in sorted(os.listdir(LETTERS)):
-        if not fn.endswith(".md"):
+        if not fn.endswith(".md") or fn == "README.md":
             continue
         path = os.path.join(LETTERS, fn)
         parsed = parse_letter(path)
         if parsed is None:
-            legacy.append(fn)
+            ver = _letter_version(fn)
+            if ver is not None and ver >= (4, 6):
+                # Dossier R-FS9-R7 (B2): a v4.6+ letter without the
+                # manifest block used to be silently classified as
+                # frozen archive — that opt-out is now a failure.
+                unregistered.append(fn)
+            else:
+                legacy.append(fn)
             continue
         base, entries = parsed
         # resolve the first commit after base on this branch
@@ -144,13 +167,30 @@ def main():
               f"(frozen; drift handled by the errata convention): "
               f"{', '.join(legacy)}")
 
-    if failures:
+    # the registry check (Dossier R-FS9-R7 B2): every v4.6+ letter
+    # carries the manifest block
+    registry_ok = not unregistered
+    if unregistered:
+        for fn in unregistered:
+            print(f"[FAIL] {fn}: filename version >= v4.6 but no "
+                  f"LETTER-MANIFEST block — the convention is not "
+                  f"optional for new letters; a letter cannot opt out "
+                  f"by omitting the block (R-FS9-R7 B2)")
+    else:
+        print(f"[PASS] manifest registry: every v4.6+ letter carries "
+              f"the LETTER-MANIFEST block (the pre-v4.6 archive is "
+              f"frozen by version threshold, not by omission — B2 "
+              f"closed)")
+
+    n_failed = len(failures) + len(unregistered)
+    if n_failed:
         for f in failures:
             print(f"[FAIL] {f}")
         print("       (the letter's diff manifest must enumerate the "
               "COMPLETE git diff — the R2-F1/R3-N1/R4-P1 lesson, now "
               "machine-checked)")
-        print(f"RESULT: {checked} passed, {len(failures)} failed")
+        passed = checked + (1 if registry_ok else 0)
+        print(f"RESULT: {passed} passed, {n_failed} failed")
         sys.exit(1)
 
     if checked == 0 and skipped == 0:
@@ -159,7 +199,8 @@ def main():
         print("RESULT: 0 passed, 1 failed")
         sys.exit(1)
 
-    print(f"RESULT: {checked + 1} passed, 0 failed")
+    passed = checked + (1 if registry_ok else 0)
+    print(f"RESULT: {passed} passed, 0 failed")
     sys.exit(0)
 
 

@@ -28,7 +28,13 @@ import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.font_manager as fm
-fm.fontManager.addfont('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf')
+# R-FS9-R7 (B11): guarded — the explicit DejaVu registration is only
+# needed when the system font path exists; matplotlib bundles DejaVu
+# internally, so a different install location must not crash the tool.
+try:
+    fm.fontManager.addfont('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf')
+except Exception:
+    pass
 import matplotlib.pyplot as plt
 
 plt.rcParams['font.sans-serif'] = ['DejaVu Sans']

@@ -304,6 +304,11 @@ def block_a():
     n_win_raw = int(sub["test"])
     prev_raw = float(sub["test_pos"])
     _self_check("raw-substrate test windows", n_win_raw, 75365)
+    # Dossier R-FS9-R7 (B6): prev_raw was read but UNPINNED (the one
+    # block-A denominator without a self-check) — pinned now, same
+    # convention as the leakage-free-fold prevalence.
+    _self_check("raw-substrate test prevalence", prev_raw,
+                0.013136071152985096, tol=1e-12)
     n_pos_raw = round(prev_raw * n_win_raw)
     derived["raw_substrate_2d"] = {}
     for name, entry in d["results"].items():
@@ -326,8 +331,22 @@ def block_a():
             continue
         d = json.load(open(path))
         sub = d.get("substrate", {})
-        nw = sub.get("test", 75365)
-        pv = sub.get("test_pos", prev_p5)
+        # Dossier R-FS9-R7 (B6): the LSTM subsection carried silent
+        # .get() defaults (75365 / prev_p5) — the blanket "block A no
+        # longer embeds its denominators" claim was true of the main
+        # path only. Keys are required here now, and each artefact's
+        # substrate is self-checked against the published constants.
+        for key in ("test", "test_pos"):
+            if key not in sub:
+                raise AssertionError(
+                    f"[block A self-check] {fname} is missing "
+                    f"substrate.{key} — refusing silent default "
+                    f"(R-FS9-R6 R8-12 / R-FS9-R7 B6)")
+        nw = int(sub["test"])
+        pv = float(sub["test_pos"])
+        _self_check(f"{fname} substrate test windows", nw, 75365)
+        _self_check(f"{fname} substrate test prevalence", pv,
+                    0.013136071152985096, tol=1e-12)
         npos = round(pv * nw)
         for name, m in d.get("results", {}).items():
             m = metrics_view(m)   # F2 point lives in the nested 'test' (A2)

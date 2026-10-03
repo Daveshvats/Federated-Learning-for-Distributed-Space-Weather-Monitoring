@@ -11,7 +11,7 @@ converged on.
 |---|---|---|---|
 | 1 | python 3.12.14; torch 2.14.1, numpy 2.2.4 (pinned) | The protocol run of record: training, frozen-threshold evaluation, and every result artefact of the v3.x–v4.0 era | `outputs/run_manifest.json` (`python` field; torch/numpy predicated by the `requirements.txt` pins — the v3.x manifest predates those fields) |
 | 2 | python 3.13.5, numpy 2.2.4, torch 2.14.1+cpu | The v4.1 verification battery (219/219) and the v4.1 regeneration of `outputs/standard_metrics.json` | `logs/test_battery.log` (canonical v4.1 battery log, header line 2) |
-| 3 | python 3.12.14, numpy 2.1.3, torch not importable | The v4.2–v4.6 verification batteries (195/0 at v4.2; 224/0 with 29 new sweep-coverage checks at v4.3, v4.4, and v4.5; 243/0 with the six new R-FS9-R6 guards at v4.6; 24 torch-dependent skips each), the lag-definition sweep generation + re-execution, and the v4.6 submission-source regeneration + paper/submission recompiles (tectonic) | `logs/test_battery_v4.2.log`, `logs/test_battery_v4.3.log` (header line 2); the v4.4/v4.5/v4.6 run counts in the RUNLOG rows (their logs are deliberately uncommitted — see the R7-1 note below); sweep determinism in the RUNLOG v4.2/v4.3 rows; the submission build in the RUNLOG v4.6 row |
+| 3 | python 3.12.14, numpy 2.1.3, torch not importable | The v4.2–v4.7 verification batteries (195/0 at v4.2; 224/0 with 29 new sweep-coverage checks at v4.3, v4.4, and v4.5; 243/0 with the six new R-FS9-R6 guards at v4.6; 244/0 at v4.7 with the rendered-bibliography guard, the honest skip accounting, and the guard hardenings — a pre-commit v4.7 run reads 243 because the R7 letter's manifest check defers until its commit exists, the same deferral v4.6 documented; 24 torch-dependent skips each), the lag-definition sweep generation + re-execution, the v4.6/v4.7 submission-source regenerations + paper/submission recompiles (tectonic), and the v4.7 rendered-bibliography extraction (poppler pdftotext) | `logs/test_battery_v4.2.log`, `logs/test_battery_v4.3.log` (header line 2); the v4.4–v4.7 run counts in the RUNLOG rows (their logs are deliberately uncommitted — see the R7-1 note below); sweep determinism in the RUNLOG v4.2/v4.3 rows; the submission builds and rendered-bibliography verification in the RUNLOG v4.6/v4.7 rows |
 
 Notes, stated to the same standard:
 
@@ -45,3 +45,11 @@ Notes, stated to the same standard:
   log, same environment as row 3. They exist to validate the guard
   fix (v4.4) and its R7-1 correction (v4.5) and to record the
   post-closure battery state; no paper number rests on them.
+* Since v4.7 (Dossier R-FS9-R7, register item 1) the battery requires
+  `pdftotext` (poppler-utils) for the rendered-bibliography check of
+  both compiled PDFs — its absence fails that check loudly rather
+  than skipping. The v4.7 count also reflects honest skip accounting
+  (Dossier R-FS9-R7 B9): torch-gated checks that print [SKIP] are no
+  longer counted as passes, so torch-less per-module counts dropped
+  by two while two real checks (the argmax consistency check and the
+  rendered-bibliography guard) joined.

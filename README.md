@@ -31,20 +31,28 @@ transport, checkpoint selection, novelty repositioning).
 > provenance/leakage-free evaluation, the raw-substrate and LSTM arms,
 > SCAFFOLD, seed replication, and the SMOTE ablation.
 >
-> **v4.x (R-FS9 referee cycle)**: seven rounds, v3.9 reject-as-framed
+> **v4.x (R-FS9 referee cycle)**: eight rounds, v3.9 reject-as-framed
 > -> v4.5 accept-sustained -> v4.6 submission-manuscript audit
 > (Dossier R-FS9-R6, major revision on the submission package,
 > discharged — the journal submission is now generated from the
-> record at `submission/`; v4.5 closed at composite rating 7.9/10). The
+> record at `submission/`) -> v4.7 accept-conditional on one clerical
+> repair (Dossier R-FS9-R7, 7.4/10: the v4.5 bibliography errata's
+> inline comments had silently truncated two entries in both PDFs —
+> repaired, and the rendered bibliography is now battery-guarded, with
+> the panel's six guard-hardening recommendations executed). The
 > manuscript of record is `paper/main.pdf`, compiled from
-> `paper/main.tex` (v4.6). The journal submission edition is
+> `paper/main.tex` (v4.7). The journal submission edition is
 > `submission/main.pdf`, generated from the record by
 > `tools/build_submission.py` (never hand-edited; the battery verifies
 > it). Verification
 > apparatus: `python tests/run_battery.py` — the single-entry integrity
-> battery, **243 checks torch-less / 267 with torch** (canonical 219/219
-> v4.1 record at `logs/test_battery.log`); it writes a versioned,
-> gitignored log and refuses to overwrite an existing log
+> battery, **244 checks torch-less** (the current letter's manifest
+> check defers until its commit exists, so a pre-commit run reads one
+> fewer; canonical 219/219 v4.1 torch-equipped record at
+> `logs/test_battery.log`; skips are counted honestly — torch-gated
+> checks that print [SKIP] are not passes); it requires `pdftotext`
+> (poppler-utils) for the rendered-bibliography guard, writes a
+> versioned, gitignored log and refuses to overwrite an existing log
 > (`--force-log` overrides), so a fresh clone's first documented run
 > succeeds. Execution environments of record:
 > `docs/ENVIRONMENTS.md`; response letters to every dossier:
@@ -75,7 +83,7 @@ python data_manifest/generate_manifest.py
 
 # 2. integrity battery (no dataset required — synthetic fixtures;
 #    single entry point, one authoritative count)
-python tests/run_battery.py     # 243 checks torch-less / 267 with torch
+python tests/run_battery.py     # 244 checks torch-less (pdftotext required)
 
 # 3. place the Cleaned SWAN-SF pkl files under data/cleaned/{train,test}/
 #    https://github.com/samresume/Cleaned-SWANSF-Dataset
@@ -151,7 +159,7 @@ SF9/
 ├── privacy_analysis/           # threat model
 ├── limitations/                # honest limitations
 ├── docs/                       # GIC boundary, lit-search, review-2 response
-├── tests/                      # integrity battery (run_battery.py: 243 checks torch-less / 267 with torch) + substrate + LSTM + queue + artefact suites
+├── tests/                      # integrity battery (run_battery.py: 244 checks torch-less; crashed guards fail, skips declared) + substrate + LSTM + queue + artefact suites
 ├── logs/                       # execution logs
 ├── paper/                      # manuscript (LaTeX + PDF) + review
 └── outputs/                    # results.json, figures (regenerated)

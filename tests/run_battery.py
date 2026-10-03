@@ -13,7 +13,11 @@ test_interpretability_artifact (artefact integrity + fallback
 contract, R8-11), test_submission_apparatus (the regenerated
 submission cannot drift, register item 4), and test_letters_manifest
 (response letters' diff manifests machine-checked — the R2-F1 /
-R3-N1 / R4-P1 drift species, ended)
+R3-N1 / R4-P1 drift species, ended); v4.7 — R-FS9-R7: crashed-guard
+detection — a module that prints neither PASS/FAIL/RESULT lines nor
+an explicit [SKIP] declaration is a battery FAILURE, not a dataset
+skip (recommendation 2 / B3), and the apparatus test now pins the
+RENDERED bibliography of both PDFs (register item 1 / B1)
 ─────────────────────────────────────────
 Single entry point for the integrity battery. Runs every test module,
 aggregates PASS/FAIL across all of them, prints ONE total, and
@@ -50,7 +54,7 @@ ROOT = os.path.dirname(HERE)
 # Single source of truth for the log's title line. Dossier R-FS9-R3
 # (N2) caught a v4.2-era log whose title still read "(v4.1)" because
 # this string was hardcoded; bump BATTERY_VERSION with every release.
-BATTERY_VERSION = "v4.6"
+BATTERY_VERSION = "v4.7"
 
 # Default write path, versioned off BATTERY_VERSION. Dossier R-FS9-R4
 # (P2): the previous default was the un-versioned logs/test_battery.log
@@ -95,19 +99,33 @@ UNITTEST_MODULES = {"tests/test_gpu_queue_artefacts.py",
 
 
 def run_module(mod):
-    """Run one test module as a subprocess; capture output."""
+    """Run one test module as a subprocess; capture output.
+
+    Dossier R-FS9-R7 (B3) classification contract:
+      * PASS/FAIL lines and RESULT lines are counted as before;
+      * a module that skips MUST declare it itself with a line
+        starting '[SKIP]' — declared skips keep the battery green
+        (the module stated why);
+      * a module that produces NO verdict and NO declared skip —
+        a crashed or silent module, whatever its exit code — is a
+        battery FAILURE ('crashed'), not a dataset skip. Previously
+        any non-zero-exit module with zero PASS/FAIL lines was
+        reported as SKIP and the battery exited 0.
+    """
     if mod in UNITTEST_MODULES:
         cmd = [sys.executable, "-m", "unittest",
                mod.replace("/", ".").replace(".py", ""), "-v"]
-        proc = subprocess.run(cmd, capture_output=True, text=True, cwd=ROOT)
+        proc = subprocess.run(cmd, capture_output=True, text=True,
+                              cwd=ROOT)
         out = proc.stdout + proc.stderr
         # unittest -v lines look like "test_x (module.Class) ... ok"
         passed = len(re.findall(r"\.\.\. ok\b", out))
         failed = (len(re.findall(r"\.\.\. (FAIL|ERROR)\b", out)) +
                   len(re.findall(r"^FAIL\b|^ERROR\b", out, re.M)))
+        crashed = proc.returncode != 0 and passed == 0 and failed == 0
         return {"module": mod, "returncode": proc.returncode,
                 "passed": passed, "failed": failed, "skipped": False,
-                "output": out}
+                "crashed": crashed, "output": out}
     proc = subprocess.run(
         [sys.executable, os.path.join(ROOT, mod)],
         capture_output=True, text=True, cwd=ROOT)
@@ -120,10 +138,18 @@ def run_module(mod):
     m = re.search(r"RESULT:\s*(\d+)\s*passed,\s*(\d+)\s*failed", out)
     if m:
         passed, failed = int(m.group(1)), int(m.group(2))
-    skipped = proc.returncode != 0 and passed == 0 and failed == 0
+    declared_skip = re.search(r"^\s*\[SKIP\]", out, re.M) is not None
+    has_verdict = (passed > 0 or failed > 0 or m is not None)
+    crashed = ((not has_verdict and not declared_skip)
+               or (proc.returncode != 0 and not has_verdict
+                   and not declared_skip))
+    # a module-level skip requires NO verdict — a module that ran its
+    # checks AND printed an internal [SKIP] line (a sub-check gated on
+    # torch/data) is a normal OK run whose skip note is informational
+    skipped = declared_skip and not has_verdict and failed == 0
     return {"module": mod, "returncode": proc.returncode,
             "passed": passed, "failed": failed, "skipped": skipped,
-            "output": out}
+            "crashed": crashed, "output": out}
 
 
 def _env_header():
@@ -153,13 +179,32 @@ def main():
         r = run_module(mod)
         total_p += r["passed"]
         total_f += r["failed"]
+        if r["crashed"]:
+            total_f += 1
+            lines.append(f"[CRASH] {mod}: module produced no verdict "
+                         f"and no declared [SKIP] — counted as a "
+                         f"battery FAILURE (R-FS9-R7 B3)")
+            tail = "\n".join(r["output"].splitlines()[-15:])
+            lines.append("       last output:\n" +
+                         "\n".join("         " + l
+                                    for l in tail.splitlines()))
+            continue
         status = "SKIP" if r["skipped"] else \
             ("OK" if r["returncode"] == 0 else "ERR")
+        skip_note = ""
+        m_skip = re.search(r"^\s*(\[SKIP\].*)$", r["output"], re.M)
+        if r["skipped"]:
+            reason = m_skip.group(1).strip() if m_skip else ""
+            skip_note = f" — {reason}" if reason else \
+                " (module declared a skip)"
+        elif m_skip:
+            # informational: the module ran its checks; one sub-check
+            # is internally gated on torch/data
+            skip_note = f" (internal gated check: " \
+                        f"{m_skip.group(1).strip()})"
         lines.append(f"[{status:>4}] {mod}: "
                      f"{r['passed']} passed, {r['failed']} failed"
-                     + (" (module could not execute in this "
-                        "environment — missing dependency or dataset)"
-                        if r["skipped"] else ""))
+                     + skip_note)
         if r["returncode"] != 0 and not r["skipped"]:
             tail = "\n".join(r["output"].splitlines()[-15:])
             lines.append("       last output:\n" +

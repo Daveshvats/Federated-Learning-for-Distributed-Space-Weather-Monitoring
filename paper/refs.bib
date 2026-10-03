@@ -116,12 +116,19 @@
   note    = {arXiv:1907.02905}
 }
 
+% C2 (v4.5, R-FS9-R5): the publisher record lists 28 authors; the first
+% twelve are given in order and "and others" marks the elision.
+% Dossier R-FS9-R7 (B1): this comment originally sat INSIDE the entry,
+% directly after the author field, where tectonic's bibtex parser
+% treated it as swallowing the remainder of the entry — every field
+% after the author list was silently dropped from BOTH compiled PDFs.
+% Comments stay OUTSIDE entries.
 @article{georgoulis2021,
   author  = {Georgoulis, Manolis K. and Bloomfield, D. Shaun and Piana,
              Michele and Massone, Anna Maria and Soldati, Marco and
              Gallagher, Peter T. and Pariat, Etienne and Vilmer, Nicole and
              Buchlin, Eric and Baudin, Frederic and Csillaghy, Andre and
-             Sathiapal, Hanna and others},  % C2: v4.5 (R-FS9-R5) — publisher record lists 28 authors; first twelve in order, "and others" marks the elision
+             Sathiapal, Hanna and others},
   title   = {The flare likelihood and region eruption forecasting
              ({FLARECAST}) project: flare forecasting in the big data \&
              machine learning era},
@@ -248,8 +255,16 @@
   year    = {2024}
 }
 
+% C1 (v4.5, R-FS9-R5): "Mohammadpour" was a one-letter misspelling;
+% Crossref 10.3847/1538-4365/addc73 and arXiv 2507.05313 spell it
+% Mohammadpur.
+% Dossier R-FS9-R7 (B1): this comment originally sat INSIDE the entry,
+% directly after the author field, where tectonic's bibtex parser
+% treated it as swallowing the remainder of the entry — every field
+% after the author list was silently dropped from BOTH compiled PDFs.
+% Comments stay OUTSIDE entries.
 @article{hassani2025,
-  author  = {Hassani, Zeinab and Mohammadpur, Davud and Safari, Hossein},  % C1: v4.5 (R-FS9-R5) — "Mohammadpour" was a one-letter misspelling; Crossref 10.3847/1538-4365/addc73 and arXiv 2507.05313 spell it Mohammadpur
+  author  = {Hassani, Zeinab and Mohammadpur, Davud and Safari, Hossein},
   title   = {Solar Flare Prediction Using Long Short-term Memory ({LSTM})
              and Decomposition-{LSTM} with Sliding Window Pattern
              Recognition},

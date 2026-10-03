@@ -12,7 +12,7 @@ the torch-less verification battery was structurally blind to it
 command failed at HEAD while the battery read 224/0.
 
 This module closes the CLASS of defect, not just the instance, in
-two layers:
+three layers:
 
   1. STATIC — runs in EVERY environment, torch or not. For every
      Python source in the repository that imports names from another
@@ -26,6 +26,15 @@ two layers:
      exactly as the quick-start would, proving the graph executable
      in the paper's environment class. (Entry-point scripts are
      covered statically by layer 1 without executing them.)
+  3. INVENTORY — Dossier R-FS9-R7 (B4/B8 hardening): the set of local
+     modules is PINNED, plain `import X` statements of local modules
+     are counted, and the descriptive counts are asserted. The panel
+     demonstrated that deleting an entire module reclassified its
+     importers as external and skipped them; the pinned inventory
+     makes deletion a loud failure, and the count assertions end
+     descriptive drift (the v4.6 letter said 294 while the guard
+     printed 295 — R-FS9-R7 B8). Since v4.7 the scan also walks
+     provenance/ and data_manifest/ (previously unwalked).
 
 Known conservative direction: names bound only under
 `if TYPE_CHECKING:` are counted as bindings (they may not exist at
@@ -42,7 +51,60 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
 # Directories whose .py sources participate in the local import graph.
-SCAN_DIRS = ["", "experiments", "tests", "tools", "leakage_audit"]
+# Dossier R-FS9-R7 (B4): provenance/ and data_manifest/ joined the
+# scan at v4.7 (nine previously-unwalked tracked sources).
+SCAN_DIRS = ["", "experiments", "tests", "tools", "leakage_audit",
+             "provenance", "data_manifest"]
+
+# Dossier R-FS9-R7 (B4): the pinned local-module inventory. Deleting
+# or moving any module fails the battery until this pin is updated
+# DELIBERATELY (the panel's demonstrated escape: a deleted module's
+# importers were reclassified external and silently skipped).
+EXPECTED_MODULES = frozenset({
+    "centralized_baseline", "communication_cost", "config",
+    "data_preparation", "evaluate_clients", "evaluation",
+    "experiments", "experiments.analyze_smote_validity",
+    "experiments.raw_substrate", "experiments.run_ablations",
+    "experiments.run_alpha_promotion", "experiments.run_bn_diagnostic",
+    "experiments.run_budget_matched",
+    "experiments.run_calibration_comparison",
+    "experiments.run_client_holdout", "experiments.run_event_level",
+    "experiments.run_event_level_lstm",
+    "experiments.run_event_level_raw", "experiments.run_federated_lstm",
+    "experiments.run_gpu_queue", "experiments.run_interpretability",
+    "experiments.run_lag_definition_sweep",
+    "experiments.run_multiseed", "experiments.run_nobn_control",
+    "experiments.run_partition_disjoint",
+    "experiments.run_raw_substrate", "experiments.run_standard_metrics",
+    "experiments.run_sweep", "federated_learning", "fix_encoding",
+    "interpretability", "leakage_audit", "leakage_audit.audit_leakage",
+    "load_cleaned_data", "losses", "main", "model",
+    "partition_clients", "patch_reference_fields", "secure_aggregation",
+    "tests", "tests.run_battery", "tests.test_audit_artifact",
+    "tests.test_central_criterion", "tests.test_event_level_lstm",
+    "tests.test_fl_smoke", "tests.test_gpu_queue",
+    "tests.test_gpu_queue_artefacts", "tests.test_import_graph",
+    "tests.test_interpretability_artifact",
+    "tests.test_lag_sweep_artifact", "tests.test_leakage_gate",
+    "tests.test_letters_manifest", "tests.test_pipeline_integrity",
+    "tests.test_raw_lstm", "tests.test_raw_substrate",
+    "tests.test_scaffold_algebra", "tests.test_submission_apparatus",
+    "tools.build_submission", "tools.make_fig_clients",
+    "tools.make_fig_partition", "visualize_results",
+    "provenance.rebuild_audit_totals", "provenance.swansf_aggregate_meta",
+    "provenance.swansf_audit_artifact", "provenance.swansf_event_level",
+    "provenance.swansf_match_v4", "provenance.swansf_parse_partition",
+    "provenance.swansf_verify_leakage", "data_manifest.generate_manifest",
+    "data_manifest.verify_manifest",
+})
+
+# Dossier R-FS9-R7 (B8): asserted descriptive counts — drift fails
+# loudly. Update DELIBERATELY when imports change.
+EXPECTED_FROM_IMPORTS = 297   # `from <local module> import NAME` names
+EXPECTED_PLAIN_IMPORTS = 38   # plain `import <local module>` statements
+# (38 since v4.7: the interpretability guard's new argmax check adds a
+# function-local `import config as cfg` — the count pin caught it on
+# the first battery run, exactly as designed)
 
 # Library core imported dynamically whenever torch is present — the
 # transitive closure R8-1 broke. Entry scripts are NOT executed (they
@@ -145,10 +207,13 @@ def _sources():
 
 
 def static_resolution():
-    """Layer 1: every local-name import resolves. Returns error list."""
+    """Layer 1: every local-name import resolves.
+
+    Returns (from_checked, plain_checked, errors)."""
     mods = _module_map()
     errors = []
     checked = 0
+    plain_checked = 0
     for src in _sources():
         with open(src, "r", encoding="utf-8") as f:
             try:
@@ -158,6 +223,14 @@ def static_resolution():
                 continue
         rel = os.path.relpath(src, ROOT)
         for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                # R-FS9-R7 (B4): plain imports of LOCAL modules are
+                # counted (existence is implied by the module map); a
+                # deleted module additionally fails the inventory pin.
+                for a in node.names:
+                    if a.name.split(".")[0] in mods:
+                        plain_checked += 1
+                continue
             if not isinstance(node, ast.ImportFrom):
                 continue
             if node.level and node.level > 0:
@@ -212,7 +285,7 @@ def static_resolution():
                         f"{os.path.relpath(target, ROOT)}")
                 else:
                     checked += 1
-    return checked, errors
+    return checked, plain_checked, errors
 
 
 def torch_smoke():
@@ -236,36 +309,70 @@ def torch_smoke():
 def main():
     failures = 0
 
-    checked, errors = static_resolution()
-    if errors:
-        failures += len(errors)
-        print(f"[FAIL] static import-graph resolution: "
-              f"{len(errors)} unresolved import(s) "
-              f"(the R8-1 class — a still-imported name was deleted)")
+    checked, plain_checked, errors = static_resolution()
+
+    # layer 3 — pinned inventory (R-FS9-R7 B4): module deletion is loud
+    mods = _module_map()
+    missing = EXPECTED_MODULES - set(mods)
+    extra = set(mods) - EXPECTED_MODULES
+
+    static_ok = (not errors and not missing and not extra
+                 and checked == EXPECTED_FROM_IMPORTS
+                 and plain_checked == EXPECTED_PLAIN_IMPORTS)
+    if static_ok:
+        print(f"[PASS] static import-graph resolution: all {checked} "
+              f"local-name imports and {plain_checked} plain local "
+              f"imports resolve by AST; the {len(EXPECTED_MODULES)}-"
+              f"module inventory is pinned (counts asserted — B8; "
+              f"environment-independent, torch absence cannot mask "
+              f"a symbol)")
+    else:
+        failures += 1
+        print("[FAIL] static import-graph resolution:")
         for e in errors:
             print(f"       {e}")
-    else:
-        print(f"[PASS] static import-graph resolution: all {checked} "
-              f"local-name imports resolve by AST (environment-"
-              f"independent; torch absence cannot mask a symbol)")
+        if missing:
+            print(f"       modules missing vs the pinned inventory: "
+                  f"{sorted(missing)} — a module was deleted or moved "
+                  f"(R-FS9-R7 B4); update EXPECTED_MODULES deliberately")
+        if extra:
+            print(f"       modules unknown to the pinned inventory: "
+                  f"{sorted(extra)} — update EXPECTED_MODULES "
+                  f"deliberately when adding modules")
+        if checked != EXPECTED_FROM_IMPORTS:
+            print(f"       local-name import count: resolved {checked}, "
+                  f"pinned {EXPECTED_FROM_IMPORTS} — descriptive drift "
+                  f"(R-FS9-R7 B8); update the pin deliberately")
+        if plain_checked != EXPECTED_PLAIN_IMPORTS:
+            print(f"       plain local import count: resolved "
+                  f"{plain_checked}, pinned {EXPECTED_PLAIN_IMPORTS} "
+                  f"— update the pin deliberately")
 
     n, smoke_errors = torch_smoke()
     if n is None:
+        # R-FS9-R7 (B9): a skipped check is NOT counted as passed —
+        # the RESULT below excludes it in torch-less environments.
         print("[SKIP] torch-present smoke import (torch not importable "
               "here — the static layer above still enforces the class)")
+        smoke_ok = None
     elif smoke_errors:
-        failures += len(smoke_errors)
+        failures += 1
         print(f"[FAIL] torch-present smoke import: "
               f"{len(smoke_errors)} module(s) failed")
         for e in smoke_errors:
             print(f"       {e}")
+        smoke_ok = False
     else:
         print(f"[PASS] torch-present smoke import: {n} library modules "
               f"import cleanly in the paper's environment class")
+        smoke_ok = True
 
-    passed = 2 - (1 if errors else 0) - (1 if smoke_errors else 0)
+    passed = (1 if static_ok else 0) + (1 if smoke_ok else 0)
+    skipped = 1 if smoke_ok is None else 0
     failed = failures
-    print(f"RESULT: {passed} passed, {failed} failed")
+    print(f"RESULT: {passed} passed, {failed} failed"
+          + (f" ({skipped} skipped — torch-gated, not counted)"
+             if skipped else ""))
     sys.exit(1 if failed else 0)
 
 

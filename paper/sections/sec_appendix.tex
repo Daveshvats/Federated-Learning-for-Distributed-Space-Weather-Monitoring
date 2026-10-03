@@ -17,7 +17,7 @@ reimplementation would likely rediscover the hard way.
 \setlength{\LTcapwidth}{\textwidth}
 \begin{longtable}{@{}p{0.09\textwidth} >{\raggedright\arraybackslash}p{0.42\textwidth} >{\raggedright\arraybackslash}p{0.43\textwidth}@{}}
 \caption{Documented stability fixes and protocol revisions across
-framework versions (v2.1--v4.6), as recorded in the released source.}
+framework versions (v2.1--v4.7), as recorded in the released source.}
 \label{tab:evolution}\\
 \toprule
 \textbf{Version} & \textbf{Diagnosed failure mode} & \textbf{Fix} \\
@@ -393,6 +393,28 @@ with self-checks; the lit-search dates embedded; and the submission
 manuscript regenerated from the record (submission/ in the
 repository, generator + battery guard — the drift species ends
 here). \\
+v4.7 & Regenerated-submission audit (Dossier R-FS9-R7, verdict:
+accept conditional, 7.4/10): all six v4.6 register items verified
+against the code and the compiled PDFs, the integrity battery
+reproduced in two independent fresh trees, the submission regeneration
+reproduced byte-for-byte, and the six new guards probed by
+fault-injection; one blocking clerical condition — the v4.5
+bibliography errata had placed their explanatory comments \emph{inside}
+two entries, where the bibtex parser silently swallowed every field
+after the author list, so references [7] and [22] rendered as bare
+author lists in both PDFs through two guarded compiles (the guards
+verified source byte-identity, which faithfully inherited the record's
+own rendering defect). & The two comments moved outside the entries and
+both references render complete in the paper and the regenerated
+submission; a new rendered-bibliography check extracts the compiled
+PDFs and asserts the entry count, a year on every entry, and the title
+fragments and years of the pinned load-bearing entries; the six guards
+hardened per the panel's recommendations (a manifest registry so new
+letters cannot opt out of the diff-manifest convention, crashed-guard
+detection in the battery runner, plain-import and module-deletion
+coverage in the import graph, the promised argmax-consistency check for
+the interpretability artefact, the pinned block-A raw-substrate
+prevalence, and asserted counts against descriptive drift). \\
 \end{longtable}
 \endgroup
 

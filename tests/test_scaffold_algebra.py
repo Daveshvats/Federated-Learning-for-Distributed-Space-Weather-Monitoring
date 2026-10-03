@@ -120,20 +120,19 @@ def check_cold_start_callsites():
               "longer passes warm_start_model=fedavg_model (the "
               "disclosed exception)")
         ok = False
-    if "warm_start_model" in read(FL).replace(
-            "warm_start_model=None, resume_path=None", "") \
-            .replace("warm_start_model is not None", "") \
-            .replace("seed=seed, warm_start_model=warm_start_model", ""):
-        # only the function signature/default/branch should mention it
-        pass  # signature-level mentions are expected; call sites above
     if not ok:
         return False
+    # (R-FS9-R7 B10: a no-op if/pass block used to sit here — it read
+    # as a repo-wide warm-start-caller scan but checked nothing; the
+    # call-site checks 3a/3b above are the real contract, so the
+    # decorative block is removed rather than left to imply coverage)
     # 4. the frozen queue log's behavioural signature
     if not os.path.exists(QUEUE_LOG):
         print("[SKIP] logs/queue_scaffold.log not present — "
               "behavioural signature check skipped (log is a frozen "
-              "committed record; absence is itself a record change)")
-        return True
+              "committed record; absence is itself a record change; "
+              "NOT counted as a pass — R-FS9-R7 B9/B10)")
+        return None
     q = read(QUEUE_LOG)
     round30 = "Round  30 | val F1: 0.000" in q or \
         re.search(r"Round\s+30.*val F1:\s*0\.000", q)
@@ -188,11 +187,12 @@ def check_numeric_simulation():
         if importlib.util.find_spec("torch") is None:
             print("[SKIP] torch-present numeric inversion check "
                   "(torch not importable here — the source-pinned "
-                  "checks above still enforce the record)")
-            return True
+                  "checks above still enforce the record; NOT counted "
+                  "as a pass — R-FS9-R7 B9)")
+            return None
     except Exception:
         print("[SKIP] torch-present numeric inversion check")
-        return True
+        return None
     import torch
 
     # one-client scalar world: parameter x, loss f(x) = x^2/2
@@ -241,9 +241,13 @@ def main():
         check_paper_disclosure(),
         check_numeric_simulation(),
     ]
-    passed = sum(1 for r in results if r)
-    failed = sum(1 for r in results if not r)
-    print(f"RESULT: {passed} passed, {failed} failed")
+    # R-FS9-R7 (B9): a skipped check (None) is NOT counted as passed.
+    passed = sum(1 for r in results if r is True)
+    failed = sum(1 for r in results if r is False)
+    skipped = sum(1 for r in results if r is None)
+    print(f"RESULT: {passed} passed, {failed} failed"
+          + (f" ({skipped} skipped — torch/log-gated, not counted)"
+             if skipped else ""))
     sys.exit(1 if failed else 0)
 
 

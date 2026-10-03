@@ -1,4 +1,4 @@
-# Abstract — SF-9 (revised on `improvements`, v4.2)
+# Abstract — SF-9 (revised on the `improvements` branch)
 
 ## Federated Solar-Flare Prediction on SWAN-SF: A Benchmark Audit of Provenance, Leakage, and Evaluation Protocols
 

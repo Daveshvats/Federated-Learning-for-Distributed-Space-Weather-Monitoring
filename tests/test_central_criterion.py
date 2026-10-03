@@ -33,6 +33,11 @@ sys.path.insert(0, ROOT)
 
 SCAN_DIRS = ["", "experiments", "tools", "leakage_audit", "tests"]
 
+# Dossier R-FS9-R7 (B8 / recommendation 5): the descriptive count is
+# ASSERTED — drift fails loudly. Update deliberately when call sites
+# are legitimately added or removed.
+EXPECTED_CALL_SITES = 6
+
 
 def _sources():
     for d in SCAN_DIRS:
@@ -77,10 +82,19 @@ def main():
         print(f"RESULT: 0 passed, {len(offenders)} failed")
         sys.exit(1)
 
+    if calls_total != EXPECTED_CALL_SITES:
+        print(f"[FAIL] get_criterion call sites: found {calls_total}, "
+              f"pinned {EXPECTED_CALL_SITES} — descriptive drift (Dossier "
+              f"R-FS9-R7 B8); update the pin deliberately when call "
+              f"sites change")
+        print("RESULT: 0 passed, 1 failed")
+        sys.exit(1)
+
     print(f"[PASS] all {calls_total} get_criterion call sites pass "
           f"global_pos_rate — the B13 plumbing reaches every trainer "
           f"(federated arms AND centralised comparators); the 0.4887 "
-          f"fallback is unreachable by omission")
+          f"fallback is unreachable by omission; the call-site count "
+          f"is pinned at {EXPECTED_CALL_SITES} (B8)")
     print("RESULT: 1 passed, 0 failed")
     sys.exit(0)
 

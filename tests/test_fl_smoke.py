@@ -14,6 +14,10 @@ protocol and verifies:
   7. secure aggregation integrates with a real aggregation round
 
 Run:  python tests/test_fl_smoke.py
+
+Battery convention (R-FS9-R7 B3): when torch is not importable
+this module DECLARES its skip with an explicit [SKIP] line (exit 0)
+so the battery reports a declared skip, not a crash.
 """
 
 import os
@@ -52,7 +56,15 @@ def main():
     print("  SF-9 FL SMOKE TEST (torch, synthetic data)")
     print("=" * 64)
 
-    import torch
+    try:
+        import torch  # noqa: F401 — environment gate
+    except ImportError as exc:
+        print(f"[SKIP] torch not importable in this environment "
+              f"({exc}) — this module requires the paper's torch-"
+              f"equipped environment class; the torch-free guards "
+              f"cover the rest of the battery")
+        return True
+
     import config as cfg
     from partition_clients import partition_data_dirichlet
     from federated_learning import run_fedavg, run_fedprox, \
