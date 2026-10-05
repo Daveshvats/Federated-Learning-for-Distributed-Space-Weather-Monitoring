@@ -37,6 +37,16 @@ children already exhibited — a battery module must exit 0 after a
 green run), and test_fl_smoke's CUDA-tensor .numpy() sites fixed
 (.detach().cpu().numpy(); latent on CPU batteries, live on the owner's
 gpu machine)
+v4.9.1 — the win32 teardown hardening (RUNLOG ask #6): the owner's
+real-GPU box proved the v4.9 os._exit guard insufficient (WER-confirmed
+0xC0000409 fail-fasts in ucrtbase AFTER fully-green runs, the kernel
+exit code overriding the requested 0 — CRT _exit still executes
+LdrShutdownProcess, where a resident torch/CUDA worker thread
+fail-fasts); the raw-lstm guard's terminal exit is now TerminateProcess
+(the only exit performing NO user-mode teardown, with the 64-bit
+HANDLE restype fix) and os._exit kept as the ctypes-less fallback;
+the C6 whitelist gains ctypes — the second teardown import that guard
+has caught and pinned first-hand
 ─────────────────────────────────────────
 Single entry point for the integrity battery. Runs every test module,
 aggregates PASS/FAIL across all of them, prints ONE total, and
@@ -73,7 +83,7 @@ ROOT = os.path.dirname(HERE)
 # Single source of truth for the log's title line. Dossier R-FS9-R3
 # (N2) caught a v4.2-era log whose title still read "(v4.1)" because
 # this string was hardcoded; bump BATTERY_VERSION with every release.
-BATTERY_VERSION = "v4.9"
+BATTERY_VERSION = "v4.9.1"
 
 # Default write path, versioned off BATTERY_VERSION. Dossier R-FS9-R4
 # (P2): the previous default was the un-versioned logs/test_battery.log

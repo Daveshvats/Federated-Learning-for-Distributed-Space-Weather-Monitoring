@@ -301,5 +301,22 @@ if __name__ == "__main__":
         gc.collect()
         sys.stdout.flush()
         sys.stderr.flush()
+        # v4.9.1 win32 teardown hardening (RUNLOG row 6, 2026-10-05): os._exit proved
+        # insufficient on real-GPU win32 boxes. CRT _exit -> ExitProcess still executes
+        # LdrShutdownProcess (DLL_PROCESS_DETACH + cross-thread teardown window), where
+        # a resident torch/CUDA worker thread fail-fasts in ucrtbase (0xC0000409, fixed
+        # fault offset 0x00000000000a527e, WER-confirmed x5), and the kernel records
+        # 0xC0000409 as the process exit code, overriding the requested 0 - with all
+        # checks passed and stderr empty every time. TerminateProcess performs NO
+        # user-mode teardown at all, so the poison path cannot run; main()'s real exit
+        # code is still propagated honestly. os._exit kept as ctypes-less fallback.
+        try:
+            import ctypes
+            _k32 = ctypes.windll.kernel32
+            _k32.GetCurrentProcess.restype = ctypes.c_void_p
+            _k32.TerminateProcess.argtypes = [ctypes.c_void_p, ctypes.c_uint]
+            _k32.TerminateProcess(_k32.GetCurrentProcess(), int(_rc or 0))
+        except Exception:
+            pass
         os._exit(_rc)
     sys.exit(_rc)

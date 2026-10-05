@@ -111,10 +111,16 @@ EXPECTED_MODULES = frozenset({
 # whitelist is an ERROR. The set is exactly the repository's actual
 # external imports (stdlib + third-party); a new dependency fails
 # here until the whitelist is updated DELIBERATELY.
+# ("ctypes" joined at v4.9.1 — the win32 teardown hardening's
+# TerminateProcess path, RUNLOG ask #6: stdlib, function-local under
+# the win32 guard; the guard caught it on the owner's first
+# post-hardening battery run, the second teardown import it has
+# caught first-hand after v4.9's "gc")
 EXTERNAL_MODULES = frozenset({
     # standard library
     "__future__", "argparse", "ast", "collections", "concurrent",
-    "contextlib", "copy", "csv", "datetime", "gc", "glob", "hashlib",
+    "contextlib", "copy", "csv", "ctypes", "datetime", "gc", "glob",
+    "hashlib",
     "importlib", "inspect", "io", "itertools", "json", "os",
     "pickle", "re", "shutil", "subprocess", "sys", "tempfile",
     "time", "typing", "unittest",
@@ -132,6 +138,10 @@ EXPECTED_FROM_IMPORTS = 309  # `from <local module> import NAME` names
 EXPECTED_PLAIN_IMPORTS = 40  # plain `import <local module>` statements
 # ("gc" joined the v4.9 whitelist: the raw-lstm win32 teardown guard's
 # function-local `import gc` — stdlib, previously unpinned)
+# ("ctypes" joined the v4.9.1 whitelist the same way, with NO count
+# change: ctypes is an external plain import, and plain imports are
+# counted only when their head is a LOCAL module — the count pins
+# stay 309/40/73, asserted unchanged by the v4.9.1 battery)
 # (40 since v4.8: the new runner's `import config as cfg`, and one
 # bare-stem plain import now counted via the C6 stem map; the v4.7
 # note kept below)
