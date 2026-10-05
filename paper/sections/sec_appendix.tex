@@ -17,7 +17,7 @@ reimplementation would likely rediscover the hard way.
 \setlength{\LTcapwidth}{\textwidth}
 \begin{longtable}{@{}p{0.09\textwidth} >{\raggedright\arraybackslash}p{0.42\textwidth} >{\raggedright\arraybackslash}p{0.43\textwidth}@{}}
 \caption{Documented stability fixes and protocol revisions across
-framework versions (v2.1--v4.7), as recorded in the released source.}
+framework versions (v2.1--v4.8), as recorded in the released source.}
 \label{tab:evolution}\\
 \toprule
 \textbf{Version} & \textbf{Diagnosed failure mode} & \textbf{Fix} \\
@@ -204,7 +204,9 @@ identity, embedded frozen-counterpart bit-matches, event-key
 reconciliation, log cross-checks): SCAFFOLD-LSTM 0.970/0.294
 window-level (vs MLP counterpart 0.768/0.057) and 55/65 events
 (84.6\%) at 0.41 FA windows/day---the substrate's highest detection
-rate, above the centralised frontier at a priced alarm budget;
+rate, above the centralised frontier at a priced alarm budget (both
+cells measuring the disclosed five-departure implementation, not
+the reference algorithm);
 seed-43 replication of all four arms (ROC within $\pm$0.005 on
 every arm, qualitative structure unchanged); per-client SMOTE
 ablation a clean negative (FedAvg 0.961/0.307 unchanged, FedProx
@@ -415,6 +417,31 @@ detection in the battery runner, plain-import and module-deletion
 coverage in the import graph, the promised argmax-consistency check for
 the interpretability artefact, the pinned block-A raw-substrate
 prevalence, and asserted counts against descriptive drift). \\
+v4.8 & Post-closure content errata (Dossier R-FS9-R8 closed the cycle
+with verdict accept---sustained, 7.9/10; this revision folds in its
+non-blocking residual register C1--C6/T1--T2 and the owner-side
+content review's E1--E3 conditions): the raw-substrate federated MLP
+arms were disclosed as evaluated through the same
+untransported-BatchNorm path the paper's own diagnostic indicts
+in-partition — the MLP degradation is BN-evaluation-conditional
+until the checkpoint-level diagnostic runs (E1; the runner and its
+battery guard ship with this revision, execution queued owner-side;
+the LSTM arms carry no BatchNorm and are unaffected); the SCAFFOLD
+implementation-case qualifiers extended to every 55/65 mention
+(E2); the abstract reordered to lead its results claims with the
+corrected persistence finding (E3); one display erratum (the
+SCAFFOLD-MLP median lead is exactly 23.25\,h, shown at full
+precision). & The register folded in: a non-zero exit is now a
+battery failure whatever its verdict lines (the PASS-then-die and
+SKIP-then-die escapes closed, tracebacks no longer suppressed,
+C1/T1), the letter registry is an explicit pinned map rather than a
+filename-version regex (C2), all 31 bibliography entries pinned by
+anchor + title + year with the pin count asserted (C3), the erratum
+line recorded for the v4.7 letter's phantom ``ade'' restoration —
+a display-pipeline artefact, no restoration happened (C4), the
+central-criterion scan extended to provenance/ and data\_manifest/
+(C5), and the import graph enforces a pinned external whitelist so
+an unresolved import is an error, not an implicit external (C6). \\
 \end{longtable}
 \endgroup
 

@@ -282,6 +282,25 @@ minority class through 6-client Dirichlet heterogeneity, and the
 gap between the best federated and best centralised arm widens to
 0.048 ROC-AUC and $3\times$ PR-AUC.
 
+One disclosure this section carries explicitly since v4.8: the
+three federated \emph{MLP} rows of Table~\ref{tab:rawsubstr} are
+evaluated through the same untransported-BatchNorm path that
+Section~\ref{sec:res-bn} indicts in-partition --- the runner
+transports model \emph{parameters} only, so the returned
+checkpoints carry never-updated running buffers into a
+\texttt{model.eval()} evaluation. The in-partition diagnostic showed
+that path can manufacture an apparent federated collapse from
+weights that hold 0.953 ROC-AUC under batch statistics; the
+raw-substrate MLP degradation above is therefore
+\emph{BN-evaluation-conditional} until the same diagnostic runs over
+these checkpoints. Its runner
+(\texttt{run\_raw\_bn\_diagnostic.py}: BN treatments A/B/C over the
+raw-substrate checkpoints with a reproduction gate on the published
+numbers) ships with this revision and is queued owner-side compute;
+the sequence arms are unaffected by the confound (SolarLSTM carries
+no BatchNorm), so the encoder-contrast reading of
+Section~\ref{sec:res-lstm} stands either way.
+
 \begin{table}[t]
 \centering
 \caption{Raw-substrate retraining (train raw partitions 1--4,
@@ -334,7 +353,9 @@ sequence arms (below the rule) are evaluated by the standalone
 torch-free CPU runner over the owner-GPU run's stored per-window
 test probabilities and the same audit metadata; the SCAFFOLD-LSTM row
 was evaluated in-runner by the same event-level machinery during
-the second GPU batch.}
+the second GPU batch. Median leads are rounded to 0.1\,h except the
+SCAFFOLD-MLP cell, whose stored median (1{,}395\,min) is exactly
+23.25\,h and is shown at full precision (T2 erratum, v4.8).}
 \label{tab:eventlevel-raw}
 \small
 \begin{tabular}{@{}l c c c c@{}}
@@ -347,7 +368,7 @@ XGBoost (centralised) & 40/65 (61.5\%) & 0.2 & 0.3 & 18.0 \\
 Centralised MLP & 52/65 (80.0\%) & 0.3 & 0.4 & 20.5 \\
 FedAvg MLP & 0/65 (0.0\%) & 0.0 & 0.0 & --- \\
 FedProx MLP & 48/65 (73.8\%) & 1.3 & 1.4 & 23.0 \\
-SCAFFOLD MLP & 54/65 (83.1\%) & 6.4 & 6.6 & 23.2 \\
+SCAFFOLD MLP & 54/65 (83.1\%) & 6.4 & 6.6 & 23.25 \\
 \midrule
 Centralised LSTM & 41/65 (63.1\%) & 0.3 & 0.4 & 19.3 \\
 FedAvg LSTM & 35/65 (53.8\%) & 0.2 & 0.2 & 17.4 \\
@@ -454,8 +475,11 @@ FedProx-MLP's raw detection while cutting its false-alarm burden
 $3.5\times$ (1.3), with a 23.2\,h median first-alert lead to flare
 peak---the joint-longest on this substrate, and (like every arm's
 lead at this label geometry) a label-boundary quantity rather than a
-usable warning time (Table~\ref{tab:eventlevel}). SCAFFOLD-LSTM,
-evaluated in-runner by the same machinery, supplies the sharpest
+usable warning time (Table~\ref{tab:eventlevel}). SCAFFOLD-LSTM---measuring,
+like every SCAFFOLD cell, the sign-inverted, cold-start variant of
+the five-departure list in Section~\ref{sec:method}, not the
+reference algorithm---evaluated in-runner by the same machinery,
+supplies the sharpest
 event-level datum of the batch: 55/65 (84.6\%) detection at 0.41
 false-alarm windows per day and a 23.2\,h median lead---its MLP
 twin's 83.1\% detection rate at one-fifteenth its false-alarm

@@ -43,6 +43,15 @@ frozen archive — the convention's entry point is no longer author
 discipline. (A registry of manifest-bearing letters, realised as the
 filename version threshold the panel suggested.)
 
+Dossier R-FS9-R8 (C2) hardening, v4.8: the registry is now an
+explicit PINNED MAP (LETTER_REGISTRY below), not the filename
+version regex — the regex's blind spot was the unversioned, dotless
+or below-threshold filename, silently classified as frozen legacy
+and passed. A .md file that is not in the registry now FAILS however
+its filename reads; a registry entry whose file is missing FAILS
+(deletion is loud); the registry value declares whether the manifest
+block is required.
+
 Graceful degradation: if .git is unavailable (e.g. a source export),
 the test SKIPS with a message instead of failing (and counts zero
 passes — R-FS9-R7 B9: no vacuous passes).
@@ -87,9 +96,33 @@ def parse_letter(path):
 
 
 def _letter_version(fn):
-    """Filename version (major, minor), or None if unversioned."""
+    """Filename version (major, minor), or None if unversioned.
+    (Kept for the failure messages only — classification is the
+    registry's job since v4.8 / R-FS9-R8 C2.)"""
     m = re.search(r"_v(\d+)\.(\d+)(?:[._-]|$)", fn)
     return (int(m.group(1)), int(m.group(2))) if m else None
+
+
+# Dossier R-FS9-R8 (C2, folded in at v4.8): the registry of letters is
+# an explicit PINNED MAP, not a filename-version heuristic. The v4.7
+# registry keyed on the filename version regex, so an unversioned,
+# dotless or mis-below-threshold filename was silently classified as
+# frozen legacy and passed. Now every .md file in
+# docs/response_letters/ other than README.md must appear here
+# EXACTLY; a letter that is not in the registry is a FAILURE however
+# its filename reads, and the registry value declares whether the
+# LETTER-MANIFEST block is required (True = the v4.6+ convention,
+# False = pre-v4.6 frozen archive, drift handled by the errata
+# convention). Update this map DELIBERATELY when a letter is added.
+LETTER_REGISTRY = {
+    "RESPONSE_R-FS9-R1_v4.1_ERRATA.md": False,
+    "RESPONSE_R-FS9-R2_v4.2.md": False,
+    "RESPONSE_R-FS9-R3_v4.3.md": False,
+    "RESPONSE_R-FS9-R5_v4.5.md": False,
+    "RESPONSE_R-FS9-R6_v4.6.md": True,
+    "RESPONSE_R-FS9-R7_v4.7.md": True,
+    "RESPONSE_v4.8_ERRATA.md": True,
+}
 
 
 def main():
@@ -104,17 +137,24 @@ def main():
     failures = []
     legacy = []
     unregistered = []
+    out_of_registry = []
     for fn in sorted(os.listdir(LETTERS)):
         if not fn.endswith(".md") or fn == "README.md":
             continue
         path = os.path.join(LETTERS, fn)
+        # R-FS9-R8 (C2): classification is REGISTRY-first — a file not
+        # in the pinned registry fails however its filename reads
+        # (the unversioned/dotless/below-threshold escapes are gone).
+        if fn not in LETTER_REGISTRY:
+            out_of_registry.append(fn)
+            continue
+        manifest_required = LETTER_REGISTRY[fn]
         parsed = parse_letter(path)
         if parsed is None:
-            ver = _letter_version(fn)
-            if ver is not None and ver >= (4, 6):
+            if manifest_required:
                 # Dossier R-FS9-R7 (B2): a v4.6+ letter without the
                 # manifest block used to be silently classified as
-                # frozen archive — that opt-out is now a failure.
+                # frozen archive — that opt-out is a failure.
                 unregistered.append(fn)
             else:
                 legacy.append(fn)
@@ -167,22 +207,45 @@ def main():
               f"(frozen; drift handled by the errata convention): "
               f"{', '.join(legacy)}")
 
-    # the registry check (Dossier R-FS9-R7 B2): every v4.6+ letter
-    # carries the manifest block
-    registry_ok = not unregistered
+    # R-FS9-R8 (C2): a registry entry whose file is MISSING also
+    # fails — deletion of a letter is loud, symmetrical with the
+    # pinned module inventory of the import-graph guard.
+    missing_registered = [fn for fn in sorted(LETTER_REGISTRY)
+                          if not os.path.exists(
+                              os.path.join(LETTERS, fn))]
+    for fn in missing_registered:
+        print(f"[FAIL] {fn}: registered in LETTER_REGISTRY but the "
+              f"file does not exist — a letter was deleted or renamed "
+              f"(R-FS9-R8 C2); update the registry DELIBERATELY")
+
+    # the registry check (Dossier R-FS9-R7 B2 + R-FS9-R8 C2): every
+    # v4.6+ letter carries the manifest block, and EVERY letter file
+    # is classified by the pinned registry — a file outside it fails
+    # however its filename reads
+    for fn in out_of_registry:
+        print(f"[FAIL] {fn}: letter not in the pinned LETTER_REGISTRY "
+              f"(R-FS9-R8 C2) — an unregistered .md file in "
+              f"docs/response_letters/ cannot pass as frozen archive "
+              f"by filename shape; update the registry DELIBERATELY "
+              f"when adding a letter")
+    registry_ok = (not unregistered and not out_of_registry
+                   and not missing_registered)
     if unregistered:
         for fn in unregistered:
-            print(f"[FAIL] {fn}: filename version >= v4.6 but no "
+            print(f"[FAIL] {fn}: registered as v4.6+ but no "
                   f"LETTER-MANIFEST block — the convention is not "
                   f"optional for new letters; a letter cannot opt out "
                   f"by omitting the block (R-FS9-R7 B2)")
-    else:
-        print(f"[PASS] manifest registry: every v4.6+ letter carries "
-              f"the LETTER-MANIFEST block (the pre-v4.6 archive is "
-              f"frozen by version threshold, not by omission — B2 "
-              f"closed)")
+    if registry_ok:
+        print(f"[PASS] letter registry: all {len(LETTER_REGISTRY)} "
+              f"registered letters accounted for (present on disk, "
+              f"every v4.6+ letter carrying the LETTER-MANIFEST "
+              f"block, no unregistered .md file in the directory) — "
+              f"R-FS9-R7 B2 + R-FS9-R8 C2 closed: an explicit "
+              f"registry-of-letters, not a filename regex)")
 
-    n_failed = len(failures) + len(unregistered)
+    n_failed = (len(failures) + len(unregistered)
+                + len(out_of_registry) + len(missing_registered))
     if n_failed:
         for f in failures:
             print(f"[FAIL] {f}")

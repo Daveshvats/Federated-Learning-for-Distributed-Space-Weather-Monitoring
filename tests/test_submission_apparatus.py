@@ -70,15 +70,66 @@ SIX_KEYS = ["li2021fedbn", "wang2023bn", "guerraoui2024bn",
 # unique to the entry, the title's first words, the year). Matching is
 # case-insensitive and whitespace-normalised, so renumbering cannot
 # break the pin — content is what is pinned, not position.
+#
+# Dossier R-FS9-R8 (C3, folded in at v4.8): ALL entries are pinned —
+# the year-check + the eleven v4.7 pins could not catch an UNPINNED
+# entry truncated AFTER its year field (the v4.7 guard left the last
+# 20 entries' title/venue tails unguarded). The pin list length is
+# asserted against the refs.bib entry count at check time (R8 T1),
+# so a future entry cannot be added without a deliberate pin.
+# Ligature rule (the v4.7 lesson, kept): fragments avoid ff/ffi/ffl
+# words — pdftotext renders them as single non-ASCII glyphs which
+# _norm strips (mcmahan2017's "Efficient" is pinned via
+# "learning of deep networks from decentralized" instead).
 PINNED_ENTRIES = [
+    ("v4.8 full pin: mcmahan2017", "mcmahan",
+     "learning of deep networks from decentralized", "2017"),
+    ("v4.8 full pin: li2020", "tian li",
+     "federated optimization in heterogeneous networks", "2020"),
     ("B1: georgoulis2021", "bloomfield",
      "flare likelihood and region eruption forecasting", "2021"),
+    ("v4.8 full pin: angryk2020", "martens",
+     "multivariate time series dataset for space weather", "2020"),
+    ("v4.8 full pin: lin2017", "girshick",
+     "focal loss for dense object detection", "2017"),
+    ("v4.8 full pin: sarkar2020", "sarkar",
+     "fed-focal loss for imbalanced", "2020"),
+    ("v4.8 full pin: zhang2018", "dauphin",
+     "beyond empirical risk minimization", "2018"),
+    ("v4.8 full pin: boteler2019", "boteler",
+     "a 21st century view of the march 1989", "2019"),
+    ("anchor: leka2019", "k. d. leka",
+     "comparison of flare forecasting methods", "2019"),
     ("B1: hassani2025", "hassani",
      "solar flare prediction using", "2025"),
-    ("prior art: angryk2019", "hostetter",
-     "challenges with extreme", "2019"),
-    ("prior art: ahmadzadeh2021", "how to train your flare prediction model",
-     "robust sampling", "2021"),
+    ("v4.8 full pin: bobra2015", "couvidat",
+     "vector magnetic field data with a machine-learning", "2015"),
+    ("v4.8 full pin: schrijver2007", "schrijver",
+     "characteristic magnetic field pattern", "2007"),
+    ("v4.8 full pin: hochreiter1997", "schmidhuber",
+     "long short-term memory", "1997"),
+    ("v4.8 full pin: chen2016", "guestrin",
+     "a scalable tree boosting system", "2016"),
+    ("v4.8 full pin: chawla2002", "kegelmeyer",
+     "synthetic minority over-sampling technique", "2002"),
+    ("v4.8 full pin: lundberg2017", "lundberg",
+     "a unified approach to interpreting model", "2017"),
+    ("v4.8 full pin: yoon2019", "van der schaar",
+     "time-series generative adversarial networks", "2019"),
+    ("v4.8 full pin: zhao2018", "civin",
+     "federated learning with non-iid data", "2018"),
+    ("v4.8 full pin: kairouz2021", "kairouz",
+     "advances and open problems in federated", "2021"),
+    ("v4.8 full pin: rieke2020", "hancox",
+     "the future of digital health", "2020"),
+    ("v4.8 full pin: eskandari2024", "eskandari",
+     "enhancing multivariate time series-based", "2024"),
+    ("anchor: fu2023", "junfeng fu",
+     "federated transfer learning", "2023"),
+    ("v4.8 full pin: loshchilov2019", "hutter",
+     "decoupled weight decay regularization", "2019"),
+    ("v4.8 full pin: zhu2019", "ligeng zhu",
+     "deep leakage from gradients", "2019"),
     ("prior art: li2021fedbn", "fedbn",
      "federated learning on non-iid features", "2021"),
     ("prior art: wang2023bn", "yanmeng wang",
@@ -87,10 +138,10 @@ PINNED_ENTRIES = [
      "overcoming the challenges of batch normalization", "2024"),
     ("prior art: bnscaffold2024", "quintana",
      "controlling the drift of batch normalization", "2024"),
-    ("anchor: fu2023", "junfeng fu",
-     "federated transfer learning", "2023"),
-    ("anchor: leka2019", "k. d. leka",
-     "comparison of flare forecasting methods", "2019"),
+    ("prior art: angryk2019", "hostetter",
+     "challenges with extreme", "2019"),
+    ("prior art: ahmadzadeh2021", "how to train your flare prediction model",
+     "robust sampling", "2021"),
     ("anchor: karimireddy2020", "karimireddy",
      "stochastic controlled averaging", "2020"),
 ]
@@ -101,9 +152,12 @@ PINNED_ENTRIES = [
 # strings. Deliberately bump these when the documents legitimately
 # reflow (a disclosed recompile), never silently.
 PINNED_PAGE_COUNTS = {
-    os.path.join("paper", "main.pdf"): 55,
-    os.path.join("submission", "main.pdf"): 55,
+    os.path.join("paper", "main.pdf"): 56,
+    os.path.join("submission", "main.pdf"): 56,
 }
+# (56 since v4.8: the E1 disclosure paragraph, the E2 qualifiers and the
+# appendix v4.8 row reflowed the document by one page — a disclosed
+# recompile, the pin bumped deliberately per the B7 convention)
 
 
 def read(path):
@@ -359,6 +413,7 @@ def check_rendered_bibliography():
     bib_src = read(os.path.join(SUB_SRC, "refs.bib"))
     expected = len(re.findall(r"@\w+\{", bib_src))
     ok = True
+    per_label_ok = {}
     for label, rel in (("paper of record", os.path.join("paper", "main.pdf")),
                        ("submission", os.path.join("submission", "main.pdf"))):
         pdf = os.path.join(ROOT, rel)
@@ -402,12 +457,32 @@ def check_rendered_bibliography():
                       f"(anchor {anchor!r}, title {title_frag!r}, "
                       f"year {year})")
                 ok = False
+        # R-FS9-R8 (C3/T1): the pin list is the COMPLETE bibliography —
+        # its length is asserted against the refs.bib entry count, so
+        # every entry's title/venue tail is guarded and a future entry
+        # cannot be added without a deliberate pin.
+        if len(PINNED_ENTRIES) != expected:
+            print(f"[FAIL] {label}: PINNED_ENTRIES carries "
+                  f"{len(PINNED_ENTRIES)} pins but refs.bib has "
+                  f"{expected} entries — the full-pin contract (R8 "
+                  f"C3) is broken; add the missing pin deliberately")
+            ok = False
         if ok:
-            print(f"[PASS] {label}: {expected} entries render, every "
-                  f"entry carries a year, {pages} pages (pinned), all "
-                  f"{len(PINNED_ENTRIES)} pinned load-bearing entries "
-                  f"carry title fragments + years — the B1 truncation "
-                  f"species is guarded at render time")
+            per_label_ok[label] = (expected, pages)
+    # R-FS9-R8 (T1): ONE consolidated [PASS] line for the whole check
+    # (the v4.7 form printed one per PDF while the RESULT count treated
+    # the check as one — the [PASS]-line count and the module's RESULT
+    # line now agree).
+    if ok and per_label_ok:
+        parts = ", ".join(f"{k}: {v[0]} entries / {v[1]} pp"
+                          for k, v in per_label_ok.items())
+        print(f"[PASS] rendered bibliography ({parts}): every entry "
+              f"carries a year, page counts pinned, and all "
+              f"{len(PINNED_ENTRIES)} entries of refs.bib are pinned "
+              f"by anchor + title fragment + year (the R8 C3 full-pin "
+              f"contract) — the B1 truncation species is guarded at "
+              f"render time for the whole bibliography, not just the "
+              f"load-bearing subset")
     return ok
 
 

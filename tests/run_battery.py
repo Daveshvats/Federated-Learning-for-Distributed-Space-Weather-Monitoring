@@ -17,7 +17,15 @@ R3-N1 / R4-P1 drift species, ended); v4.7 — R-FS9-R7: crashed-guard
 detection — a module that prints neither PASS/FAIL/RESULT lines nor
 an explicit [SKIP] declaration is a battery FAILURE, not a dataset
 skip (recommendation 2 / B3), and the apparatus test now pins the
-RENDERED bibliography of both PDFs (register item 1 / B1)
+RENDERED bibliography of both PDFs (register item 1 / B1); v4.8 —
+R-FS9-R8 (C1, post-closure fold-in): a NON-ZERO EXIT is a battery
+failure whatever its verdict lines say — the PASS-then-die and
+SKIP-then-die escapes are closed, tracebacks are no longer
+suppressed for crashed modules, and the dead second crash disjunct
+is removed (T1) — plus the new module tests/test_raw_bn_diagnostic.py
+(the v4.8 / E1 raw-substrate BN-diagnostic guard: static contract
+pins everywhere, owner-side artefact validation once
+outputs/raw_bn_diagnostic.json exists)
 ─────────────────────────────────────────
 Single entry point for the integrity battery. Runs every test module,
 aggregates PASS/FAIL across all of them, prints ONE total, and
@@ -54,7 +62,7 @@ ROOT = os.path.dirname(HERE)
 # Single source of truth for the log's title line. Dossier R-FS9-R3
 # (N2) caught a v4.2-era log whose title still read "(v4.1)" because
 # this string was hardcoded; bump BATTERY_VERSION with every release.
-BATTERY_VERSION = "v4.7"
+BATTERY_VERSION = "v4.8"
 
 # Default write path, versioned off BATTERY_VERSION. Dossier R-FS9-R4
 # (P2): the previous default was the un-versioned logs/test_battery.log
@@ -91,6 +99,7 @@ MODULES = [
     "tests/test_event_level_lstm.py",
     "tests/test_raw_substrate.py",
     "tests/test_raw_lstm.py",
+    "tests/test_raw_bn_diagnostic.py",
 ]
 
 # unittest-style modules run with -v so each test case emits one line
@@ -101,16 +110,23 @@ UNITTEST_MODULES = {"tests/test_gpu_queue_artefacts.py",
 def run_module(mod):
     """Run one test module as a subprocess; capture output.
 
-    Dossier R-FS9-R7 (B3) classification contract:
+    Dossier R-FS9-R7 (B3) classification contract, amended at v4.8 by
+    Dossier R-FS9-R8 (C1):
       * PASS/FAIL lines and RESULT lines are counted as before;
       * a module that skips MUST declare it itself with a line
-        starting '[SKIP]' — declared skips keep the battery green
-        (the module stated why);
-      * a module that produces NO verdict and NO declared skip —
-        a crashed or silent module, whatever its exit code — is a
-        battery FAILURE ('crashed'), not a dataset skip. Previously
-        any non-zero-exit module with zero PASS/FAIL lines was
-        reported as SKIP and the battery exited 0.
+        starting '[SKIP]' AND exit cleanly — a declared skip from a
+        module that then dies no longer keeps the battery green;
+      * a NON-ZERO EXIT is a battery failure whatever its verdict
+        lines say (C1: a module that printed one [PASS] and then
+        crashed used to report [ ERR] with zero failures counted
+        while the battery stayed green, and the crash-after-skip
+        branch suppressed the traceback — both escapes are closed).
+        A module that already reported failures through its verdict
+        lines is counted through those lines (status ERR, no double
+        count) and its output tail is shown;
+      * a module that produces NO verdict, NO declared skip and a
+        ZERO exit — a silent guard — remains a battery FAILURE
+        ('crashed', the v4.7 B3 rule).
     """
     if mod in UNITTEST_MODULES:
         cmd = [sys.executable, "-m", "unittest",
@@ -122,7 +138,8 @@ def run_module(mod):
         passed = len(re.findall(r"\.\.\. ok\b", out))
         failed = (len(re.findall(r"\.\.\. (FAIL|ERROR)\b", out)) +
                   len(re.findall(r"^FAIL\b|^ERROR\b", out, re.M)))
-        crashed = proc.returncode != 0 and passed == 0 and failed == 0
+        crashed = ((proc.returncode != 0 and failed == 0)
+                   or (passed == 0 and failed == 0))
         return {"module": mod, "returncode": proc.returncode,
                 "passed": passed, "failed": failed, "skipped": False,
                 "crashed": crashed, "output": out}
@@ -140,13 +157,19 @@ def run_module(mod):
         passed, failed = int(m.group(1)), int(m.group(2))
     declared_skip = re.search(r"^\s*\[SKIP\]", out, re.M) is not None
     has_verdict = (passed > 0 or failed > 0 or m is not None)
-    crashed = ((not has_verdict and not declared_skip)
-               or (proc.returncode != 0 and not has_verdict
-                   and not declared_skip))
-    # a module-level skip requires NO verdict — a module that ran its
-    # checks AND printed an internal [SKIP] line (a sub-check gated on
-    # torch/data) is a normal OK run whose skip note is informational
-    skipped = declared_skip and not has_verdict and failed == 0
+    # R-FS9-R8 (C1): any non-zero exit with no reported failures is
+    # a CRASH — the PASS-then-die and SKIP-then-die escapes are gone
+    # (the previous second disjunct was dead: a non-zero exit with no
+    # verdict and no skip was already covered by the first — R8 T1).
+    crashed = ((proc.returncode != 0 and failed == 0)
+               or (not has_verdict and not declared_skip))
+    # a module-level skip requires a CLEAN exit and NO verdict — a
+    # module that ran its checks AND printed an internal [SKIP] line
+    # (a sub-check gated on torch/data) is a normal OK run whose
+    # skip note is informational; a module that declared a skip and
+    # then died is a crash (above), never a skip.
+    skipped = (declared_skip and not has_verdict and failed == 0
+               and proc.returncode == 0)
     return {"module": mod, "returncode": proc.returncode,
             "passed": passed, "failed": failed, "skipped": skipped,
             "crashed": crashed, "output": out}
@@ -181,9 +204,13 @@ def main():
         total_f += r["failed"]
         if r["crashed"]:
             total_f += 1
-            lines.append(f"[CRASH] {mod}: module produced no verdict "
-                         f"and no declared [SKIP] — counted as a "
-                         f"battery FAILURE (R-FS9-R7 B3)")
+            lines.append(f"[CRASH] {mod}: module exited "
+                         f"rc={r['returncode']} reporting no failure "
+                         f"verdicts, or produced no verdict and no "
+                         f"declared [SKIP] — counted as a battery "
+                         f"FAILURE (R-FS9-R7 B3 + R-FS9-R8 C1: a "
+                         f"crashed or silent guard fails the "
+                         f"battery whatever it printed)")
             tail = "\n".join(r["output"].splitlines()[-15:])
             lines.append("       last output:\n" +
                          "\n".join("         " + l

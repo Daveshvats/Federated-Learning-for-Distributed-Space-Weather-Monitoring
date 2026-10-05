@@ -111,7 +111,9 @@ level and at event level, retroactively
 validating them as the route to closing the tree-ensemble gap in
 federated settings. The SCAFFOLD-LSTM arm has since been executed
 (0.970/0.294 window-level; 55/65 events at 0.41 false-alarm windows
-per day), recovering the hardest raw-substrate MLP failure, and a
+per day---both cells measuring the sign-inverted, cold-start
+implementation case of Section~\ref{sec:method}, not the reference
+algorithm), recovering the hardest raw-substrate MLP failure, and a
 second-seed replication confirms every arm's ROC-AUC within
 $\pm$0.005 (Section~\ref{sec:res-lstmrep}). What remains on
 this axis: their cleaned-fold
@@ -169,7 +171,14 @@ Section~\ref{sec:method})
 ---while the sequence arms of Section~\ref{sec:res-lstm}
 substantially restore the federated standing (FedProx-LSTM
 0.970/0.404), relocating the fragility from the federation mechanism
-to the flattened-feature representation.
+to the flattened-feature representation. A v4.8 errata qualifier on
+the MLP half of that sentence: the raw-substrate federated MLP
+evaluations pass through the same untransported-BatchNorm path that
+Section~\ref{sec:res-bn} shows manufactures apparent in-partition
+collapse (parameters transport, running buffers do not), so the MLP
+degradation is BN-evaluation-conditional until the checkpoint-level
+diagnostic lands; the sequence arms carry no BatchNorm and are
+unaffected.
 What remains open is fold-replication breadth: the seed-replication
 and natural-prevalence balancing questions queued in earlier
 revisions are now executed (Section~\ref{sec:res-lstmrep}: every

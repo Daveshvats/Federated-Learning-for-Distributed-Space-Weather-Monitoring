@@ -31,7 +31,13 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
-SCAN_DIRS = ["", "experiments", "tools", "leakage_audit", "tests"]
+SCAN_DIRS = ["", "experiments", "tools", "leakage_audit", "tests",
+             "provenance", "data_manifest"]
+# Dossier R-FS9-R8 (C5, folded in at v4.8): provenance/ and
+# data_manifest/ joined the scan — the import-graph guard's scan was
+# extended to both at v4.7 (B4) but this guard's was not; a
+# get_criterion call site added under either directory would have
+# been invisible here.
 
 # Dossier R-FS9-R7 (B8 / recommendation 5): the descriptive count is
 # ASSERTED — drift fails loudly. Update deliberately when call sites

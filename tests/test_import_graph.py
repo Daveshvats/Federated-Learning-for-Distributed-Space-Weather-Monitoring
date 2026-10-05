@@ -75,6 +75,7 @@ EXPECTED_MODULES = frozenset({
     "experiments.run_lag_definition_sweep",
     "experiments.run_multiseed", "experiments.run_nobn_control",
     "experiments.run_partition_disjoint",
+    "experiments.run_raw_bn_diagnostic",
     "experiments.run_raw_substrate", "experiments.run_standard_metrics",
     "experiments.run_sweep", "federated_learning", "fix_encoding",
     "interpretability", "leakage_audit", "leakage_audit.audit_leakage",
@@ -87,8 +88,9 @@ EXPECTED_MODULES = frozenset({
     "tests.test_interpretability_artifact",
     "tests.test_lag_sweep_artifact", "tests.test_leakage_gate",
     "tests.test_letters_manifest", "tests.test_pipeline_integrity",
-    "tests.test_raw_lstm", "tests.test_raw_substrate",
-    "tests.test_scaffold_algebra", "tests.test_submission_apparatus",
+    "tests.test_raw_bn_diagnostic", "tests.test_raw_lstm",
+    "tests.test_raw_substrate", "tests.test_scaffold_algebra",
+    "tests.test_submission_apparatus",
     "tools.build_submission", "tools.make_fig_clients",
     "tools.make_fig_partition", "visualize_results",
     "provenance.rebuild_audit_totals", "provenance.swansf_aggregate_meta",
@@ -98,10 +100,39 @@ EXPECTED_MODULES = frozenset({
     "data_manifest.verify_manifest",
 })
 
+# Dossier R-FS9-R8 (C6, folded in at v4.8): the pinned EXTERNAL
+# whitelist. Previously a top-level module name that was neither
+# local nor resolvable was treated as external BY DEFAULT and passed
+# — a plain `import <deleted or never-existing module>` escaped the
+# guard entirely (disclosed as a design limitation at v4.6, :242-250,
+# now closed). An import whose head is neither a local module, a
+# local module's STEM (the sys.path-inserted script style —
+# run_gpu_queue, run_multiseed, swansf_audit_artifact), nor in this
+# whitelist is an ERROR. The set is exactly the repository's actual
+# external imports (stdlib + third-party); a new dependency fails
+# here until the whitelist is updated DELIBERATELY.
+EXTERNAL_MODULES = frozenset({
+    # standard library
+    "__future__", "argparse", "ast", "collections", "concurrent",
+    "contextlib", "copy", "csv", "datetime", "glob", "hashlib",
+    "importlib", "inspect", "io", "itertools", "json", "os",
+    "pickle", "re", "shutil", "subprocess", "sys", "tempfile",
+    "time", "typing", "unittest",
+    # third-party (requirements.txt)
+    "imblearn", "matplotlib", "numpy", "pandas", "scipy",
+    "seaborn", "shap", "sklearn", "torch", "xgboost",
+})
+
 # Dossier R-FS9-R7 (B8): asserted descriptive counts — drift fails
 # loudly. Update DELIBERATELY when imports change.
-EXPECTED_FROM_IMPORTS = 297   # `from <local module> import NAME` names
-EXPECTED_PLAIN_IMPORTS = 38   # plain `import <local module>` statements
+EXPECTED_FROM_IMPORTS = 309  # `from <local module> import NAME` names
+# (309 since v4.8: +10 from experiments/run_raw_bn_diagnostic.py, and
+# +2 bare-stem from-imports that the C6 stem-map resolution now counts
+# — previously invisible as "external by default")
+EXPECTED_PLAIN_IMPORTS = 40  # plain `import <local module>` statements
+# (40 since v4.8: the new runner's `import config as cfg`, and one
+# bare-stem plain import now counted via the C6 stem map; the v4.7
+# note kept below)
 # (38 since v4.7: the interpretability guard's new argmax check adds a
 # function-local `import config as cfg` — the count pin caught it on
 # the first battery run, exactly as designed)
@@ -211,6 +242,13 @@ def static_resolution():
 
     Returns (from_checked, plain_checked, errors)."""
     mods = _module_map()
+    # R-FS9-R8 (C6): bare-stem view of the local inventory — scripts
+    # that sys.path-insert their own directory import siblings by
+    # stem (run_gpu_queue, run_multiseed, swansf_audit_artifact).
+    stem_map = {}
+    for dotted, path in mods.items():
+        stem_map.setdefault(dotted.split(".")[-1], path)
+    local_heads = set(mods) | set(stem_map)
     errors = []
     checked = 0
     plain_checked = 0
@@ -224,12 +262,22 @@ def static_resolution():
         rel = os.path.relpath(src, ROOT)
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):
-                # R-FS9-R7 (B4): plain imports of LOCAL modules are
-                # counted (existence is implied by the module map); a
-                # deleted module additionally fails the inventory pin.
+                # R-FS9-R7 (B4): plain imports of LOCAL modules (by
+                # dotted name OR by stem) are counted; a deleted
+                # module additionally fails the inventory pin.
+                # R-FS9-R8 (C6): anything else must be whitelisted
+                # external — an unresolved name is an ERROR, not an
+                # implicit external.
                 for a in node.names:
-                    if a.name.split(".")[0] in mods:
+                    head = a.name.split(".")[0]
+                    if head in local_heads:
                         plain_checked += 1
+                    elif head not in EXTERNAL_MODULES:
+                        errors.append(
+                            f"{rel}: import of unresolved module "
+                            f"'{a.name}' — not a local module or stem, "
+                            f"and not in the pinned external whitelist "
+                            f"(R-FS9-R8 C6)")
                 continue
             if not isinstance(node, ast.ImportFrom):
                 continue
@@ -239,15 +287,29 @@ def static_resolution():
                 modname = f"{pkg}.{node.module}" if node.module else pkg
             else:
                 modname = node.module or ""
-            # only local targets; everything else is external
+            # only local targets; everything else must be whitelisted
             target = mods.get(modname)
             if target is None and modname:
                 head = modname.split(".")[0]
                 if head in mods or modname.split(".")[:-1] and \
                         ".".join(modname.split(".")[:-1]) in mods:
                     target = mods.get(modname)
+                # R-FS9-R8 (C6): bare-stem from-imports (script-dir
+                # style) resolve through the stem map
+                if target is None and modname in stem_map:
+                    target = stem_map[modname]
             if target is None:
-                continue  # external module (os, torch, sklearn, ...)
+                # external module (os, torch, sklearn, ...) — or an
+                # unresolved name, which is an ERROR (R-FS9-R8 C6:
+                # external-by-default was the escape hatch)
+                head = (modname or "?").split(".")[0]
+                if modname and head not in EXTERNAL_MODULES:
+                    errors.append(
+                        f"{rel}: from-import of unresolved module "
+                        f"'{modname}' — not a local module or stem, "
+                        f"and not in the pinned external whitelist "
+                        f"(R-FS9-R8 C6)")
+                continue
             # a package __init__.py or a package dir behaves the same:
             # imported names may be submodules OR __init__ bindings
             if os.path.isdir(target) or target.endswith("__init__.py"):
