@@ -36,6 +36,26 @@ three layers:
      printed 295 — R-FS9-R7 B8). Since v4.7 the scan also walks
      provenance/ and data_manifest/ (previously unwalked).
 
+  4. SCOPE (Dossier R-FS9-R10 B6-c, v4.9.2): external imports are
+     classified by WHERE THEY COME FROM, not by a hand-pinned name
+     list. The v4.8 C6 whitelist was name-based: a name on the list
+     passed regardless of source, a name off it failed regardless of
+     scope, and every stdlib import the cycle ever added ("gc" at
+     v4.9, "ctypes" at v4.9.1) required a DELIBERATE whitelist edit
+     for a module that was never a dependency at all. Now:
+       - stdlib scope: `sys.stdlib_module_names` (the interpreter's
+         own authoritative set — environment-viral, never stale)
+       - third-party scope: requirements.txt, parsed at run time
+         (never hand-typed; a NEW dependency still fails DELIBERATELY
+         until requirements.txt is updated — the C6 discipline,
+         kept), plus a site-packages origin check for whatever is
+         importable in the running environment (a name that resolves
+         OUTSIDE site-packages/prefix and outside the repository is
+         an error, not an implicit external)
+       - anything resolving INSIDE the repository but outside the
+         pinned module inventory is an error (a SCAN_DIRS gap is
+         loud, not silently external)
+
 Known conservative direction: names bound only under
 `if TYPE_CHECKING:` are counted as bindings (they may not exist at
 runtime), and star-imports of local modules are rejected outright
@@ -44,9 +64,10 @@ runtime), and star-imports of local modules are rejected outright
 Run:  python tests/test_import_graph.py   (or via the battery)
 """
 import ast
+import importlib.util
 import os
+import re
 import sys
-
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
@@ -74,8 +95,10 @@ EXPECTED_MODULES = frozenset({
     "experiments.run_gpu_queue", "experiments.run_interpretability",
     "experiments.run_lag_definition_sweep",
     "experiments.run_multiseed", "experiments.run_nobn_control",
+    "experiments.run_arm_b_central_sanity",
     "experiments.run_partition_disjoint",
     "experiments.run_raw_bn_diagnostic",
+    "experiments.run_raw_nobn",
     "experiments.run_raw_substrate", "experiments.run_standard_metrics",
     "experiments.run_sweep", "federated_learning", "fix_encoding",
     "interpretability", "leakage_audit", "leakage_audit.audit_leakage",
@@ -100,54 +123,152 @@ EXPECTED_MODULES = frozenset({
     "data_manifest.verify_manifest",
 })
 
-# Dossier R-FS9-R8 (C6, folded in at v4.8): the pinned EXTERNAL
-# whitelist. Previously a top-level module name that was neither
-# local nor resolvable was treated as external BY DEFAULT and passed
-# — a plain `import <deleted or never-existing module>` escaped the
-# guard entirely (disclosed as a design limitation at v4.6, :242-250,
-# now closed). An import whose head is neither a local module, a
-# local module's STEM (the sys.path-inserted script style —
-# run_gpu_queue, run_multiseed, swansf_audit_artifact), nor in this
-# whitelist is an ERROR. The set is exactly the repository's actual
-# external imports (stdlib + third-party); a new dependency fails
-# here until the whitelist is updated DELIBERATELY.
-# ("ctypes" joined at v4.9.1 — the win32 teardown hardening's
-# TerminateProcess path, RUNLOG ask #6: stdlib, function-local under
-# the win32 guard; the guard caught it on the owner's first
-# post-hardening battery run, the second teardown import it has
-# caught first-hand after v4.9's "gc")
-EXTERNAL_MODULES = frozenset({
-    # standard library
-    "__future__", "argparse", "ast", "collections", "concurrent",
-    "contextlib", "copy", "csv", "ctypes", "datetime", "gc", "glob",
-    "hashlib",
-    "importlib", "inspect", "io", "itertools", "json", "os",
-    "pickle", "re", "shutil", "subprocess", "sys", "tempfile",
-    "time", "typing", "unittest",
-    # third-party (requirements.txt)
-    "imblearn", "matplotlib", "numpy", "pandas", "scipy",
-    "seaborn", "shap", "sklearn", "torch", "xgboost",
-})
+# Dossier R-FS9-R8 (C6, folded in at v4.8) — REWORKED at v4.9.2 into
+# the SCOPE-BASED classification (R-FS9-R10 B6-c): external imports
+# are classified by where they come from, not by a hand-pinned name
+# list. The name-based whitelist's two demonstrated failures: every
+# stdlib import the cycle added ("gc" v4.9, "ctypes" v4.9.1) needed a
+# deliberate pin for a non-dependency, and a listed name passed
+# regardless of whether it was still a declared dependency. Now the
+# stdlib scope is the interpreter's own sys.stdlib_module_names, the
+# third-party scope is requirements.txt parsed at run time (never
+# hand-typed), and anything importable is additionally verified to
+# actually LIVE in the environment (site-packages / interpreter
+# prefix) — a name that resolves somewhere else, or inside this
+# repository but outside the pinned inventory, is an error.
+#
+# An import whose head is neither a local module, a local module's
+# STEM (the sys.path-inserted script style — run_gpu_queue,
+# run_multiseed, swansf_audit_artifact), nor in a declared scope is
+# an ERROR — the unresolved-name escape (disclosed at v4.6, closed at
+# v4.8) stays closed.
+#
+# Distribution-name -> import-name aliases for requirements.txt
+# entries whose PyPI name differs from the importable module.
+DIST_TO_IMPORT = {"scikit-learn": "sklearn",
+                   "imbalanced-learn": "imblearn"}
+
+
+def _stdlib_scope():
+    """The interpreter's authoritative stdlib set (Python >= 3.10).
+    '__future__' is a stdlib module but is listed separately for
+    older interpreters' benefit."""
+    names = set(getattr(sys, "stdlib_module_names", ()))
+    names.add("__future__")
+    names.add("builtins")
+    return frozenset(names)
+
+
+def _third_party_scope():
+    """The project's DECLARED third-party scope: requirements.txt,
+    parsed at run time — never hand-typed (the v4.0 convention)."""
+    path = os.path.join(ROOT, "requirements.txt")
+    out = set()
+    if os.path.exists(path):
+        with open(path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                dist = re.split(r"[<>=!~\s;\[]", line, 1)[0].strip()
+                if dist:
+                    out.add(DIST_TO_IMPORT.get(dist, dist))
+    return frozenset(out)
+
+
+def _resolve_origin(head):
+    """Where does an importable head actually live? Returns one of
+    'stdlib', 'third_party', 'repo', 'other', or None (not importable
+    in this environment)."""
+    try:
+        spec = importlib.util.find_spec(head)
+    except Exception:
+        return None
+    if spec is None:
+        return None
+    origin = os.path.realpath(spec.origin) if spec.origin else ""
+    if not origin:
+        # built-in / frozen modules have no file origin
+        return "stdlib"
+    if "site-packages" in origin or "dist-packages" in origin:
+        return "third_party"
+    for base in (os.path.realpath(sys.prefix),
+                 os.path.realpath(getattr(sys, "base_prefix", ""))):
+        if base and origin.startswith(base):
+            return "stdlib"
+    root_real = os.path.realpath(ROOT)
+    if origin.startswith(root_real):
+        return "repo"
+    return "other"
+
+
+def _classify_external(head, rel, full):
+    """R-FS9-R10 B6-c scope classification for a non-local import
+    head. Returns an error message or None (pass).
+
+    Order: stdlib scope first (never a dependency, never a pin — the
+    'gc'/'ctypes' churn ends); then origin verification for whatever
+    is importable (inside the repo but unpinned = a SCAN_DIRS gap;
+    outside every declared scope = an error, not an implicit
+    external); then the declared-dependency scope (requirements.txt,
+    parsed at run time) for everything else, including heads not
+    installed in THIS environment (the torch-less battery: a
+    declared dependency passes without being importable — scope,
+    not availability, is what the static layer checks)."""
+    if head in STDLIB_SCOPE:
+        return None
+    origin = _resolve_origin(head)
+    if origin == "stdlib":
+        return None
+    if origin == "repo":
+        return (f"{rel}: import of unresolved module '{full}' — it "
+                f"resolves INSIDE the repository but outside the "
+                f"pinned module inventory (a SCAN_DIRS gap is loud, "
+                f"R-FS9-R10 B6-c)")
+    if origin == "other":
+        return (f"{rel}: import of unresolved module '{full}' — it "
+                f"resolves outside every declared scope (neither "
+                f"stdlib, nor site-packages, nor this repository) — "
+                f"R-FS9-R10 B6-c")
+    # origin None (not installed here) or 'third_party': the
+    # declared-dependency scope decides
+    if head in THIRD_PARTY_SCOPE:
+        return None
+    return (f"{rel}: import of unresolved module '{full}' — not a "
+            f"local module or stem, not stdlib scope, and not a "
+            f"declared dependency in requirements.txt (R-FS9-R8 C6 / "
+            f"R-FS9-R10 B6-c)")
+
+
+STDLIB_SCOPE = _stdlib_scope()
+THIRD_PARTY_SCOPE = _third_party_scope()
 
 # Dossier R-FS9-R7 (B8): asserted descriptive counts — drift fails
 # loudly. Update DELIBERATELY when imports change.
-EXPECTED_FROM_IMPORTS = 309  # `from <local module> import NAME` names
-# (309 since v4.8: +10 from experiments/run_raw_bn_diagnostic.py, and
-# +2 bare-stem from-imports that the C6 stem-map resolution now counts
-# — previously invisible as "external by default")
-EXPECTED_PLAIN_IMPORTS = 40  # plain `import <local module>` statements
+EXPECTED_FROM_IMPORTS = 335  # `from <local module> import NAME` names
+# (335 since v4.9.2: +26 from the two R-FS9-R10 register runners —
+# run_arm_b_central_sanity.py [config/evaluation/experiments.raw_
+# substrate/partition_clients imports + the function-local model
+# imports] and run_raw_nobn.py [the same families + federated_
+# learning/model via _load_torch_stack]; 309 was the v4.8-v4.9.1
+# figure: +10 from run_raw_bn_diagnostic.py and +2 bare-stem
+# from-imports that the C6 stem-map resolution counts)
+EXPECTED_PLAIN_IMPORTS = 43  # plain `import <local module>` statements
+# (43 since v4.9.2: +3 from the two register runners — each runner's
+# `import config as cfg` plus run_raw_nobn.py's function-local
+# `import model as _model_mod` inside _load_torch_stack; 40 was the
+# v4.8-v4.9.1 figure; external plain imports such as torch.nn are
+# counted only when their head is a LOCAL module)
 # ("gc" joined the v4.9 whitelist: the raw-lstm win32 teardown guard's
 # function-local `import gc` — stdlib, previously unpinned)
 # ("ctypes" joined the v4.9.1 whitelist the same way, with NO count
 # change: ctypes is an external plain import, and plain imports are
-# counted only when their head is a LOCAL module — the count pins
-# stay 309/40/73, asserted unchanged by the v4.9.1 battery)
-# (40 since v4.8: the new runner's `import config as cfg`, and one
-# bare-stem plain import now counted via the C6 stem map; the v4.7
-# note kept below)
-# (38 since v4.7: the interpretability guard's new argmax check adds a
-# function-local `import config as cfg` — the count pin caught it on
-# the first battery run, exactly as designed)
+# counted only when their head is a LOCAL module)
+# (v4.9.2 / R-FS9-R10 B6-c: the name-based EXTERNAL_MODULES
+# whitelist is REPLACED by the scope-based classification — stdlib
+# scope from sys.stdlib_module_names, third-party scope parsed from
+# requirements.txt at run time, origin verification for whatever is
+# importable; the counts above are unaffected by the rework)
 
 # Library core imported dynamically whenever torch is present — the
 # transitive closure R8-1 broke. Entry scripts are NOT executed (they
@@ -277,19 +398,19 @@ def static_resolution():
                 # R-FS9-R7 (B4): plain imports of LOCAL modules (by
                 # dotted name OR by stem) are counted; a deleted
                 # module additionally fails the inventory pin.
-                # R-FS9-R8 (C6): anything else must be whitelisted
-                # external — an unresolved name is an ERROR, not an
-                # implicit external.
+                # R-FS9-R10 (B6-c): anything else is classified by
+                # SCOPE — stdlib (the interpreter's own set), the
+                # declared requirements.txt dependency scope, or an
+                # origin check — an unresolved name is an ERROR, not
+                # an implicit external.
                 for a in node.names:
                     head = a.name.split(".")[0]
                     if head in local_heads:
                         plain_checked += 1
-                    elif head not in EXTERNAL_MODULES:
-                        errors.append(
-                            f"{rel}: import of unresolved module "
-                            f"'{a.name}' — not a local module or stem, "
-                            f"and not in the pinned external whitelist "
-                            f"(R-FS9-R8 C6)")
+                    else:
+                        err = _classify_external(head, rel, a.name)
+                        if err:
+                            errors.append(err)
                 continue
             if not isinstance(node, ast.ImportFrom):
                 continue
@@ -313,14 +434,23 @@ def static_resolution():
             if target is None:
                 # external module (os, torch, sklearn, ...) — or an
                 # unresolved name, which is an ERROR (R-FS9-R8 C6:
-                # external-by-default was the escape hatch)
+                # external-by-default was the escape hatch; R-FS9-R10
+                # B6-c: the classification is now scope-based)
                 head = (modname or "?").split(".")[0]
-                if modname and head not in EXTERNAL_MODULES:
-                    errors.append(
-                        f"{rel}: from-import of unresolved module "
-                        f"'{modname}' — not a local module or stem, "
-                        f"and not in the pinned external whitelist "
-                        f"(R-FS9-R8 C6)")
+                if modname:
+                    if head in local_heads:
+                        # a LOCAL head whose deeper path did not
+                        # resolve (e.g. from experiments.<missing>
+                        # import X) — an unresolved local import, the
+                        # original C6 error path
+                        errors.append(
+                            f"{rel}: from-import of unresolved module "
+                            f"'{modname}' — the local head resolves but "
+                            f"the full module path does not")
+                    else:
+                        err = _classify_external(head, rel, modname)
+                        if err:
+                            errors.append(err)
                 continue
             # a package __init__.py or a package dir behaves the same:
             # imported names may be submodules OR __init__ bindings

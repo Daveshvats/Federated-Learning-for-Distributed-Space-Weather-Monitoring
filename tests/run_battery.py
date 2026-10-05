@@ -47,6 +47,21 @@ fail-fasts); the raw-lstm guard's terminal exit is now TerminateProcess
 HANDLE restype fix) and os._exit kept as the ctypes-less fallback;
 the C6 whitelist gains ctypes — the second teardown import that guard
 has caught and pinned first-hand
+v4.9.2 — Dossier R-FS9-R10 (Round-13 third-party-adjudication
+register, repo-only phase; the v4.4/v4.9.1 precedent — paper,
+submission, README, appendix untouched, paper-side register items
+deferred to v4.10 pending the A1 verdict): two new register
+instruments guarded by 23 new static pins + gated artefact layers
+in test_raw_bn_diagnostic.py (A1 run_arm_b_central_sanity.py — the
+centralised arm-B sanity check; A3 run_raw_nobn.py — no-BN
+raw-substrate federation), test_letters_manifest.py walk made
+RECURSIVE (the subdirectory registry escape, B6-a), and
+test_import_graph.py external whitelist REWORKED scope-based
+(sys.stdlib_module_names + requirements.txt parsed at run time +
+origin verification, B6-c — the gc/ctypes name-churn ends; counts
+re-pinned 335/43 deliberately, +26/+3 from the two runners); the
+RUNLOG v4.8 letters_manifest per-file count corrected 2 -> 3 (B6-b,
+the per-file sum now equals the documented 258 pre-commit total)
 ─────────────────────────────────────────
 Single entry point for the integrity battery. Runs every test module,
 aggregates PASS/FAIL across all of them, prints ONE total, and
@@ -83,7 +98,7 @@ ROOT = os.path.dirname(HERE)
 # Single source of truth for the log's title line. Dossier R-FS9-R3
 # (N2) caught a v4.2-era log whose title still read "(v4.1)" because
 # this string was hardcoded; bump BATTERY_VERSION with every release.
-BATTERY_VERSION = "v4.9.1"
+BATTERY_VERSION = "v4.9.2"
 
 # Default write path, versioned off BATTERY_VERSION. Dossier R-FS9-R4
 # (P2): the previous default was the un-versioned logs/test_battery.log

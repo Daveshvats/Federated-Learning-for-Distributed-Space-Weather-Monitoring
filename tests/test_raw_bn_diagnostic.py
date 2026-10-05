@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 tests/test_raw_bn_diagnostic.py — the v4.8 / E1 raw-substrate
-BN-diagnostic guard, re-pinned at v4.9 to the artefact of record.
+BN-diagnostic guard, re-pinned at v4.9 to the artefact of record,
+extended at v4.9.2 with the R-FS9-R10 register instruments.
 
 Why this test exists (owner-side content review, point 1; folded in at
 v4.8): the raw-substrate federated MLP arms were evaluated through the
@@ -31,7 +32,22 @@ tolerance"); the v4.9 layer pins the DISCLOSED MISMATCH state — a
 silent re-run that flips a verdict, or any byte edit of the frozen
 record, fails this battery (the interpretability-sha convention).
 
-Two layers:
+v4.9.2 (Dossier R-FS9-R10 — the Round-13 third-party-adjudication
+register): two new instruments join the diagnostic's guard home, one
+layer each of static contract pins plus gated artefact validation:
+
+  A1  experiments/run_arm_b_central_sanity.py — the centralised
+      arm-B sanity check (register item A1, "the thirteen-second
+      check that decides whether Table 8's strongest column stands").
+      Artefact: outputs/arm_b_central_sanity.json, declared [SKIP]
+      until the owner-side run lands (the v4.8 pre-run convention),
+      activating on presence.
+  A3  experiments/run_raw_nobn.py — no-BatchNorm MLP federation on
+      the raw substrate, FedAvg and FedProx (register item A3, the
+      encoder-vs-BN-under-federation attribution control).  Artefact:
+      outputs/raw_nobn_eval.json, same gated convention.
+
+Three layers (the two new ones are 3 and 4):
 
   1. STATIC (torch-free, every environment): the runner cannot drift
      from the contract that makes its result a same-weights
@@ -58,6 +74,22 @@ Two layers:
      gates; the published reference still equals the committed
      raw_substrate_eval.json; event-level entries are internally
      consistent.
+  3. R-FS9-R10 A1 STATIC: the centralised-sanity runner's contract —
+     the baselines.pt load with the gate-as-fingerprint-surrogate
+     disclosure (no fingerprint fields exist on the centralised path);
+     the RETRAIN-BRACKET gate (1e-2, never the 1e-4 same-weights gate —
+     a retrained checkpoint cannot pass a same-weights gate by
+     construction, the ask-#4 lesson); the declared verdict bands
+     (0.95/0.35 validated, 0.60/0.10 broken); the exit contract
+     (decisive verdicts exit 0, gate-MISMATCH and inconclusive exit
+     1); the byte-identical pooling machinery; train-shards-only
+     statistics; the artefact written BEFORE any exit.
+  4. R-FS9-R10 A1/A3 ARTEFACTS: gated on presence, declared [SKIP]
+     while the runs are owner-side (the v4.8 convention — a skip is
+     not counted as a pass, B9); on presence: schema, verdict in the
+     declared alphabet with bands consistent with verdict_basis, the
+     A3 arms' selection + B1-hygiene blocks, and the reference columns
+     equal to the committed artefacts read live (never hand-typed).
 
 Run:  python tests/test_raw_bn_diagnostic.py   (or via the battery)
 """
@@ -69,6 +101,15 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RUNNER = os.path.join(ROOT, "experiments", "run_raw_bn_diagnostic.py")
 ARTEFACT = os.path.join(ROOT, "outputs", "raw_bn_diagnostic.json")
 PUBLISHED = os.path.join(ROOT, "outputs", "raw_substrate_eval.json")
+RUNNER_A1 = os.path.join(ROOT, "experiments",
+                         "run_arm_b_central_sanity.py")
+ARTEFACT_A1 = os.path.join(ROOT, "outputs", "arm_b_central_sanity.json")
+RUNNER_A3 = os.path.join(ROOT, "experiments", "run_raw_nobn.py")
+ARTEFACT_A3 = os.path.join(ROOT, "outputs", "raw_nobn_eval.json")
+LSTM_REFERENCE = os.path.join(ROOT, "outputs", "raw_lstm_eval.json")
+
+A1_VERDICT_ALPHABET = {"arm_b_validated", "arm_b_broken",
+                       "inconclusive"}
 
 PASS, FAIL = 0, 0
 
@@ -255,12 +296,282 @@ def artefact_layer():
     return PASS, FAIL
 
 
+# ── layer 3: R-FS9-R10 A1/A3 static contract pins (v4.9.2) ──────────────────
+
+def r10_static_layer():
+    # ── A1: the centralised arm-B sanity runner ───────────────────────
+    src = open(RUNNER_A1, encoding="utf-8").read()
+
+    check("A1 runner present and readable", os.path.exists(RUNNER_A1))
+
+    # the centralised model load + the fingerprint disclosure
+    check("A1 loads the centralised MLP from the rawsubstrate "
+          "baselines cache (the ask-#4 retrain's by-product; the "
+          "v3.x-era central checkpoint was never persisted)",
+          'os.path.join(CACHE, "baselines.pt")' in src and
+          '"centralized_mlp" not in c_models' in src)
+    check("A1 discloses that baselines.pt carries NO protocol "
+          "fingerprint, so the arm-A reproduction gate IS the "
+          "fingerprint surrogate (a wrong checkpoint fails the gate, "
+          "not a fingerprint check that cannot exist)",
+          "fingerprint surrogate" in src)
+
+    # the retrain-bracket gate — never the 1e-4 same-weights gate
+    check("A1 gate reads the committed raw_substrate_eval.json "
+          "centralised_mlp reference",
+          'os.path.join("outputs", "raw_substrate_eval.json")' in src
+          and 'published["centralized_mlp"]' in src)
+    check("A1 gate tolerance is the RETRAIN bracket (1e-2 default, "
+          "not the 1e-4 same-weights gate — a retrained checkpoint "
+          "cannot pass a same-weights gate by construction, the "
+          "ask-#4 lesson)",
+          '"--gate-tolerance", type=float, default=1e-2' in src and
+          "retrain bracket" in src)
+
+    # the declared verdict bands
+    check("A1 verdict bands declared and pinned (validated: "
+          "ROC >= 0.95 and PR >= 0.35; broken: ROC <= 0.60 or "
+          "PR <= 0.10)",
+          "VERDICT_PASS_ROC, VERDICT_PASS_PR = 0.95, 0.35" in src and
+          "VERDICT_FAIL_ROC, VERDICT_FAIL_PR = 0.60, 0.10" in src)
+
+    # the exit contract
+    check("A1 exit contract: decisive verdicts (validated OR broken) "
+          "exit 0 — both are findings; gate-MISMATCH and inconclusive "
+          "exit 1",
+          'verdict == "inconclusive"' in src and
+          'verdict == "arm_b_validated"' in src and "sys.exit(0)" in src
+          and "sys.exit(1)" in src)
+
+    # the byte-identical pooling machinery + train-shards-only
+    check("A1 reuses the diagnostic's exact contracts: forward "
+          "pre-hooks, law-of-total-variance pooling, non-negativity "
+          "clamp",
+          "register_forward_pre_hook" in src and
+          "e_x2 - w_mean * w_mean" in src)
+    check("A1 computes per-client statistics over the TRAINING shards "
+          "only (no val/test leakage into the buffer statistics)",
+          "for X_c, y_c in shards:" in src and
+          "exact_bn_stats(mA, X_c, device)" in src)
+
+    # the supporting diagnostics + the before-exit write
+    check("A1 records the pooled-vs-own per-layer buffer deltas "
+          "(the reconstruction made visible)",
+          "pooled_vs_own_buffer_deltas" in src)
+    check("A1 writes the artefact BEFORE any exit (a gate failure "
+          "still leaves the record behind)",
+          "_atomic_json(report, args.output)" in src and
+          'os.path.join("outputs", "arm_b_central_sanity.json")' in src)
+
+    # ── A3: the no-BN raw-substrate federation runner ─────────────────
+    src3 = open(RUNNER_A3, encoding="utf-8").read()
+
+    check("A3 runner present and readable", os.path.exists(RUNNER_A3))
+
+    # the architecture intervention
+    check("A3 architecture: SolarMLP with BatchNorm1d replaced by "
+          "Identity (the run_nobn_control.py construction — same "
+          "stack minus gamma/beta, no running statistics, exact "
+          "weight transport)",
+          "isinstance(m, _nn.BatchNorm1d)" in src3 and
+          "_nn.Identity()" in src3)
+    check("A3 patches model.SolarMLP so the FL machinery constructs "
+          "no-BN models transparently (the in-partition control's "
+          "mechanism)",
+          "_model_mod.SolarMLP = _NoBNSolarMLP" in src3)
+
+    # both register-named algorithms + state separation
+    check("A3 runs both register-named arms: FedAvg and FedProx",
+          'ALGOS = ("fedavg", "fedprox")' in src3)
+    check("A3 state files are separate from the BN arms' checkpoints "
+          "and carry arch='nobn' (no programme collision, no foreign "
+          "resume)",
+          'f"nobn_{algo}_state.pt"' in src3 and
+          '"arch": "nobn"' in src3)
+
+    # the comparability contract
+    check("A3 evaluation mirrors run_raw_substrate.py section 5 "
+          "exactly (prior-shift calibration, val-frozen F-beta "
+          "threshold, frozen-FPR operating points — the "
+          "comparability requirement)",
+          "run_raw_substrate.py section 5" in src3 and
+          "set_prevalences" in src3 and
+          "find_optimal_threshold_fbeta" in src3 and
+          "select_fpr_thresholds_on_validation" in src3)
+
+    # B1 hygiene born with the arms
+    check("A3 B1 hygiene: the val-ROC-selected sensitivity row rides "
+          "beside the shipped best-val-F1 rule (both disclosed, "
+          "neither test-based)",
+          "best_val_roc (sensitivity row" in src3 and
+          "selection_rule" in src3)
+    check("A3 records the per-round test trajectory (the degenerate "
+          "monitor cannot hide an operating point)",
+          '"test_trajectory": traj' in src3)
+    check("A3 discloses the degenerate-selection-rule fallback (the "
+          "Round-13 pathology, handled loudly instead of shipping "
+          "silently)",
+          "DEGENERATE selection rule disclosed" in src3)
+
+    # the reference columns + the torch gate
+    check("A3 comparison columns are READ from the committed "
+          "artefacts at run time (never hand-typed — the v4.0 "
+          "convention)",
+          "_reference_block" in src3 and "raw_lstm_eval.json" in src3)
+    check("A3 fails loudly at a torch-less gate (no raw import "
+          "traceback — the battery convention)",
+          "[nobn] torch is required" in src3 and
+          "_load_torch_stack()" in src3)
+    check("A3 writes outputs/raw_nobn_eval.json atomically",
+          'os.path.join("outputs", "raw_nobn_eval.json")' in src3)
+
+    return PASS, FAIL
+
+
+# ── layer 4: R-FS9-R10 A1/A3 artefact validation (gated on presence, ────────
+# declared [SKIP] while the runs are owner-side — the v4.8 pre-run
+# convention; a skip is NOT counted as a pass, B9)
+
+def r10_artefact_layer():
+    # ── A1 artefact ────────────────────────────────────────────────────
+    if not os.path.exists(ARTEFACT_A1):
+        print("  [SKIP] arm_b_central_sanity.json absent — the A1 run "
+              "is owner-side compute (RUNLOG ask #8); this layer "
+              "activates when the artefact lands (not counted as a "
+              "pass — B9)")
+    else:
+        with open(ARTEFACT_A1, encoding="utf-8") as f:
+            d = json.load(f)
+        for key in ("runner", "purpose", "protocol", "substrate",
+                    "reproduction_gate", "reproduction_gate_verdict",
+                    "results", "pooled_vs_own_buffer_deltas", "verdict",
+                    "verdict_basis"):
+            check(f"A1 artefact schema: {key} present", key in d)
+        check("A1 runner identity pinned",
+              d.get("runner") ==
+              "experiments/run_arm_b_central_sanity.py")
+        v = d.get("verdict")
+        check("A1 verdict in the declared alphabet "
+              "(arm_b_validated / arm_b_broken / inconclusive)",
+              v in A1_VERDICT_ALPHABET, f"(got {v!r})")
+        # the verdict must be consistent with its own declared bands
+        b = d.get("verdict_basis", {})
+        obs = b.get("observed", {})
+        pb, fb = b.get("pass_bands", {}), b.get("fail_bands", {})
+        roc = float(obs.get("roc_auc", -1))
+        pr = float(obs.get("pr_auc", -1))
+        band_verdict = (
+            "arm_b_validated"
+            if roc >= float(pb.get("roc_ge", 0.95)) and
+            pr >= float(pb.get("pr_ge", 0.35)) else
+            "arm_b_broken"
+            if roc <= float(fb.get("roc_le", 0.60)) or
+            pr <= float(fb.get("pr_le", 0.10)) else "inconclusive")
+        check("A1 verdict is consistent with its own declared bands "
+              "and observed numbers (the bands cannot drift from the "
+              "verdict)",
+              v == band_verdict,
+              f"(verdict says {v!r}, bands say {band_verdict!r})")
+        g = d.get("reproduction_gate", {})
+        check("A1 reproduction-gate verdict is a declared value",
+              g.get("verdict") in ("match", "MISMATCH", "exact"))
+        for treat in ("A_own_buffers", "B_pooled_recalibrated"):
+            t = (d.get("results", {}).get("centralized_mlp", {})
+                 .get(treat, {}).get("test", {}))
+            check(f"A1 centralised/{treat}: ROC/PR-AUC in [0,1]",
+                  isinstance(t, dict) and
+                  0.0 <= float(t.get("roc_auc", -1)) <= 1.0 and
+                  0.0 <= float(t.get("pr_auc", -1)) <= 1.0)
+        if os.path.exists(PUBLISHED):
+            with open(PUBLISHED, encoding="utf-8") as f:
+                pub = json.load(f)["results"]
+            p = pub.get("centralized_mlp", {}).get("test", {})
+            check("A1 published reference matches the committed "
+                  "artefact (never hand-typed)",
+                  p is not None and g.get("published_roc_auc") is not
+                  None and abs(float(p["roc_auc"]) -
+                               float(g["published_roc_auc"])) < 1e-12)
+
+    # ── A3 artefact ────────────────────────────────────────────────────
+    if not os.path.exists(ARTEFACT_A3):
+        print("  [SKIP] raw_nobn_eval.json absent — the A3 run is "
+              "owner-side GPU compute (RUNLOG ask #9); this layer "
+              "activates when the artefact lands (not counted as a "
+              "pass — B9)")
+    else:
+        with open(ARTEFACT_A3, encoding="utf-8") as f:
+            d = json.load(f)
+        for key in ("runner", "purpose", "reference_columns"):
+            check(f"A3 artefact schema: {key} present", key in d)
+        check("A3 runner identity pinned",
+              d.get("runner") == "experiments/run_raw_nobn.py")
+        for algo in ("fedavg", "fedprox"):
+            blk = d.get(algo)
+            if blk is None:
+                check(f"A3 artefact carries arm {algo}", False)
+                continue
+            check(f"A3 {algo}: selected-checkpoint block present",
+                  isinstance(blk.get("selected_checkpoint_test"), dict)
+                  and "test" in blk.get("selected_checkpoint_test", {}))
+            t = blk.get("selected_checkpoint_test", {}).get("test", {})
+            check(f"A3 {algo}: selected ROC/PR-AUC in [0,1]",
+                  0.0 <= float(t.get("roc_auc", -1)) <= 1.0 and
+                  0.0 <= float(t.get("pr_auc", -1)) <= 1.0)
+            check(f"A3 {algo}: B1 sensitivity row present "
+                  "(val-ROC-selected, disclosed)",
+                  isinstance(
+                      blk.get("sensitivity_val_roc_selected_test"),
+                      dict) and
+                  "sensitivity_val_roc_selected_test" in blk)
+            check(f"A3 {algo}: per-round test trajectory present",
+                  isinstance(blk.get("test_trajectory"), dict) and
+                  len(blk.get("test_trajectory", {})) > 0)
+        # reference columns equal the committed artefacts, read live
+        ref = d.get("reference_columns", {})
+        ok_mlp = ok_lstm = True
+        if os.path.exists(PUBLISHED):
+            with open(PUBLISHED, encoding="utf-8") as f:
+                pub = json.load(f)["results"]
+            for k in ("fedavg_mlp", "fedprox_mlp", "centralized_mlp"):
+                t = pub.get(k, {}).get("test", {})
+                if k in ref or t:
+                    ok_mlp = ok_mlp and k in ref and \
+                        abs(float(ref[k]["roc_auc"]) -
+                            float(t["roc_auc"])) < 1e-12 and \
+                        abs(float(ref[k]["pr_auc"]) -
+                            float(t["pr_auc"])) < 1e-12
+        if os.path.exists(LSTM_REFERENCE):
+            with open(LSTM_REFERENCE, encoding="utf-8") as f:
+                lref = json.load(f)["results"]
+            for k in ("fedavg_lstm", "fedprox_lstm", "central_lstm"):
+                t = lref.get(k, {}).get("test", {})
+                if k in ref or t:
+                    ok_lstm = ok_lstm and k in ref and \
+                        abs(float(ref[k]["roc_auc"]) -
+                            float(t["roc_auc"])) < 1e-12 and \
+                        abs(float(ref[k]["pr_auc"]) -
+                            float(t["pr_auc"])) < 1e-12
+        check("A3 reference columns equal the committed "
+              "raw_substrate_eval.json (never hand-typed)",
+              ok_mlp and bool(ref))
+        check("A3 reference columns equal the committed "
+              "raw_lstm_eval.json (never hand-typed)",
+              ok_lstm and bool(ref))
+
+    return PASS, FAIL
+
+
 def main():
     print("layer 1 — static contract pins (torch-free):")
     static_layer()
     n1 = (PASS, FAIL)
     print("layer 2 — artefact validation (the committed v4.9 record):")
     artefact_layer()
+    print("layer 3 — R-FS9-R10 A1/A3 static contract pins (v4.9.2):")
+    r10_static_layer()
+    print("layer 4 — R-FS9-R10 A1/A3 artefact validation "
+          "(gated on presence, declared [SKIP] while owner-side):")
+    r10_artefact_layer()
     print(f"RESULT: {PASS} passed, {FAIL} failed")
     sys.exit(1 if FAIL else 0)
 

@@ -52,6 +52,17 @@ its filename reads; a registry entry whose file is missing FAILS
 (deletion is loud); the registry value declares whether the manifest
 block is required.
 
+Dossier R-FS9-R10 (B6-a) hardening, v4.9.2: the walk is now
+RECURSIVE. The v4.8 registry closed the flat-directory escape
+(unversioned/dotless filenames) but the walk itself was still
+os.listdir — a letter placed in a SUBDIRECTORY of
+docs/response_letters/ escaped the loop entirely and passed without
+being classified at all (the loophole the Round-13 panel verified
+live). Every .md file at ANY depth under the tree is now inventoried
+by relative path and must appear in the registry exactly; a
+subdirectory letter fails as out-of-registry however deeply it
+hides.
+
 Graceful degradation: if .git is unavailable (e.g. a source export),
 the test SKIPS with a message instead of failing (and counts zero
 passes — R-FS9-R7 B9: no vacuous passes).
@@ -103,6 +114,23 @@ def _letter_version(fn):
     return (int(m.group(1)), int(m.group(2))) if m else None
 
 
+def _walk_letters():
+    """Recursive inventory of every .md under docs/response_letters/
+    (R-FS9-R10 B6-a, v4.9.2): relative POSIX paths, depth-agnostic.
+    The v4.8 walk was os.listdir — flat — so a letter in a
+    SUBDIRECTORY escaped the registry classification entirely (the
+    live-verified loophole). Every .md at any depth is now seen."""
+    found = []
+    for dirpath, dirnames, filenames in os.walk(LETTERS):
+        dirnames.sort()
+        for fn in sorted(filenames):
+            if not fn.endswith(".md"):
+                continue
+            rel = os.path.relpath(os.path.join(dirpath, fn), LETTERS)
+            found.append(rel.replace(os.sep, "/"))
+    return found
+
+
 # Dossier R-FS9-R8 (C2, folded in at v4.8): the registry of letters is
 # an explicit PINNED MAP, not a filename-version heuristic. The v4.7
 # registry keyed on the filename version regex, so an unversioned,
@@ -122,6 +150,7 @@ LETTER_REGISTRY = {
     "RESPONSE_R-FS9-R6_v4.6.md": True,
     "RESPONSE_R-FS9-R7_v4.7.md": True,
     "RESPONSE_v4.8_ERRATA.md": True,
+    "RESPONSE_R-FS9-R10_v4.9.2.md": True,
 }
 
 
@@ -138,10 +167,11 @@ def main():
     legacy = []
     unregistered = []
     out_of_registry = []
-    for fn in sorted(os.listdir(LETTERS)):
-        if not fn.endswith(".md") or fn == "README.md":
+    for rel in _walk_letters():          # R-FS9-R10 B6-a: recursive
+        if rel == "README.md":            # the tree's own top-level readme
             continue
-        path = os.path.join(LETTERS, fn)
+        fn = rel
+        path = os.path.join(LETTERS, *rel.split("/"))
         # R-FS9-R8 (C2): classification is REGISTRY-first — a file not
         # in the pinned registry fails however its filename reads
         # (the unversioned/dotless/below-threshold escapes are gone).
@@ -218,16 +248,18 @@ def main():
               f"file does not exist — a letter was deleted or renamed "
               f"(R-FS9-R8 C2); update the registry DELIBERATELY")
 
-    # the registry check (Dossier R-FS9-R7 B2 + R-FS9-R8 C2): every
-    # v4.6+ letter carries the manifest block, and EVERY letter file
-    # is classified by the pinned registry — a file outside it fails
-    # however its filename reads
+    # the registry check (Dossier R-FS9-R7 B2 + R-FS9-R8 C2 +
+    # R-FS9-R10 B6-a): every v4.6+ letter carries the manifest block,
+    # and EVERY letter file at ANY DEPTH under the tree is classified
+    # by the pinned registry — a file outside it fails however its
+    # filename reads, wherever it hides
     for fn in out_of_registry:
         print(f"[FAIL] {fn}: letter not in the pinned LETTER_REGISTRY "
-              f"(R-FS9-R8 C2) — an unregistered .md file in "
-              f"docs/response_letters/ cannot pass as frozen archive "
-              f"by filename shape; update the registry DELIBERATELY "
-              f"when adding a letter")
+              f"(R-FS9-R8 C2 / R-FS9-R10 B6-a) — an unregistered .md "
+              f"file anywhere under docs/response_letters/ cannot pass "
+              f"as frozen archive by filename shape or by hiding in a "
+              f"subdirectory; update the registry DELIBERATELY when "
+              f"adding a letter")
     registry_ok = (not unregistered and not out_of_registry
                    and not missing_registered)
     if unregistered:
@@ -240,9 +272,10 @@ def main():
         print(f"[PASS] letter registry: all {len(LETTER_REGISTRY)} "
               f"registered letters accounted for (present on disk, "
               f"every v4.6+ letter carrying the LETTER-MANIFEST "
-              f"block, no unregistered .md file in the directory) — "
-              f"R-FS9-R7 B2 + R-FS9-R8 C2 closed: an explicit "
-              f"registry-of-letters, not a filename regex)")
+              f"block, no unregistered .md file anywhere under the "
+              f"tree — recursive walk, R-FS9-R10 B6-a) — R-FS9-R7 B2 "
+              f"+ R-FS9-R8 C2 closed: an explicit registry-of-letters, "
+              f"not a filename regex, not a flat walk)")
 
     n_failed = (len(failures) + len(unregistered)
                 + len(out_of_registry) + len(missing_registered))
