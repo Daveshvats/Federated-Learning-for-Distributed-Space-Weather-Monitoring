@@ -46,6 +46,19 @@ recorded at the monitoring cadence. The degenerate-threshold
 pathology the Round-13 review caught on the BN arms cannot hide
 an operating point here.
 
+v4.9.3 errata (RUNLOG ask #9, first execution 2026-10-06): the
+val-ROC sensitivity-row selection crashed AFTER the fedavg arm
+had already completed all 50 rounds —
+max(val_roc_by_round, key=val_roc_by_round) passed the dict
+ITSELF as the key function (TypeError: 'dict' object is not
+callable).  Fixed and extracted to the module-level
+torch-free select_round_by_val_roc() so the battery exercises
+the real selection semantics (a dynamic regression guard in
+tests/test_raw_bn_diagnostic.py, not just a string pin).  The
+round-resumable state file means the completed fedavg arm is
+NOT lost: the re-run resumes at round 51 and goes straight to
+evaluation (fedprox then trains from its absent state file).
+
 Output: outputs/raw_nobn_eval.json (merged across arms; re-run
 either arm with --only).  GPU preferred (the owner's box), CPU
 works (round-resumable — the same budget the ask-#4 retrain
@@ -199,6 +212,32 @@ def frozen_protocol_eval(model, device, X_val, y_val, X_test, y_test,
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# ── the selection helper (v4.9.3: module-level and torch-free so ──
+# ── the battery exercises the REAL semantics; the inline       ──
+# ── original crashed the owner's ask-#9 run after 50 rounds)   ──
+
+def select_round_by_val_roc(history):
+    """The validation-ROC-selected round (the B1 sensitivity row).
+
+    v4.9.3 errata: the inline original was
+        roc_round = max(val_roc_by_round, key=val_roc_by_round)
+    which passes the DICT itself as the key function — TypeError:
+    'dict' object is not callable — raised only AFTER a full
+    50-round arm had trained (RUNLOG ask #9, 2026-10-06).  The
+    dict's bound .get is the callable; ties resolve to the
+    EARLIEST round (dict insertion order = monitored-round
+    order), deterministically.  Module-level and torch-free so
+    tests/test_raw_bn_diagnostic.py exercises it directly."""
+    if not history:
+        raise ValueError("select_round_by_val_roc: empty history — "
+                         "no monitored rounds exist (the frozen "
+                         "protocol monitors every 5th round plus "
+                         "the final one)")
+    val_roc_by_round = {h["round"]: float(h["roc_auc"])
+                        for h in history}
+    return max(val_roc_by_round, key=val_roc_by_round.get)
+
+
 # the faithful loop (mirrors run_nobn_control.py: the _run_fl_loop
 # primitives — local_train_* / aggregate / evaluate_model — with
 # per-round checkpoint capture and the resume discipline)
@@ -355,9 +394,7 @@ def run_nobn_arm(algo, shards, X_val, y_val, X_test, y_test, device,
     # validation-ROC-selected round (both disclosed; NO test-based
     # selection happens anywhere in this runner)
     y_train_pos = global_pos_rate
-    val_roc_by_round = {h["round"]: float(h["roc_auc"])
-                        for h in history}
-    roc_round = max(val_roc_by_round, key=val_roc_by_round)
+    roc_round = select_round_by_val_roc(history)   # v4.9.3 fix
 
     def _eval_checkpoint(weights, tag):
         m = make_fresh_model(input_dim, use_lstm=False)[0]

@@ -30,15 +30,40 @@ shards from the cache (the identical recipe
 run_raw_bn_diagnostic.py uses), then evaluate the identical
 weights under two BN treatments:
 
-  A  own running buffers (as trained, the published path) — a
-     mini reproduction gate against the PUBLISHED
-     outputs/raw_substrate_eval.json centralised_mlp numbers at
-     --gate-tolerance (default 1e-2, NOT the diagnostic's 1e-4:
-     this checkpoint is a disclosed RETRAIN — the ask-#4 run
-     measured pooled-baseline drift of <= 2.3e-3 cross-machine,
-     so 1e-2 brackets retrain nondeterminism while still
-     catching a wrong checkpoint; the 1e-4 same-weights gate is
-     impossible by construction for retrained weights).
+  A  own running buffers (as trained, the published path) — TWO
+     gates, both v4.9.3 (the first ask-#8 execution, 2026-10-06,
+     exposed the v4.9.2 single-tolerance gate's miscalibration;
+     the amendment is evidence-based and disclosed in the RUNLOG
+     v4.9.3 row):
+       1. IDENTITY gate — the wrong-checkpoint tripwire: arm A vs
+          the ask-#4 RETRAIN RECORD committed at v4.9
+          (outputs/raw_substrate_rerun.json, centralized_mlp) at
+          --identity-tolerance (default 1e-3).  The tightest
+          reference that exists for THIS checkpoint — same
+          weights, same frozen evaluation path; the first ask-#8
+          execution reproduced it to <1e-5.  Ten times tighter
+          than the v4.9.2 published bracket.
+       2. PUBLISHED retrain bracket, PER METRIC: arm A vs the
+          PUBLISHED outputs/raw_substrate_eval.json
+          centralized_mlp numbers at --gate-tolerance (ROC-AUC,
+          default 1e-2, unchanged from v4.9.2) AND
+          --gate-tolerance-pr (PR-AUC, default 2.5e-2, NEW).
+          Basis: the frozen ask-#4 retrain drift itself —
+          ROC deltas LR +1.7e-4 / XGB +1.5e-3 / MLP -2.32e-3
+          (bracket 1e-2 = 4x headroom); PR deltas LR +8.3e-4 /
+          XGB -1.9e-3 / MLP -1.93e-2 (bracket 2.5e-2).  The
+          v4.9.2 single 1e-2 bracket cited the ROC-only
+          "<= 2.3e-3 pooled-baseline drift" measurement — the
+          paper's own disclosure is metric-scoped ("...to
+          <= 2.3e-3 ROC-AUC") — and generalised it to PR-AUC,
+          which the record's own MLP PR drift (1.93e-2) made
+          unsatisfiable by construction: the first ask-#8 run
+          failed the gate on the PR side alone (ROC 2.32e-3 was
+          inside) and the verdict was correctly NOT read off it.
+     A MISMATCH on EITHER gate exits 1 — never read the arm-B
+     verdict off a wrong checkpoint.  (The 1e-4 same-weights
+     gate vs the PUBLISHED numbers is impossible by construction
+     for retrained weights — the ask-#4 lesson, unchanged.)
   B  pooled per-client recalibration: exact per-client BN input
      statistics over the TRAINING shards (forward pre-hooks,
      law-of-total-variance pooling, non-negativity clamp — the
@@ -61,11 +86,11 @@ Verdict bands (declared before the run, R-FS9-R10 §6 item A1):
 
 Exit codes: 0 for a DECISIVE verdict (validated or broken — both
 are findings, the check did its job); 1 for execution defects
-(missing checkpoint, gate MISMATCH on arm A — the checkpoint is
-not what produced the published numbers) or an INCONCLUSIVE
-verdict (undecided means Table 8's status cannot be settled this
-run; adjudicate before proceeding).  The artefact is written
-BEFORE any exit.
+(missing checkpoint, identity-gate MISMATCH — baselines.pt is
+not the checkpoint the ask-#4 record describes — published-
+bracket MISMATCH on arm A, or an INCONCLUSIVE verdict (undecided
+means Table 8's status cannot be settled this run; adjudicate
+before proceeding).  The artefact is written BEFORE any exit.
 
 Output: outputs/arm_b_central_sanity.json.  CPU-capable, seconds
 (pure evaluation; no training).  Deterministic given the frozen
@@ -102,6 +127,7 @@ from experiments.raw_substrate import build, CACHE          # noqa: E402
 
 FPR_TARGETS = (0.005, 0.01, 0.02, 0.05)
 PUBLISHED_EVAL = os.path.join("outputs", "raw_substrate_eval.json")
+RERUN_RECORD = os.path.join("outputs", "raw_substrate_rerun.json")
 BASELINES = os.path.join(CACHE, "baselines.pt")
 OUT_DEFAULT = os.path.join("outputs", "arm_b_central_sanity.json")
 RAW_DEFAULT = "/tmp/swansf_raw"
@@ -316,9 +342,20 @@ def main():
                     help="raw benchmark dir (substrate build cache miss)")
     ap.add_argument("--output", default=OUT_DEFAULT)
     ap.add_argument("--gate-tolerance", type=float, default=1e-2,
-                    help="arm-A reproduction-gate tolerance vs the "
-                         "published centralised numbers (retrain "
-                         "bracket; NOT the 1e-4 same-weights gate)")
+                    help="arm-A reproduction-gate tolerance, ROC-AUC "
+                         "side of the retrain bracket (NOT the 1e-4 "
+                         "same-weights gate)")
+    ap.add_argument("--gate-tolerance-pr", type=float, default=2.5e-2,
+                    help="arm-A gate tolerance, PR-AUC side of the "
+                         "retrain bracket (v4.9.3: the frozen ask-#4 "
+                         "MLP PR drift is 1.93e-2 — the v4.9.2 single "
+                         "1e-2 bracket was unsatisfiable by "
+                         "construction)")
+    ap.add_argument("--identity-tolerance", type=float, default=1e-3,
+                    help="arm-A identity-gate tolerance vs the ask-#4 "
+                         "retrain record (raw_substrate_rerun.json — "
+                         "the wrong-checkpoint tripwire, the tightest "
+                         "reference that exists for this checkpoint)")
     args = ap.parse_args()
 
     t0 = time.time()
@@ -355,6 +392,15 @@ def main():
                  f"committed artefact first.")
     published = json.load(open(PUBLISHED_EVAL))["results"]
     pub = published["centralized_mlp"]["test"]
+    # v4.9.3: the identity gate's reference — the ask-#4 retrain
+    # record, committed at v4.9. The tightest reference that exists
+    # for THIS checkpoint (same weights, same frozen eval path).
+    if not os.path.exists(RERUN_RECORD):
+        sys.exit(f"[a1] ask-#4 retrain record missing: "
+                 f"{RERUN_RECORD} — the identity gate cannot run; "
+                 f"restore the committed v4.9 artefact first.")
+    rerun_ref = json.load(open(RERUN_RECORD))["results"]
+    rer = rerun_ref["centralized_mlp"]["test"]
 
     # ── 3. the centralised model, own buffers vs pooled ────────────────
     model = load_central_model()
@@ -367,13 +413,30 @@ def main():
                               y_train.mean(), "A_own_buffers")
     d_roc = abs(float(blkA["test"]["roc_auc"]) - float(pub["roc_auc"]))
     d_pr = abs(float(blkA["test"]["pr_auc"]) - float(pub["pr_auc"]))
-    gate_verdict = ("match" if max(d_roc, d_pr) <= args.gate_tolerance
+    # gate 1 — the v4.9.3 identity gate (the wrong-checkpoint tripwire)
+    id_d_roc = abs(float(blkA["test"]["roc_auc"]) -
+                   float(rer["roc_auc"]))
+    id_d_pr = abs(float(blkA["test"]["pr_auc"]) -
+                  float(rer["pr_auc"]))
+    identity_verdict = ("match" if max(id_d_roc, id_d_pr)
+                        <= args.identity_tolerance else "MISMATCH")
+    print(f"[a1] identity gate (vs the ask-#4 retrain record): ROC "
+          f"{blkA['test']['roc_auc']:.5f} (record "
+          f"{rer['roc_auc']:.5f}, d={id_d_roc:.2e}) | PR "
+          f"{blkA['test']['pr_auc']:.5f} (record {rer['pr_auc']:.5f}, "
+          f"d={id_d_pr:.2e}) | tol {args.identity_tolerance:g} | "
+          f"gate: {identity_verdict}", flush=True)
+    # gate 2 — the published retrain bracket, PER METRIC (v4.9.3)
+    gate_verdict = ("match" if (d_roc <= args.gate_tolerance and
+                                d_pr <= args.gate_tolerance_pr)
                     else "MISMATCH")
     print(f"[a1] central A (own buffers): ROC "
           f"{blkA['test']['roc_auc']:.5f} (published "
-          f"{pub['roc_auc']:.5f}, d={d_roc:.2e}) | PR "
+          f"{pub['roc_auc']:.5f}, d={d_roc:.2e}, tol "
+          f"{args.gate_tolerance:g}) | PR "
           f"{blkA['test']['pr_auc']:.5f} (published "
-          f"{pub['pr_auc']:.5f}, d={d_pr:.2e}) | gate: {gate_verdict}",
+          f"{pub['pr_auc']:.5f}, d={d_pr:.2e}, tol "
+          f"{args.gate_tolerance_pr:g}) | gate: {gate_verdict}",
           flush=True)
 
     # per-client exact stats over the TRAINING shards, pooled
@@ -469,14 +532,49 @@ def main():
             "published_pr_auc": float(pub["pr_auc"]),
             "reproduced_pr_auc": float(blkA["test"]["pr_auc"]),
             "delta_pr_auc": d_pr,
-            "tolerance": args.gate_tolerance,
-            "tolerance_basis": ("retrain bracket (ask-#4 measured "
-                                "<= 2.3e-3 pooled-baseline drift "
-                                "cross-machine); NOT the 1e-4 "
-                                "same-weights gate"),
+            "tolerance": {"roc_auc": args.gate_tolerance,
+                          "pr_auc": args.gate_tolerance_pr},
+            "tolerance_basis": (
+                "per-metric retrain bracket (v4.9.3): the frozen "
+                "ask-#4 pooled-baseline drift itself — ROC deltas "
+                "LR +1.7e-4 / XGBoost +1.5e-3 / MLP -2.32e-3 vs "
+                "bracket 1e-2; PR deltas LR +8.3e-4 / XGBoost "
+                "-1.9e-3 / MLP -1.93e-2 vs bracket 2.5e-2. The "
+                "v4.9.2 single 1e-2 bracket cited the ROC-only "
+                "'<= 2.3e-3 pooled-baseline drift' measurement "
+                "(the paper's own disclosure is metric-scoped) "
+                "and generalised it to PR-AUC, which the record's "
+                "own MLP PR drift (1.93e-2) made unsatisfiable "
+                "by construction; the first ask-#8 execution "
+                "(2026-10-06) failed it on the PR side alone and "
+                "that MISMATCH is frozen in the RUNLOG; NOT the "
+                "1e-4 same-weights gate"),
             "verdict": gate_verdict,
         },
         "reproduction_gate_verdict": gate_verdict,
+        "identity_gate": {
+            "reference": ("outputs/raw_substrate_rerun.json (the "
+                          "ask-#4 retrain record, committed at "
+                          "v4.9 — the tightest reference that "
+                          "exists for THIS checkpoint: same "
+                          "weights, same frozen evaluation path)"),
+            "retrain_roc_auc": float(rer["roc_auc"]),
+            "retrain_pr_auc": float(rer["pr_auc"]),
+            "reproduced_roc_auc": float(blkA["test"]["roc_auc"]),
+            "reproduced_pr_auc": float(blkA["test"]["pr_auc"]),
+            "delta_roc_auc": id_d_roc,
+            "delta_pr_auc": id_d_pr,
+            "tolerance": args.identity_tolerance,
+            "tolerance_basis": (
+                "same-weights reproduction bracket (v4.9.3): the "
+                "first ask-#8 execution reproduced the record to "
+                "<1e-5, so 1e-3 leaves 100x margin over that "
+                "while being 10x tighter than the v4.9.2 "
+                "published bracket — the wrong-checkpoint "
+                "tripwire the v4.9.2 design reached for"),
+            "verdict": identity_verdict,
+        },
+        "identity_gate_verdict": identity_verdict,
         "results": {
             "centralized_mlp": {
                 "A_own_buffers": blkA,
@@ -492,11 +590,20 @@ def main():
     print(f"\n[a1] report -> {args.output} "
           f"({time.time() - t0:.0f}s)")
 
+    if identity_verdict == "MISMATCH":
+        print("[a1] IDENTITY GATE FAILED — baselines.pt did not "
+              "reproduce the ask-#4 retrain record within the "
+              "same-weights bracket: it is not the checkpoint the "
+              "frozen record describes (re-run the ask-#4 repair "
+              "sequence, or widen --identity-tolerance with a "
+              "RUNLOG disclosure); do not read the arm-B verdict "
+              "off a wrong checkpoint")
+        sys.exit(1)
     if gate_verdict == "MISMATCH":
         print("[a1] GATE FAILED — the centralised checkpoint did not "
-              "reproduce the published numbers within the retrain "
-              "bracket; do not read the arm-B verdict off a wrong "
-              "checkpoint (investigate before reporting)")
+              "reproduce the published numbers within the per-metric "
+              "retrain bracket; do not read the arm-B verdict off a "
+              "wrong checkpoint (investigate before reporting)")
         sys.exit(1)
     if verdict == "inconclusive":
         print("[a1] INCONCLUSIVE — the observed arm-B numbers fall "
