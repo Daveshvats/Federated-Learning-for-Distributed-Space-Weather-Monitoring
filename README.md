@@ -39,16 +39,21 @@ transport, checkpoint selection, novelty repositioning).
 > repair (Dossier R-FS9-R7, 7.4/10: the v4.5 bibliography errata's
 > inline comments had silently truncated two entries in both PDFs —
 > repaired, and the rendered bibliography is now battery-guarded, with
-> the panel's six guard-hardening recommendations executed). The
-> manuscript of record is `paper/main.pdf`, compiled from
-> `paper/main.tex` (v4.7). The journal submission edition is
+> the panel's six guard-hardening recommendations executed; the R8
+> closure dossier sustained the accept at 7.9/10), then two
+> post-closure errata revisions: v4.8 (the R8 residual register folded
+> in + the E1-E3 content conditions) and v4.9 (the E1 raw-substrate BN
+> diagnostic EXECUTED owner-side — the v4.8 BN-conditional qualifier
+> resolved against the BN explanation, the replication MISMATCH
+> disclosed and battery-pinned, and the frozen artefacts made
+> byte-stable on every platform via `.gitattributes`).
+> The manuscript of record is `paper/main.pdf`, compiled from
+> `paper/main.tex` (v4.9). The journal submission edition is
 > `submission/main.pdf`, generated from the record by
 > `tools/build_submission.py` (never hand-edited; the battery verifies
 > it). Verification
 > apparatus: `python tests/run_battery.py` — the single-entry integrity
-> battery, **244 checks torch-less** (the current letter's manifest
-> check defers until its commit exists, so a pre-commit run reads one
-> fewer; canonical 219/219 v4.1 torch-equipped record at
+> battery, **297 checks torch-less** (canonical 219/219 v4.1 torch-equipped record at
 > `logs/test_battery.log`; skips are counted honestly — torch-gated
 > checks that print [SKIP] are not passes); it requires `pdftotext`
 > (poppler-utils) for the rendered-bibliography guard, writes a
@@ -83,7 +88,7 @@ python data_manifest/generate_manifest.py
 
 # 2. integrity battery (no dataset required — synthetic fixtures;
 #    single entry point, one authoritative count)
-python tests/run_battery.py     # 244 checks torch-less (pdftotext required)
+python tests/run_battery.py     # 297 checks torch-less (pdftotext required)
 
 # 3. place the Cleaned SWAN-SF pkl files under data/cleaned/{train,test}/
 #    https://github.com/samresume/Cleaned-SWANSF-Dataset
@@ -159,7 +164,7 @@ SF9/
 ├── privacy_analysis/           # threat model
 ├── limitations/                # honest limitations
 ├── docs/                       # GIC boundary, lit-search, review-2 response
-├── tests/                      # integrity battery (run_battery.py: 244 checks torch-less; crashed guards fail, skips declared) + substrate + LSTM + queue + artefact suites
+├── tests/                      # integrity battery (run_battery.py: 297 checks torch-less; crashed guards fail, skips declared, frozen artefacts byte-stable via .gitattributes) + substrate + LSTM + queue + artefact suites
 ├── logs/                       # execution logs
 ├── paper/                      # manuscript (LaTeX + PDF) + review
 └── outputs/                    # results.json, figures (regenerated)

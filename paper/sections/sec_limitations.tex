@@ -172,13 +172,20 @@ Section~\ref{sec:method})
 substantially restore the federated standing (FedProx-LSTM
 0.970/0.404), relocating the fragility from the federation mechanism
 to the flattened-feature representation. A v4.8 errata qualifier on
-the MLP half of that sentence: the raw-substrate federated MLP
-evaluations pass through the same untransported-BatchNorm path that
-Section~\ref{sec:res-bn} shows manufactures apparent in-partition
-collapse (parameters transport, running buffers do not), so the MLP
-degradation is BN-evaluation-conditional until the checkpoint-level
-diagnostic lands; the sequence arms carry no BatchNorm and are
-unaffected.
+the MLP half of that sentence was discharged at v4.9: the raw-substrate
+federated MLP evaluations pass through the same
+untransported-BatchNorm path that Section~\ref{sec:res-bn} shows
+manufactures apparent in-partition collapse (parameters transport,
+running buffers do not), and the checkpoint-level diagnostic has now
+run over that substrate (Section~\ref{sec:res-rawbn}) --- its verdict
+is that the degradation is \emph{not} BN-evaluation-conditional (pooled
+recalibration destroys, batch statistics do not recover). The
+qualifier that remains is provenance-level, and it is disclosed: the
+v3.x-era checkpoints were never persisted, so the diagnostic executed
+over a fresh seed-42 replication whose arm-A numbers deviate from the
+published rows by 0.002--0.023 ROC-AUC (a recorded MISMATCH, frozen
+and battery-pinned with the artefact); the sequence arms carry no
+BatchNorm and are unaffected.
 What remains open is fold-replication breadth: the seed-replication
 and natural-prevalence balancing questions queued in earlier
 revisions are now executed (Section~\ref{sec:res-lstmrep}: every

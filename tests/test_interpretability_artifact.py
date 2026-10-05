@@ -36,6 +36,14 @@ Checks:
      equal the stored list as a SET (index i maps to the feature name
      <STATS[i//24]>_<FEATURE_COLS[i%24]>, the stat-major layout of
      concat_stats_enhanced).
+  6. byte-stable checkout (v4.9): .gitattributes pins outputs/**
+     (and logs/**) as -text, so git can never smudge the frozen
+     artefacts' line endings on any platform. Root cause closed: the
+     owner's v4.8 battery failed this module's sha pin on a record
+     whose CONTENT was byte-identical to the committed blob — a
+     Windows checkout under core.autocrlf=true had rewritten every LF
+     as CRLF (the working-tree file's sha256 was exactly the blob's
+     CRLF-smudged image; RUNLOG v4.9).
 
 Run:  python tests/test_interpretability_artifact.py  (or via battery)
 """
@@ -212,6 +220,28 @@ def check_top15_matches_vectors():
     return ok
 
 
+def check_bytestable_checkout():
+    """v4.9: the frozen-record sha pin is only platform-independent if
+    git cannot convert the artefact's line endings at checkout time.
+    The repo pins the artefact trees as -text so a Windows clone under
+    core.autocrlf=true checks out byte-identical records."""
+    attrs = os.path.join(ROOT, ".gitattributes")
+    if not os.path.exists(attrs):
+        print("[FAIL] .gitattributes absent — the frozen-record sha pin "
+              "is not platform-independent (v4.9)")
+        return False
+    body = open(attrs, encoding="utf-8").read()
+    ok = "outputs/** -text" in body and "logs/** -text" in body
+    if ok:
+        print("[PASS] byte-stable checkout: .gitattributes pins the "
+              "artefact trees -text, so the sha pin holds on every "
+              "platform (the v4.8 Windows CRLF failure mode, closed)")
+    else:
+        print("[FAIL] .gitattributes does not pin outputs/** and logs/** "
+              "as -text (v4.9)")
+    return ok
+
+
 def main():
     results = [
         check_record_integrity(),
@@ -219,6 +249,7 @@ def main():
         check_frozen_record_fields(),
         check_source_contract(),
         check_top15_matches_vectors(),
+        check_bytestable_checkout(),
     ]
     passed = sum(1 for r in results if r)
     failed = sum(1 for r in results if not r)

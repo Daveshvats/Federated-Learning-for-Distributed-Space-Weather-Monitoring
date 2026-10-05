@@ -152,12 +152,13 @@ PINNED_ENTRIES = [
 # strings. Deliberately bump these when the documents legitimately
 # reflow (a disclosed recompile), never silently.
 PINNED_PAGE_COUNTS = {
-    os.path.join("paper", "main.pdf"): 56,
-    os.path.join("submission", "main.pdf"): 56,
+    os.path.join("paper", "main.pdf"): 59,
+    os.path.join("submission", "main.pdf"): 59,
 }
-# (56 since v4.8: the E1 disclosure paragraph, the E2 qualifiers and the
-# appendix v4.8 row reflowed the document by one page — a disclosed
-# recompile, the pin bumped deliberately per the B7 convention)
+# (59 since v4.9: the executed E1 diagnostic's new subsection + Table 8
+# + the appendix v4.9 row reflowed the document by three pages — a
+# disclosed recompile, the pin bumped deliberately per the B7
+# convention; 56 at v4.8, 55 at v4.5-v4.7)
 
 
 def read(path):

@@ -114,7 +114,7 @@ EXPECTED_MODULES = frozenset({
 EXTERNAL_MODULES = frozenset({
     # standard library
     "__future__", "argparse", "ast", "collections", "concurrent",
-    "contextlib", "copy", "csv", "datetime", "glob", "hashlib",
+    "contextlib", "copy", "csv", "datetime", "gc", "glob", "hashlib",
     "importlib", "inspect", "io", "itertools", "json", "os",
     "pickle", "re", "shutil", "subprocess", "sys", "tempfile",
     "time", "typing", "unittest",
@@ -130,6 +130,8 @@ EXPECTED_FROM_IMPORTS = 309  # `from <local module> import NAME` names
 # +2 bare-stem from-imports that the C6 stem-map resolution now counts
 # — previously invisible as "external by default")
 EXPECTED_PLAIN_IMPORTS = 40  # plain `import <local module>` statements
+# ("gc" joined the v4.9 whitelist: the raw-lstm win32 teardown guard's
+# function-local `import gc` — stdlib, previously unpinned)
 # (40 since v4.8: the new runner's `import config as cfg`, and one
 # bare-stem plain import now counted via the C6 stem map; the v4.7
 # note kept below)

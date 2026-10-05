@@ -2,7 +2,7 @@
 %  JOURNAL SUBMISSION EDITION — GENERATED FILE, DO NOT EDIT
 %  Federated Solar-Flare Prediction on SWAN-SF: A Provenance, Leakage, and Evaluation-Protocol Audit
 %  Regenerated programmatically from the repository record
-%  (paper/) by tools/build_submission.py at v4.8, per Dossier
+%  (paper/) by tools/build_submission.py at v4.9, per Dossier
 %  R-FS9-R6 register item 4. Every byte of the sections,
 %  figures, and refs.bib is a verbatim copy of the record;
 %  the only deviations are the declared transformations T1-T4
@@ -113,7 +113,7 @@
     \vspace{1.1em}
     {\small October 2026\par}
     \vspace{0.9em}
-    {\footnotesize\textit{Journal submission edition — regenerated from the repository record (v4.8); source: \texttt{submission/src}, generator: \texttt{tools/build\_submission.py}}\par}
+    {\footnotesize\textit{Journal submission edition — regenerated from the repository record (v4.9); source: \texttt{submission/src}, generator: \texttt{tools/build\_submission.py}}\par}
     \vspace{1.4em}
     {\color{black!85}\rule{\textwidth}{0.4pt}}
 \end{center}
@@ -150,10 +150,14 @@ saturated validation monitor and the checkpoint rule that monitor
 feeds --- rather than a federated-learning failure: the same weights
 score 0.951 with local statistics, and a controlled no-BatchNorm run
 leaves both FedAvg and FedProx stable. On the raw, unbalanced substrate
-the outcome is encoder-conditional (federated MLPs degrade --- a
-statement made under the same untransported-BN evaluation path the
-diagnostic above indicts, pending the raw-substrate BN diagnostic;
-FedProx-LSTM reaches ROC-AUC 0.970 and TSS 0.404). Calibration, not
+the outcome is encoder-conditional, and the v4.9 checkpoint-level BN
+diagnostic over that substrate closes the condition against the
+transport-protocol explanation: pooled-statistics recalibration
+collapses every federated arm to chance while evaluation-time batch
+statistics leave the deficit standing, so the MLP degradation is a
+property of the flattened-feature arms under federation rather than a
+BatchNorm evaluation artefact (FedProx-LSTM, which carries no
+BatchNorm, reaches ROC-AUC 0.970 and TSS 0.404). Calibration, not
 detection, is
 the deployability
 boundary: no validation-fit decision layer survives the prevalence

@@ -282,24 +282,23 @@ minority class through 6-client Dirichlet heterogeneity, and the
 gap between the best federated and best centralised arm widens to
 0.048 ROC-AUC and $3\times$ PR-AUC.
 
-One disclosure this section carries explicitly since v4.8: the
+One disclosure this section carried from v4.8, now resolved: the
 three federated \emph{MLP} rows of Table~\ref{tab:rawsubstr} are
 evaluated through the same untransported-BatchNorm path that
 Section~\ref{sec:res-bn} indicts in-partition --- the runner
 transports model \emph{parameters} only, so the returned
 checkpoints carry never-updated running buffers into a
-\texttt{model.eval()} evaluation. The in-partition diagnostic showed
-that path can manufacture an apparent federated collapse from
-weights that hold 0.953 ROC-AUC under batch statistics; the
-raw-substrate MLP degradation above is therefore
-\emph{BN-evaluation-conditional} until the same diagnostic runs over
-these checkpoints. Its runner
-(\texttt{run\_raw\_bn\_diagnostic.py}: BN treatments A/B/C over the
-raw-substrate checkpoints with a reproduction gate on the published
-numbers) ships with this revision and is queued owner-side compute;
-the sequence arms are unaffected by the confound (SolarLSTM carries
-no BatchNorm), so the encoder-contrast reading of
-Section~\ref{sec:res-lstm} stands either way.
+\texttt{model.eval()} evaluation. Until v4.9 the raw-substrate MLP
+degradation above was therefore \emph{BN-evaluation-conditional} on
+its face; the checkpoint-level diagnostic has since been executed
+(Section~\ref{sec:res-rawbn}, \texttt{raw\_bn\_diagnostic.json}) and
+the condition resolves \emph{against} the BN explanation: no
+treatment recovers the centralised reference, pooled recalibration
+actively destroys ranking, and the deficit is a property of the
+flattened-feature arms under federation. The sequence arms are
+outside the confound entirely (SolarLSTM carries no BatchNorm), so
+the encoder-contrast reading of Section~\ref{sec:res-lstm} stands
+either way.
 
 \begin{table}[t]
 \centering
@@ -377,6 +376,94 @@ SCAFFOLD LSTM & 55/65 (84.6\%) & 0.4 & 0.5 & 23.2 \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\subsection{Raw-substrate BN diagnostic: resolving the v4.8 condition}
+\label{sec:res-rawbn}
+
+The v4.8 revision shipped the runner for this diagnostic
+(\texttt{experiments/run\_raw\_bn\_diagnostic.py}) and queued its
+execution owner-side; it has since run (RUNLOG ask \#4), and its
+artefact of record --- \texttt{outputs/raw\_bn\_diagnostic.json},
+sha-pinned by the battery --- is what this subsection reads. One
+structural fact precedes the numbers, disclosed at equal length in the
+RUNLOG: the v3.x-era raw-substrate checkpoints were \emph{never
+persisted} (that era's runner stored the 3D caches and the
+sequence-arm checkpoints, not the seed-42 MLP weights), so the
+same-weights counterfactual the diagnostic was designed around is
+unavailable by construction. The run therefore re-evaluated a fresh
+seed-42 replication: the substrate was rebuilt from the surviving 3D
+cache (one additional f16 quantisation, within the $5\times10^{-3}$
+series bound the cache format documents), the three arms were
+retrained round-resumably under the frozen protocol, and the
+diagnostic then applied its three BN treatments to those identical
+weights. The replication is close at the substrate level: the pooled
+baselines reproduce the published rows to $\le 2.3\times10^{-3}$
+ROC-AUC (logistic regression $+1.7\times10^{-4}$, XGBoost
+$+1.5\times10^{-3}$, centralised MLP $-2.3\times10^{-3}$), which
+isolates the federated arms' gate deltas --- ROC-AUC $+0.023$
+(FedAvg), $-0.002$ (FedProx), $-0.005$ (SCAFFOLD) --- as retrain
+nondeterminism concentrated in the highest-variance arm. The gate
+recorded MISMATCH on all three arms (tolerance $10^{-4}$) and exited
+non-zero as designed; the record is frozen with that verdict.
+
+\begin{table}[t]
+\centering
+\caption{The raw-substrate BN diagnostic
+(\texttt{raw\_bn\_diagnostic.json}, v4.9): test ROC-AUC / PR-AUC of
+the identical replication weights under the three BN treatments, per
+federated MLP arm. A: the published init-buffer evaluation path; B:
+exact per-client statistics pooled by the law of total variance
+(training shards only); C: evaluation-time batch statistics. Gate
+$\Delta$ is arm A's ROC-AUC delta against the published rows of
+Table~\ref{tab:rawsubstr} (the disclosed MISMATCH; FedAvg carries
+the replication's retrain variance).}
+\label{tab:rawbndiag}
+\small
+\begin{tabular}{@{}l c c c c@{}}
+\toprule
+\textbf{Arm} & \textbf{A: init buffers} & \textbf{B: pooled} &
+\textbf{C: batch stats} & \textbf{Gate $\Delta$} \\
+\midrule
+FedAvg   & 0.898 / 0.070 & 0.501 / 0.015 & 0.915 / 0.227 & $+0.023$ \\
+FedProx  & 0.928 / 0.149 & 0.500 / 0.013 & 0.920 / 0.251 & $-0.002$ \\
+SCAFFOLD & 0.763 / 0.053 & 0.500 / 0.013 & 0.757 / 0.069 & $-0.005$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:rawbndiag} yields the reading, and it is the opposite
+of the in-partition pattern of Section~\ref{sec:res-bn}. First,
+\emph{the raw-substrate MLP deficit is not a manufactured collapse}:
+arm A --- the very path the in-partition diagnostic indicts --- holds
+0.763--0.928 ROC-AUC on every arm here, where the in-partition
+collapse scored 0.575, and no treatment approaches the centralised
+reference (0.969 on the same replication): the residual deficit,
+roughly 0.04--0.21 ROC-AUC depending on arm and treatment, is a
+property of the flattened-feature arms under federation, not of the
+buffer-transport protocol. Second, \emph{pooled recalibration is
+actively destructive here}: arm B collapses every arm to chance
+(0.500--0.501), whereas in-partition the same oracle \emph{recovered}
+FedAvg from 0.575 to 0.893 --- pooling exact per-client statistics
+across 6 heterogeneous raw-prevalence clients inflates variance past
+the point where any single pooled normalisation ranks the test
+distribution, so the in-partition ``optimistic recalibration rescue''
+does not transfer to the natural-prevalence substrate at all. Third,
+evaluation-time batch statistics (arm C) move ROC-AUC by at most
+0.017 while sharpening the positive score scale (PR-AUC
+0.070$\to$0.227 for FedAvg, 0.149$\to$0.251 for FedProx): a
+calibration instrument, not a rescue. The diagnostic's event-level
+layer also records the operating-point pathology the A-path
+thresholds inherit --- the replication's checkpoint rule returned
+best-val-F1 states of 0.0 for FedAvg and FedProx, FedAvg's val-frozen
+threshold sat at the 0.05 floor, and the arm detects 0 of 65 events
+under A while arm C, the only treatment with a usable validation
+operating point, detects 38 (58.5\%) at 0.28 false-alarm windows per
+day (FedProx: 62 at 2.8 under A, 50 at 0.43 under C). The v4.8
+condition is therefore closed with a precise scope: untransported BN
+statistics can manufacture collapse --- in-partition proved that ---
+but the raw-substrate federated MLP degradation is not that
+phenomenon, and the sequence arms (no BatchNorm) were never exposed
+to it.
 
 \subsection{The sequence encoder rescues the federated arms}
 \label{sec:res-lstm}

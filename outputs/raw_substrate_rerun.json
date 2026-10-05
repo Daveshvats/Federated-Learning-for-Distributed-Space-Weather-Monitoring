@@ -1,0 +1,393 @@
+{
+  "purpose": "review item 9: frozen protocol retrained on the RAW unbalanced SWAN-SF benchmark (natural prevalence, no RUS-Tomek-TimeGAN, no synthetic positives) with FPCKNN/LSBZM reproduced in-pipeline (train-only parameter fit); single-pass test on raw P5",
+  "protocol": {
+    "rounds": 50,
+    "mu": 0.01,
+    "alpha": 1.0,
+    "seed": 42,
+    "clients": 6,
+    "val_split": 0.16,
+    "flatten": "concat_stats_enhanced",
+    "calibration": "prior_shift",
+    "loss": "fed_focal"
+  },
+  "substrate": {
+    "train": 214888,
+    "val": 40932,
+    "test": 75365,
+    "train_pos": 0.020499050617218018,
+    "val_pos": 0.020497409626841545,
+    "test_pos": 0.013136071152985096,
+    "imputation": "FPCKNN-style (partial gaps: within-window linear interpolation; fully-missing series: Pearson-correlation-based kNN transfer, k=5, train-only references)",
+    "normalization": "LSBZM-style chain (robust clip -> shift -> log/sqrt/Box-Cox by fitted lambda -> z-score -> min-max), train-only parameters",
+    "stats": {},
+    "verification": {}
+  },
+  "results": {
+    "logistic_regression": {
+      "threshold": 0.8899999999999997,
+      "val_fbeta": 0.5566640063846767,
+      "test": {
+        "threshold": 0.8899999999999997,
+        "accuracy": 0.9795528428315531,
+        "precision": 0.3586454592098512,
+        "recall": 0.706060606060606,
+        "f1": 0.4756719972779857,
+        "f2": 0.5914706380098156,
+        "roc_auc": 0.9777241999830235,
+        "pr_auc": 0.44898178306017283,
+        "brier": 0.05277027204727224,
+        "ece": 0.08454453470923362,
+        "prevalence": 0.013136071120546673,
+        "recall@0.5%FPR": 0.35858585858585856,
+        "recall@1%FPR": 0.5313131313131313,
+        "recall@2%FPR": 0.7313131313131314,
+        "recall@5%FPR": 0.8818181818181818,
+        "preds": "[0 0 0 ... 0 0 0]"
+      },
+      "frozen_operating_points": {
+        "0.5%FPR": {
+          "frozen_threshold": 0.9720801776378885,
+          "realised_fpr": 0.002110924369747899,
+          "recall": 0.2292929292929293,
+          "precision": 0.5911458333333334,
+          "alert_rate": 0.005095203343727195
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.9509401438361259,
+          "realised_fpr": 0.004638655462184874,
+          "recall": 0.35353535353535354,
+          "precision": 0.5035971223021583,
+          "alert_rate": 0.009221787301797917
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.9156235224261952,
+          "realised_fpr": 0.012921008403361344,
+          "recall": 0.6414141414141414,
+          "precision": 0.39786967418546365,
+          "alert_rate": 0.021176938897366153
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.8082608125538798,
+          "realised_fpr": 0.03011764705882353,
+          "recall": 0.8161616161616162,
+          "precision": 0.2650918635170604,
+          "alert_rate": 0.040443176540834604
+        }
+      },
+      "shipped_in_partition": {
+        "roc_auc": 0.8236271595438993,
+        "pr_auc": 0.23481742271914388,
+        "source": "outputs/results.json"
+      },
+      "fold_leakage_free_cleaned": {
+        "roc_auc": 0.9775435158305746,
+        "pr_auc": 0.45458092276045176,
+        "source": "partition_disjoint_eval.json"
+      }
+    },
+    "xgboost": {
+      "threshold": 0.7899999999999997,
+      "val_fbeta": 0.9072164948453608,
+      "test": {
+        "threshold": 0.7899999999999997,
+        "accuracy": 0.9834538578915942,
+        "precision": 0.36766220391349125,
+        "recall": 0.3606060606060606,
+        "f1": 0.3640999490056094,
+        "f2": 0.36199553843033866,
+        "roc_auc": 0.9754066717596129,
+        "pr_auc": 0.32679810234781087,
+        "brier": 0.017311599147177024,
+        "ece": 0.018854840960801096,
+        "prevalence": 0.013136071120546673,
+        "recall@0.5%FPR": 0.2737373737373737,
+        "recall@1%FPR": 0.398989898989899,
+        "recall@2%FPR": 0.6080808080808081,
+        "recall@5%FPR": 0.8747474747474747,
+        "preds": "[0 0 0 ... 0 0 0]"
+      },
+      "frozen_operating_points": {
+        "0.5%FPR": {
+          "frozen_threshold": 0.8053072700800312,
+          "realised_fpr": 0.007556302521008403,
+          "recall": 0.3484848484848485,
+          "precision": 0.38037486218302097,
+          "alert_rate": 0.012034764147813973
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.6453942768251492,
+          "realised_fpr": 0.013647058823529411,
+          "recall": 0.49797979797979797,
+          "precision": 0.3269230769230769,
+          "alert_rate": 0.020009288131095336
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.45560451736262036,
+          "realised_fpr": 0.02110924369747899,
+          "recall": 0.6252525252525253,
+          "precision": 0.28277752398355416,
+          "alert_rate": 0.02904531281098653
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.18226131059777595,
+          "realised_fpr": 0.039932773109243695,
+          "recall": 0.8111111111111111,
+          "precision": 0.21282798833819241,
+          "alert_rate": 0.05006302660386121
+        }
+      },
+      "shipped_in_partition": {
+        "roc_auc": 0.9766869855959834,
+        "pr_auc": 0.49275545501848395,
+        "source": "outputs/results.json"
+      },
+      "fold_leakage_free_cleaned": {
+        "roc_auc": 0.9709564417282064,
+        "pr_auc": 0.45721431908064547,
+        "source": "partition_disjoint_eval.json"
+      }
+    },
+    "centralized_mlp": {
+      "threshold": 0.23499999999999993,
+      "val_fbeta": 0.6666666666666666,
+      "test": {
+        "threshold": 0.23499999999999993,
+        "accuracy": 0.9717640814701785,
+        "precision": 0.24688612099644128,
+        "recall": 0.5606060606060606,
+        "f1": 0.342804200123533,
+        "f2": 0.44700386597938147,
+        "roc_auc": 0.9687031661149309,
+        "pr_auc": 0.425662301907387,
+        "brier": 0.010861085868759878,
+        "ece": 0.01149348403567175,
+        "prevalence": 0.013136071120546673,
+        "recall@0.5%FPR": 0.3515151515151515,
+        "recall@1%FPR": 0.4080808080808081,
+        "recall@2%FPR": 0.5373737373737374,
+        "recall@5%FPR": 0.796969696969697,
+        "preds": "[0 0 0 ... 0 0 0]"
+      },
+      "frozen_operating_points": {
+        "0.5%FPR": {
+          "frozen_threshold": 0.379644099269716,
+          "realised_fpr": 0.0027966386554621847,
+          "recall": 0.30707070707070705,
+          "precision": 0.59375,
+          "alert_rate": 0.006793604458302926
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.3347222298335287,
+          "realised_fpr": 0.008752941176470588,
+          "recall": 0.39595959595959596,
+          "precision": 0.37583892617449666,
+          "alert_rate": 0.013839315332050687
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.2764676634630552,
+          "realised_fpr": 0.015959663865546217,
+          "recall": 0.4898989898989899,
+          "precision": 0.2900717703349282,
+          "alert_rate": 0.022185364559145493
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.17913543364813056,
+          "realised_fpr": 0.036746218487394955,
+          "recall": 0.7090909090909091,
+          "precision": 0.20436681222707423,
+          "alert_rate": 0.04557818616068467
+        }
+      },
+      "shipped_in_partition": {
+        "roc_auc": 0.8876854930711614,
+        "pr_auc": 0.15278863365568351,
+        "source": "outputs/results.json"
+      },
+      "fold_leakage_free_cleaned": {
+        "roc_auc": 0.9728209150326798,
+        "pr_auc": 0.3818943950498757,
+        "source": "partition_disjoint_eval.json"
+      }
+    },
+    "fedavg_mlp": {
+      "threshold": 0.05,
+      "val_fbeta": 0.0,
+      "test": {
+        "threshold": 0.05,
+        "accuracy": 0.9868639288794533,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "f2": 0.0,
+        "roc_auc": 0.8981641558441558,
+        "pr_auc": 0.07004215786711036,
+        "brier": 0.013047601806563714,
+        "ece": 0.010685414101838046,
+        "prevalence": 0.013136071120546673,
+        "recall@0.5%FPR": 0.013131313131313131,
+        "recall@1%FPR": 0.03939393939393939,
+        "recall@2%FPR": 0.08181818181818182,
+        "recall@5%FPR": 0.6303030303030303,
+        "preds": "[0 0 0 ... 0 0 0]"
+      },
+      "frozen_operating_points": {
+        "0.5%FPR": {
+          "frozen_threshold": 0.003897324017686501,
+          "realised_fpr": 0.0051092436974789915,
+          "recall": 0.01717171717171717,
+          "precision": 0.042821158690176324,
+          "alert_rate": 0.005267697206926292
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.0038413476888064972,
+          "realised_fpr": 0.00955966386554622,
+          "recall": 0.03838383838383838,
+          "precision": 0.050734312416555405,
+          "alert_rate": 0.009938300272009553
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.0037670211376137157,
+          "realised_fpr": 0.018514285714285716,
+          "recall": 0.07777777777777778,
+          "precision": 0.05295735900962861,
+          "alert_rate": 0.0192927751608837
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.0036758841817239756,
+          "realised_fpr": 0.0971563025210084,
+          "recall": 0.6303030303030303,
+          "precision": 0.07949044585987261,
+          "alert_rate": 0.10415975585483978
+        }
+      },
+      "shipped_in_partition": {
+        "roc_auc": 0.5747842348614725,
+        "pr_auc": 0.19862870412298378,
+        "source": "outputs/results.json"
+      },
+      "fold_leakage_free_cleaned": {
+        "roc_auc": 0.905897462015109,
+        "pr_auc": 0.36995677953704703,
+        "source": "partition_disjoint_eval.json"
+      }
+    },
+    "fedprox_mlp": {
+      "threshold": 0.15999999999999995,
+      "val_fbeta": 0.27277007937575676,
+      "test": {
+        "threshold": 0.15999999999999995,
+        "accuracy": 0.7936044583029258,
+        "precision": 0.05705249072440849,
+        "recall": 0.9474747474747475,
+        "f1": 0.10762434742699788,
+        "f2": 0.2298906916327631,
+        "roc_auc": 0.9283069892199304,
+        "pr_auc": 0.1485166779931215,
+        "brier": 0.03265543346993097,
+        "ece": 0.1410418008620442,
+        "prevalence": 0.013136071120546673,
+        "recall@0.5%FPR": 0.12222222222222222,
+        "recall@1%FPR": 0.21818181818181817,
+        "recall@2%FPR": 0.30606060606060603,
+        "recall@5%FPR": 0.601010101010101,
+        "preds": "[0 0 0 ... 0 0 0]"
+      },
+      "frozen_operating_points": {
+        "0.5%FPR": {
+          "frozen_threshold": 0.16459610744611008,
+          "realised_fpr": 0.0026487394957983193,
+          "recall": 0.051515151515151514,
+          "precision": 0.2056451612903226,
+          "alert_rate": 0.0032906521594904797
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.16431300091160814,
+          "realised_fpr": 0.0060369747899159665,
+          "recall": 0.14646464646464646,
+          "precision": 0.2441077441077441,
+          "alert_rate": 0.007881642672328004
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.16400749917489002,
+          "realised_fpr": 0.01172436974789916,
+          "recall": 0.2383838383838384,
+          "precision": 0.21299638989169675,
+          "alert_rate": 0.014701784648046175
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.16349507640634958,
+          "realised_fpr": 0.029418487394957983,
+          "recall": 0.3939393939393939,
+          "precision": 0.15128006206361522,
+          "alert_rate": 0.034206859948251844
+        }
+      },
+      "shipped_in_partition": {
+        "roc_auc": 0.9544154648080616,
+        "pr_auc": 0.30721543178019844,
+        "source": "outputs/results.json"
+      },
+      "fold_leakage_free_cleaned": {
+        "roc_auc": 0.9760480434598082,
+        "pr_auc": 0.30755285212383854,
+        "source": "partition_disjoint_eval.json"
+      }
+    },
+    "scaffold_mlp": {
+      "threshold": 0.3649999999999998,
+      "val_fbeta": 0.16501539697415987,
+      "test": {
+        "threshold": 0.3649999999999998,
+        "accuracy": 0.7504677237444437,
+        "precision": 0.03608999062597646,
+        "recall": 0.7,
+        "f1": 0.06864104595879557,
+        "f2": 0.14959848026940678,
+        "roc_auc": 0.7632268296409472,
+        "pr_auc": 0.05301206903750731,
+        "brier": 0.13567389708912786,
+        "ece": 0.35036818431955985,
+        "prevalence": 0.013136071120546673,
+        "recall@0.5%FPR": 0.04040404040404041,
+        "recall@1%FPR": 0.11313131313131314,
+        "recall@2%FPR": 0.16161616161616163,
+        "recall@5%FPR": 0.2727272727272727,
+        "preds": "[1 1 1 ... 0 0 0]"
+      },
+      "frozen_operating_points": {
+        "0.5%FPR": {
+          "frozen_threshold": 0.3679000211811741,
+          "realised_fpr": 0.0061579831932773105,
+          "recall": 0.05656565656565657,
+          "precision": 0.10894941634241245,
+          "alert_rate": 0.006820141975718171
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.3677087540089019,
+          "realised_fpr": 0.0112,
+          "recall": 0.12121212121212122,
+          "precision": 0.1259181532004197,
+          "alert_rate": 0.012645127048364626
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.367475406874761,
+          "realised_fpr": 0.019845378151260504,
+          "recall": 0.15858585858585858,
+          "precision": 0.09614206981016533,
+          "alert_rate": 0.021667882969548198
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.36695709613304217,
+          "realised_fpr": 0.04696470588235294,
+          "recall": 0.2595959595959596,
+          "precision": 0.06853333333333333,
+          "alert_rate": 0.04975784515358588
+        }
+      },
+      "shipped_in_partition": null,
+      "fold_leakage_free_cleaned": null
+    }
+  },
+  "elapsed_s": 6838.896136760712
+}

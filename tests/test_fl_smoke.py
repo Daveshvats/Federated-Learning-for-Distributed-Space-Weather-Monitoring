@@ -104,7 +104,7 @@ def main():
           all("roc_auc" in h and "f1" in h for h in hist_avg))
     check("fedavg weights finite",
           all(np.isfinite(w).all() for w in
-              [p.detach().numpy() for p in m_avg.parameters()]))
+              [p.detach().cpu().numpy() for p in m_avg.parameters()]))
 
     print("\n[2] FedProx (mu=0.01) — 4 rounds")
     m_prox, hist_prox = run_fedprox(shards, X_val, y_val, n_rounds=4,
@@ -112,7 +112,7 @@ def main():
     check("fedprox history non-empty", len(hist_prox) > 0)
     check("fedprox weights finite",
           all(np.isfinite(w).all() for w in
-              [p.detach().numpy() for p in m_prox.parameters()]))
+              [p.detach().cpu().numpy() for p in m_prox.parameters()]))
 
     print("\n[3] Frozen-protocol final evaluation")
     device = next(m_avg.parameters()).device
@@ -148,7 +148,7 @@ def main():
                             use_lstm=False, seed=7)
     check("fedavg+SMOTE completes without error",
           all(np.isfinite(w).all() for w in
-              [p.detach().numpy() for p in m_smote.parameters()]))
+              [p.detach().cpu().numpy() for p in m_smote.parameters()]))
     cfg.USE_SMOTE = False
 
     print("\n[6] Client-level evaluation (Stage 10)")

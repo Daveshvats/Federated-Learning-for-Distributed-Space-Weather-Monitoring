@@ -1,0 +1,1327 @@
+{
+  "runner": "experiments/run_raw_bn_diagnostic.py",
+  "purpose": "v4.8 / E1: BN-treatment re-evaluation of the raw-substrate federated MLP checkpoints \u2014 is the raw-substrate MLP degradation BN-evaluation-conditional?  Arms A (init buffers, the published path), B (pooled per-client recalibration, train-shards-only), C (eval-time batch stats). Arm D (transported round buffers) is not reconstructible from the checkpoints (parameters only were ever aggregated) and stays queued owner compute.",
+  "protocol": {
+    "seed": 42,
+    "rounds": 50,
+    "alpha": 1.0,
+    "clients": 6,
+    "aggregation": "plain",
+    "loss_variant": "fed_focal",
+    "calibration": "prior_shift",
+    "evaluation_device": "cpu",
+    "note": "identical weights per treatment; no retraining; frozen seed-42 substrate/shards from the rawsubstrate cache"
+  },
+  "substrate": {
+    "train": 214888,
+    "val": 40932,
+    "test": 75365,
+    "train_pos": 0.020499050617218018,
+    "val_pos": 0.020497409626841545,
+    "test_pos": 0.013136071152985096
+  },
+  "reproduction_gate": {
+    "fedavg_mlp": {
+      "published_roc_auc": 0.8747205704099822,
+      "reproduced_roc_auc": 0.8981607401748578,
+      "delta_roc_auc": 0.023440169764875618,
+      "published_pr_auc": 0.05614600405791456,
+      "reproduced_pr_auc": 0.07003498209186247,
+      "delta_pr_auc": 0.01388897803394791,
+      "tolerance": 0.0001,
+      "verdict": "MISMATCH"
+    },
+    "fedprox_mlp": {
+      "published_roc_auc": 0.9302553263729735,
+      "reproduced_roc_auc": 0.9283070028011204,
+      "delta_roc_auc": 0.001948323571853039,
+      "published_pr_auc": 0.148668867684149,
+      "reproduced_pr_auc": 0.14851925183900222,
+      "delta_pr_auc": 0.00014961584514677773,
+      "tolerance": 0.0001,
+      "verdict": "MISMATCH"
+    },
+    "scaffold_mlp": {
+      "published_roc_auc": 0.7684830693489517,
+      "reproduced_roc_auc": 0.7632268092691623,
+      "delta_roc_auc": 0.00525626007978941,
+      "published_pr_auc": 0.05663798211702756,
+      "reproduced_pr_auc": 0.05301258558912989,
+      "delta_pr_auc": 0.003625396527897666,
+      "tolerance": 0.0001,
+      "verdict": "MISMATCH"
+    }
+  },
+  "reproduction_gate_verdict": "MISMATCH",
+  "results": {
+    "fedavg_mlp": {
+      "checkpoint": {
+        "best_val_f1": 0.0,
+        "n_history": 10,
+        "bn_buffers": [
+          {
+            "layer": "net.1.running_mean",
+            "mean_abs": 0.0,
+            "var_mean": 0.0
+          },
+          {
+            "layer": "net.1.running_var",
+            "mean_abs": 1.0,
+            "var_mean": 0.0
+          },
+          {
+            "layer": "net.1.num_batches_tracked",
+            "value": 0
+          },
+          {
+            "layer": "net.5.running_mean",
+            "mean_abs": 0.0,
+            "var_mean": 0.0
+          },
+          {
+            "layer": "net.5.running_var",
+            "mean_abs": 1.0,
+            "var_mean": 0.0
+          },
+          {
+            "layer": "net.5.num_batches_tracked",
+            "value": 0
+          },
+          {
+            "layer": "net.9.running_mean",
+            "mean_abs": 0.0,
+            "var_mean": 0.0
+          },
+          {
+            "layer": "net.9.running_var",
+            "mean_abs": 1.0,
+            "var_mean": 0.0
+          },
+          {
+            "layer": "net.9.num_batches_tracked",
+            "value": 0
+          }
+        ]
+      },
+      "A_init_buffers": {
+        "threshold": 0.05,
+        "val_fbeta": 0.0,
+        "test": {
+          "threshold": 0.05,
+          "accuracy": 0.9868639288794533,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "f2": 0.0,
+          "roc_auc": 0.8981607401748578,
+          "pr_auc": 0.07003498209186247,
+          "brier": 0.013047601799939634,
+          "ece": 0.010685413975755289,
+          "prevalence": 0.013136071120546673,
+          "recall@0.5%FPR": 0.013131313131313131,
+          "recall@1%FPR": 0.03939393939393939,
+          "recall@2%FPR": 0.08181818181818182,
+          "recall@5%FPR": 0.6303030303030303,
+          "preds": "[0 0 0 ... 0 0 0]"
+        },
+        "frozen_operating_points": {
+          "0.5%FPR": {
+            "frozen_threshold": 0.003897327742674715,
+            "realised_fpr": 0.0051092436974789915,
+            "recall": 0.01717171717171717,
+            "precision": 0.042821158690176324,
+            "alert_rate": 0.005267697206926292
+          },
+          "1%FPR": {
+            "frozen_threshold": 0.003841349551300587,
+            "realised_fpr": 0.00955966386554622,
+            "recall": 0.03838383838383838,
+            "precision": 0.050734312416555405,
+            "alert_rate": 0.009938300272009553
+          },
+          "2%FPR": {
+            "frozen_threshold": 0.0037670234657312994,
+            "realised_fpr": 0.018514285714285716,
+            "recall": 0.07777777777777778,
+            "precision": 0.05295735900962861,
+            "alert_rate": 0.0192927751608837
+          },
+          "5%FPR": {
+            "frozen_threshold": 0.0036758841817239756,
+            "realised_fpr": 0.09716974789915966,
+            "recall": 0.6303030303030303,
+            "precision": 0.07948032097821933,
+            "alert_rate": 0.1041730246135474
+          }
+        },
+        "treatment": "A_init_buffers"
+      },
+      "B_recalibrated": {
+        "threshold": 0.05,
+        "val_fbeta": 0.0,
+        "test": {
+          "threshold": 0.05,
+          "accuracy": 0.9868904663968686,
+          "precision": 1.0,
+          "recall": 0.00202020202020202,
+          "f1": 0.004032258064516129,
+          "f2": 0.002523977788995457,
+          "roc_auc": 0.5010033919022154,
+          "pr_auc": 0.015129735623333446,
+          "brier": 0.013132008272779591,
+          "ece": 0.013133611990571736,
+          "prevalence": 0.013136071120546673,
+          "recall@0.5%FPR": 1.0,
+          "recall@1%FPR": 1.0,
+          "recall@2%FPR": 1.0,
+          "recall@5%FPR": 1.0,
+          "preds": "[0 0 0 ... 0 0 0]"
+        },
+        "frozen_operating_points": {
+          "0.5%FPR": {
+            "frozen_threshold": 1e-07,
+            "realised_fpr": 1.0,
+            "recall": 1.0,
+            "precision": 0.013136071120546673,
+            "alert_rate": 1.0
+          },
+          "1%FPR": {
+            "frozen_threshold": 1e-07,
+            "realised_fpr": 1.0,
+            "recall": 1.0,
+            "precision": 0.013136071120546673,
+            "alert_rate": 1.0
+          },
+          "2%FPR": {
+            "frozen_threshold": 1e-07,
+            "realised_fpr": 1.0,
+            "recall": 1.0,
+            "precision": 0.013136071120546673,
+            "alert_rate": 1.0
+          },
+          "5%FPR": {
+            "frozen_threshold": 1e-07,
+            "realised_fpr": 1.0,
+            "recall": 1.0,
+            "precision": 0.013136071120546673,
+            "alert_rate": 1.0
+          }
+        },
+        "treatment": "B_recalibrated"
+      },
+      "C_batch_stats": {
+        "threshold": 0.15999999999999995,
+        "val_fbeta": 0.6901903973509934,
+        "test": {
+          "threshold": 0.15999999999999995,
+          "accuracy": 0.9756650965302196,
+          "precision": 0.23017902813299232,
+          "recall": 0.36363636363636365,
+          "f1": 0.28191072826938135,
+          "f2": 0.3258508327299059,
+          "roc_auc": 0.9147724233935999,
+          "pr_auc": 0.22674569393546093,
+          "brier": 0.011371448207967419,
+          "ece": 0.004047673451589203,
+          "prevalence": 0.013136071120546673,
+          "recall@0.5%FPR": 0.21818181818181817,
+          "recall@1%FPR": 0.29292929292929293,
+          "recall@2%FPR": 0.42727272727272725,
+          "recall@5%FPR": 0.6181818181818182,
+          "preds": "[0 0 0 ... 0 0 0]"
+        },
+        "frozen_operating_points": {
+          "0.5%FPR": {
+            "frozen_threshold": 0.27616702862685033,
+            "realised_fpr": 0.0065344537815126055,
+            "recall": 0.24646464646464647,
+            "precision": 0.33424657534246577,
+            "alert_rate": 0.009686193856564718
+          },
+          "1%FPR": {
+            "frozen_threshold": 0.220897838849516,
+            "realised_fpr": 0.010473949579831932,
+            "recall": 0.298989898989899,
+            "precision": 0.2753488372093023,
+            "alert_rate": 0.01426391561069462
+          },
+          "2%FPR": {
+            "frozen_threshold": 0.16096431351312604,
+            "realised_fpr": 0.016094117647058825,
+            "recall": 0.3616161616161616,
+            "precision": 0.2302250803858521,
+            "alert_rate": 0.020632919790353612
+          },
+          "5%FPR": {
+            "frozen_threshold": 0.0870737878092959,
+            "realised_fpr": 0.030776470588235294,
+            "recall": 0.5272727272727272,
+            "precision": 0.18569903948772679,
+            "alert_rate": 0.03729848072712798
+          }
+        },
+        "treatment": "C_batch_stats"
+      }
+    },
+    "fedprox_mlp": {
+      "checkpoint": {
+        "best_val_f1": 0.0,
+        "n_history": 10,
+        "bn_buffers": [
+          {
+            "layer": "net.1.running_mean",
+            "mean_abs": 0.0,
+            "var_mean": 0.0
+          },
+          {
+            "layer": "net.1.running_var",
+            "mean_abs": 1.0,
+            "var_mean": 0.0
+          },
+          {
+            "layer": "net.1.num_batches_tracked",
+            "value": 0
+          },
+          {
+            "layer": "net.5.running_mean",
+            "mean_abs": 0.0,
+            "var_mean": 0.0
+          },
+          {
+            "layer": "net.5.running_var",
+            "mean_abs": 1.0,
+            "var_mean": 0.0
+          },
+          {
+            "layer": "net.5.num_batches_tracked",
+            "value": 0
+          },
+          {
+            "layer": "net.9.running_mean",
+            "mean_abs": 0.0,
+            "var_mean": 0.0
+          },
+          {
+            "layer": "net.9.running_var",
+            "mean_abs": 1.0,
+            "var_mean": 0.0
+          },
+          {
+            "layer": "net.9.num_batches_tracked",
+            "value": 0
+          }
+        ]
+      },
+      "A_init_buffers": {
+        "threshold": 0.15999999999999995,
+        "val_fbeta": 0.27277007937575676,
+        "test": {
+          "threshold": 0.15999999999999995,
+          "accuracy": 0.7935911895442181,
+          "precision": 0.05704902080038925,
+          "recall": 0.9474747474747475,
+          "f1": 0.10761817347407067,
+          "f2": 0.22987942358592295,
+          "roc_auc": 0.9283070028011204,
+          "pr_auc": 0.14851925183900222,
+          "brier": 0.032655433632609,
+          "ece": 0.14104180159257815,
+          "prevalence": 0.013136071120546673,
+          "recall@0.5%FPR": 0.12222222222222222,
+          "recall@1%FPR": 0.21818181818181817,
+          "recall@2%FPR": 0.30606060606060603,
+          "recall@5%FPR": 0.601010101010101,
+          "preds": "[0 0 0 ... 0 0 0]"
+        },
+        "frozen_operating_points": {
+          "0.5%FPR": {
+            "frozen_threshold": 0.16459610744611008,
+            "realised_fpr": 0.0026487394957983193,
+            "recall": 0.051515151515151514,
+            "precision": 0.2056451612903226,
+            "alert_rate": 0.0032906521594904797
+          },
+          "1%FPR": {
+            "frozen_threshold": 0.1643130158119517,
+            "realised_fpr": 0.0060369747899159665,
+            "recall": 0.14646464646464646,
+            "precision": 0.2441077441077441,
+            "alert_rate": 0.007881642672328004
+          },
+          "2%FPR": {
+            "frozen_threshold": 0.16400749917489002,
+            "realised_fpr": 0.01172436974789916,
+            "recall": 0.2383838383838384,
+            "precision": 0.21299638989169675,
+            "alert_rate": 0.014701784648046175
+          },
+          "5%FPR": {
+            "frozen_threshold": 0.16349509130669115,
+            "realised_fpr": 0.029418487394957983,
+            "recall": 0.3939393939393939,
+            "precision": 0.15128006206361522,
+            "alert_rate": 0.034206859948251844
+          }
+        },
+        "treatment": "A_init_buffers"
+      },
+      "B_recalibrated": {
+        "threshold": 0.05,
+        "val_fbeta": 0.0,
+        "test": {
+          "threshold": 0.05,
+          "accuracy": 0.9868639288794533,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "f2": 0.0,
+          "roc_auc": 0.5,
+          "pr_auc": 0.013136071120546673,
+          "brier": 0.013136068493342446,
+          "ece": 0.013135971120546673,
+          "prevalence": 0.013136071120546673,
+          "recall@0.5%FPR": 1.0,
+          "recall@1%FPR": 1.0,
+          "recall@2%FPR": 1.0,
+          "recall@5%FPR": 1.0,
+          "preds": "[0 0 0 ... 0 0 0]"
+        },
+        "frozen_operating_points": {
+          "0.5%FPR": {
+            "frozen_threshold": 1e-07,
+            "realised_fpr": 1.0,
+            "recall": 1.0,
+            "precision": 0.013136071120546673,
+            "alert_rate": 1.0
+          },
+          "1%FPR": {
+            "frozen_threshold": 1e-07,
+            "realised_fpr": 1.0,
+            "recall": 1.0,
+            "precision": 0.013136071120546673,
+            "alert_rate": 1.0
+          },
+          "2%FPR": {
+            "frozen_threshold": 1e-07,
+            "realised_fpr": 1.0,
+            "recall": 1.0,
+            "precision": 0.013136071120546673,
+            "alert_rate": 1.0
+          },
+          "5%FPR": {
+            "frozen_threshold": 1e-07,
+            "realised_fpr": 1.0,
+            "recall": 1.0,
+            "precision": 0.013136071120546673,
+            "alert_rate": 1.0
+          }
+        },
+        "treatment": "B_recalibrated"
+      },
+      "C_batch_stats": {
+        "threshold": 0.17999999999999994,
+        "val_fbeta": 0.5985130111524164,
+        "test": {
+          "threshold": 0.17999999999999994,
+          "accuracy": 0.9670271346115571,
+          "precision": 0.22180870859694826,
+          "recall": 0.602020202020202,
+          "f1": 0.3241773184661409,
+          "f2": 0.4483225515270047,
+          "roc_auc": 0.9204278278584161,
+          "pr_auc": 0.2511056388930387,
+          "brier": 0.011294745730496415,
+          "ece": 0.015005718100529097,
+          "prevalence": 0.013136071120546673,
+          "recall@0.5%FPR": 0.23030303030303031,
+          "recall@1%FPR": 0.3606060606060606,
+          "recall@2%FPR": 0.5080808080808081,
+          "recall@5%FPR": 0.794949494949495,
+          "preds": "[0 0 0 ... 0 0 0]"
+        },
+        "frozen_operating_points": {
+          "0.5%FPR": {
+            "frozen_threshold": 0.3234578626994989,
+            "realised_fpr": 0.0028369747899159663,
+            "recall": 0.18787878787878787,
+            "precision": 0.46851385390428213,
+            "alert_rate": 0.005267697206926292
+          },
+          "1%FPR": {
+            "frozen_threshold": 0.2872558089076373,
+            "realised_fpr": 0.010312605042016807,
+            "recall": 0.3696969696969697,
+            "precision": 0.323036187113857,
+            "alert_rate": 0.015033503615736748
+          },
+          "2%FPR": {
+            "frozen_threshold": 0.22604540602113912,
+            "realised_fpr": 0.019294117647058823,
+            "recall": 0.502020202020202,
+            "precision": 0.2572463768115942,
+            "alert_rate": 0.025635241823127448
+          },
+          "5%FPR": {
+            "frozen_threshold": 0.15224826421606383,
+            "realised_fpr": 0.03597983193277311,
+            "recall": 0.7161616161616161,
+            "precision": 0.20945347119645494,
+            "alert_rate": 0.04491474822530352
+          }
+        },
+        "treatment": "C_batch_stats"
+      }
+    },
+    "scaffold_mlp": {
+      "checkpoint": {
+        "best_val_f1": 0.04017141078738838,
+        "n_history": 10,
+        "bn_buffers": [
+          {
+            "layer": "net.1.running_mean",
+            "mean_abs": 0.0,
+            "var_mean": 0.0
+          },
+          {
+            "layer": "net.1.running_var",
+            "mean_abs": 1.0,
+            "var_mean": 0.0
+          },
+          {
+            "layer": "net.1.num_batches_tracked",
+            "value": 0
+          },
+          {
+            "layer": "net.5.running_mean",
+            "mean_abs": 0.0,
+            "var_mean": 0.0
+          },
+          {
+            "layer": "net.5.running_var",
+            "mean_abs": 1.0,
+            "var_mean": 0.0
+          },
+          {
+            "layer": "net.5.num_batches_tracked",
+            "value": 0
+          },
+          {
+            "layer": "net.9.running_mean",
+            "mean_abs": 0.0,
+            "var_mean": 0.0
+          },
+          {
+            "layer": "net.9.running_var",
+            "mean_abs": 1.0,
+            "var_mean": 0.0
+          },
+          {
+            "layer": "net.9.num_batches_tracked",
+            "value": 0
+          }
+        ]
+      },
+      "A_init_buffers": {
+        "threshold": 0.3649999999999998,
+        "val_fbeta": 0.16501539697415987,
+        "test": {
+          "threshold": 0.3649999999999998,
+          "accuracy": 0.7504677237444437,
+          "precision": 0.03608999062597646,
+          "recall": 0.7,
+          "f1": 0.06864104595879557,
+          "f2": 0.14959848026940678,
+          "roc_auc": 0.7632268092691623,
+          "pr_auc": 0.05301258558912989,
+          "brier": 0.13567389599359192,
+          "ece": 0.3503681827888471,
+          "prevalence": 0.013136071120546673,
+          "recall@0.5%FPR": 0.04040404040404041,
+          "recall@1%FPR": 0.11313131313131314,
+          "recall@2%FPR": 0.16161616161616163,
+          "recall@5%FPR": 0.2727272727272727,
+          "preds": "[1 1 1 ... 0 0 0]"
+        },
+        "frozen_operating_points": {
+          "0.5%FPR": {
+            "frozen_threshold": 0.3679000211811741,
+            "realised_fpr": 0.0061579831932773105,
+            "recall": 0.05656565656565657,
+            "precision": 0.10894941634241245,
+            "alert_rate": 0.006820141975718171
+          },
+          "1%FPR": {
+            "frozen_threshold": 0.3677087838105799,
+            "realised_fpr": 0.0112,
+            "recall": 0.12121212121212122,
+            "precision": 0.1259181532004197,
+            "alert_rate": 0.012645127048364626
+          },
+          "2%FPR": {
+            "frozen_threshold": 0.367475406874761,
+            "realised_fpr": 0.019845378151260504,
+            "recall": 0.15858585858585858,
+            "precision": 0.09614206981016533,
+            "alert_rate": 0.021667882969548198
+          },
+          "5%FPR": {
+            "frozen_threshold": 0.36695709613304217,
+            "realised_fpr": 0.04696470588235294,
+            "recall": 0.2595959595959596,
+            "precision": 0.06853333333333333,
+            "alert_rate": 0.04975784515358588
+          }
+        },
+        "treatment": "A_init_buffers"
+      },
+      "B_recalibrated": {
+        "threshold": 0.05,
+        "val_fbeta": 0.0,
+        "test": {
+          "threshold": 0.05,
+          "accuracy": 0.9868639288794533,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "f2": 0.0,
+          "roc_auc": 0.5,
+          "pr_auc": 0.013136071120546673,
+          "brier": 0.013136068493342446,
+          "ece": 0.013135971120546673,
+          "prevalence": 0.013136071120546673,
+          "recall@0.5%FPR": 1.0,
+          "recall@1%FPR": 1.0,
+          "recall@2%FPR": 1.0,
+          "recall@5%FPR": 1.0,
+          "preds": "[0 0 0 ... 0 0 0]"
+        },
+        "frozen_operating_points": {
+          "0.5%FPR": {
+            "frozen_threshold": 1e-07,
+            "realised_fpr": 1.0,
+            "recall": 1.0,
+            "precision": 0.013136071120546673,
+            "alert_rate": 1.0
+          },
+          "1%FPR": {
+            "frozen_threshold": 1e-07,
+            "realised_fpr": 1.0,
+            "recall": 1.0,
+            "precision": 0.013136071120546673,
+            "alert_rate": 1.0
+          },
+          "2%FPR": {
+            "frozen_threshold": 1e-07,
+            "realised_fpr": 1.0,
+            "recall": 1.0,
+            "precision": 0.013136071120546673,
+            "alert_rate": 1.0
+          },
+          "5%FPR": {
+            "frozen_threshold": 1e-07,
+            "realised_fpr": 1.0,
+            "recall": 1.0,
+            "precision": 0.013136071120546673,
+            "alert_rate": 1.0
+          }
+        },
+        "treatment": "B_recalibrated"
+      },
+      "C_batch_stats": {
+        "threshold": 0.16499999999999992,
+        "val_fbeta": 0.2721119133574007,
+        "test": {
+          "threshold": 0.16499999999999992,
+          "accuracy": 0.8245206660916872,
+          "precision": 0.0372191542476738,
+          "recall": 0.49696969696969695,
+          "f1": 0.06925188260961362,
+          "f2": 0.1431980906921241,
+          "roc_auc": 0.7570386894151601,
+          "pr_auc": 0.0690935662411697,
+          "brier": 0.02558403284862058,
+          "ece": 0.10831960795800112,
+          "prevalence": 0.013136071120546673,
+          "recall@0.5%FPR": 0.09898989898989899,
+          "recall@1%FPR": 0.1202020202020202,
+          "recall@2%FPR": 0.1808080808080808,
+          "recall@5%FPR": 0.3606060606060606,
+          "preds": "[0 0 0 ... 0 0 0]"
+        },
+        "frozen_operating_points": {
+          "0.5%FPR": {
+            "frozen_threshold": 0.25666698113520536,
+            "realised_fpr": 0.0038050420168067225,
+            "recall": 0.08686868686868687,
+            "precision": 0.23306233062330622,
+            "alert_rate": 0.004896171963112851
+          },
+          "1%FPR": {
+            "frozen_threshold": 0.2421026016754663,
+            "realised_fpr": 0.008954621848739497,
+            "recall": 0.11515151515151516,
+            "precision": 0.14615384615384616,
+            "alert_rate": 0.010349631791945863
+          },
+          "2%FPR": {
+            "frozen_threshold": 0.22815047366442057,
+            "realised_fpr": 0.018971428571428573,
+            "recall": 0.17474747474747473,
+            "precision": 0.10921717171717171,
+            "alert_rate": 0.021017713792874676
+          },
+          "5%FPR": {
+            "frozen_threshold": 0.20719967772937645,
+            "realised_fpr": 0.04660168067226891,
+            "recall": 0.3505050505050505,
+            "precision": 0.09100445843168109,
+            "alert_rate": 0.050593776952166124
+          }
+        },
+        "treatment": "C_batch_stats"
+      }
+    }
+  },
+  "published_event_level_reference": null,
+  "elapsed_s": 13.655489206314087,
+  "event_level": {
+    "fedavg:A_init_buffers": {
+      "threshold": 0.05,
+      "cooldown_windows": 5,
+      "n_windows": 75263,
+      "n_event_groups": 4409,
+      "n_true_events": 65,
+      "n_detected_events": 0,
+      "event_detection_rate": 0.0,
+      "n_missed_events": 65,
+      "missed_events": [
+        "M1.0@10277.0:ar5446",
+        "M1.0@10620.0:ar5692",
+        "M1.0@10708.0:ar5745",
+        "M1.0@10911.0:ar5885",
+        "M1.0@11368.0:ar6063",
+        "M1.0@11848.0:ar6327",
+        "M1.0@11874.0:ar6327",
+        "M1.1@10629.0:ar5673",
+        "M1.1@11039.0:ar5956",
+        "M1.1@11125.0:ar5983",
+        "M1.1@11130.0:ar5983",
+        "M1.1@11162.0:ar5983",
+        "M1.1@11251.0:ar6015",
+        "M1.1@11616.0:ar6206",
+        "M1.1@11882.0:ar6327",
+        "M1.2@10285.0:ar5447",
+        "M1.2@10285.0:ar5456",
+        "M1.2@10869.0:ar5885",
+        "M1.2@10878.0:ar5885",
+        "M1.2@13862.0:ar7115",
+        "M1.3@10368.0:ar5526",
+        "M1.3@10566.0:ar5637",
+        "M1.3@11160.0:ar5983",
+        "M1.3@13549.0:ar7075",
+        "M1.4@10201.0:ar5415",
+        "M1.4@10872.0:ar5885",
+        "M1.5@10694.0:ar5738",
+        "M1.6@11151.0:ar5983",
+        "M1.7@10715.0:ar5745",
+        "M1.8@11860.0:ar6327",
+        "M1.9@11108.0:ar5983",
+        "M1.9@11410.0:ar6052",
+        "M2.1@11065.0:ar5956",
+        "M2.2@10883.0:ar5885",
+        "M2.2@10961.0:ar5885",
+        "M2.3@11665.0:ar6206",
+        "M2.4@13588.0:ar7075",
+        "M2.5@11416.0:ar6052",
+        "M2.6@10371.0:ar5526",
+        "M2.6@10624.0:ar5692",
+        "M2.7@10623.0:ar5692",
+        "M2.9@10950.0:ar5885",
+        "M2.9@11143.0:ar5983",
+        "M3.0@10607.0:ar5692",
+        "M3.5@10889.0:ar5885",
+        "M3.6@11122.0:ar5982",
+        "M3.7@11417.0:ar6063",
+        "M3.7@13934.0:ar7115",
+        "M3.8@10625.0:ar5673",
+        "M3.8@13878.0:ar7115"
+      ],
+      "alerts_per_detected_event_mean": 0.0,
+      "duplicate_alert_rate": 0.0,
+      "false_alarm_windows": 0,
+      "background_groups_with_alerts": 0,
+      "total_alerts": 0,
+      "alert_rate_per_window": 0.0,
+      "lead_time_minutes": {
+        "median": null,
+        "min": null,
+        "max": null,
+        "n_events_with_lead_time": 0
+      },
+      "observation_days": 1258.325,
+      "alerts_per_day": 0.0,
+      "false_alarm_windows_per_day": 0.0,
+      "caveats": [
+        "window-level FPR != operational false-alarm rate: overlapping windows of one active region are correlated decisions",
+        "event grouping quality bounds all event-level statistics; region-id-only grouping is an approximation",
+        "lead time requires the event start time; without raw SWAN-SF metadata it is reported as null"
+      ],
+      "lead_to_flare_peak_minutes": {
+        "median": null,
+        "p10": null,
+        "p90": null,
+        "n": 0,
+        "negative_means_alert_after_peak": true
+      }
+    },
+    "fedavg:B_recalibrated": {
+      "threshold": 0.05,
+      "cooldown_windows": 5,
+      "n_windows": 75263,
+      "n_event_groups": 4409,
+      "n_true_events": 65,
+      "n_detected_events": 2,
+      "event_detection_rate": 0.03076923076923077,
+      "n_missed_events": 63,
+      "missed_events": [
+        "M1.0@10277.0:ar5446",
+        "M1.0@10620.0:ar5692",
+        "M1.0@10708.0:ar5745",
+        "M1.0@10911.0:ar5885",
+        "M1.0@11368.0:ar6063",
+        "M1.0@11848.0:ar6327",
+        "M1.0@11874.0:ar6327",
+        "M1.1@10629.0:ar5673",
+        "M1.1@11039.0:ar5956",
+        "M1.1@11125.0:ar5983",
+        "M1.1@11130.0:ar5983",
+        "M1.1@11162.0:ar5983",
+        "M1.1@11251.0:ar6015",
+        "M1.1@11616.0:ar6206",
+        "M1.1@11882.0:ar6327",
+        "M1.2@10285.0:ar5447",
+        "M1.2@10285.0:ar5456",
+        "M1.2@10869.0:ar5885",
+        "M1.2@10878.0:ar5885",
+        "M1.2@13862.0:ar7115",
+        "M1.3@10368.0:ar5526",
+        "M1.3@10566.0:ar5637",
+        "M1.3@11160.0:ar5983",
+        "M1.3@13549.0:ar7075",
+        "M1.4@10201.0:ar5415",
+        "M1.4@10872.0:ar5885",
+        "M1.5@10694.0:ar5738",
+        "M1.6@11151.0:ar5983",
+        "M1.7@10715.0:ar5745",
+        "M1.8@11860.0:ar6327",
+        "M1.9@11108.0:ar5983",
+        "M1.9@11410.0:ar6052",
+        "M2.1@11065.0:ar5956",
+        "M2.2@10883.0:ar5885",
+        "M2.3@11665.0:ar6206",
+        "M2.4@13588.0:ar7075",
+        "M2.5@11416.0:ar6052",
+        "M2.6@10371.0:ar5526",
+        "M2.6@10624.0:ar5692",
+        "M2.7@10623.0:ar5692",
+        "M2.9@10950.0:ar5885",
+        "M2.9@11143.0:ar5983",
+        "M3.0@10607.0:ar5692",
+        "M3.5@10889.0:ar5885",
+        "M3.6@11122.0:ar5982",
+        "M3.7@11417.0:ar6063",
+        "M3.7@13934.0:ar7115",
+        "M3.8@10625.0:ar5673",
+        "M3.8@13878.0:ar7115",
+        "M3.9@11432.0:ar6078"
+      ],
+      "alerts_per_detected_event_mean": 0.03076923076923077,
+      "duplicate_alert_rate": 0.0,
+      "false_alarm_windows": 0,
+      "background_groups_with_alerts": 0,
+      "total_alerts": 2,
+      "alert_rate_per_window": 2.6573482321990884e-05,
+      "lead_time_minutes": {
+        "median": 300.0,
+        "min": 0.0,
+        "max": 600.0,
+        "n_events_with_lead_time": 2
+      },
+      "observation_days": 1258.325,
+      "alerts_per_day": 0.001589414499433771,
+      "false_alarm_windows_per_day": 0.0,
+      "caveats": [
+        "window-level FPR != operational false-alarm rate: overlapping windows of one active region are correlated decisions",
+        "event grouping quality bounds all event-level statistics; region-id-only grouping is an approximation",
+        "lead time requires the event start time; without raw SWAN-SF metadata it is reported as null"
+      ],
+      "lead_to_flare_peak_minutes": {
+        "median": 883.0,
+        "p10": 818.2,
+        "p90": 947.8,
+        "n": 2,
+        "negative_means_alert_after_peak": true
+      }
+    },
+    "fedavg:C_batch_stats": {
+      "threshold": 0.15999999999999995,
+      "cooldown_windows": 5,
+      "n_windows": 75263,
+      "n_event_groups": 4409,
+      "n_true_events": 65,
+      "n_detected_events": 38,
+      "event_detection_rate": 0.5846153846153846,
+      "n_missed_events": 27,
+      "missed_events": [
+        "M1.0@10277.0:ar5446",
+        "M1.0@10708.0:ar5745",
+        "M1.0@11848.0:ar6327",
+        "M1.0@11874.0:ar6327",
+        "M1.1@10629.0:ar5673",
+        "M1.1@11039.0:ar5956",
+        "M1.1@11251.0:ar6015",
+        "M1.1@11882.0:ar6327",
+        "M1.2@10285.0:ar5447",
+        "M1.2@10285.0:ar5456",
+        "M1.2@10869.0:ar5885",
+        "M1.2@13862.0:ar7115",
+        "M1.3@10368.0:ar5526",
+        "M1.3@10566.0:ar5637",
+        "M1.4@10201.0:ar5415",
+        "M1.5@10694.0:ar5738",
+        "M1.8@11860.0:ar6327",
+        "M1.9@11410.0:ar6052",
+        "M2.1@11065.0:ar5956",
+        "M2.3@11665.0:ar6206",
+        "M2.4@13588.0:ar7075",
+        "M2.6@10371.0:ar5526",
+        "M3.6@11122.0:ar5982",
+        "M3.7@11417.0:ar6063",
+        "M3.9@11432.0:ar6078",
+        "M5.6@10901.0:ar5885",
+        "M7.9@10648.0:ar5692"
+      ],
+      "alerts_per_detected_event_mean": 1.4153846153846155,
+      "duplicate_alert_rate": 0.5869565217391304,
+      "false_alarm_windows": 353,
+      "background_groups_with_alerts": 166,
+      "total_alerts": 445,
+      "alert_rate_per_window": 0.005912599816642972,
+      "lead_time_minutes": {
+        "median": 0.0,
+        "min": 0.0,
+        "max": 1320.0,
+        "n_events_with_lead_time": 38
+      },
+      "observation_days": 1258.325,
+      "alerts_per_day": 0.35364472612401404,
+      "false_alarm_windows_per_day": 0.28053165915006056,
+      "caveats": [
+        "window-level FPR != operational false-alarm rate: overlapping windows of one active region are correlated decisions",
+        "event grouping quality bounds all event-level statistics; region-id-only grouping is an approximation",
+        "lead time requires the event start time; without raw SWAN-SF metadata it is reported as null"
+      ],
+      "lead_to_flare_peak_minutes": {
+        "median": 1190.0,
+        "p10": 246.8,
+        "p90": 1425.0,
+        "n": 38,
+        "negative_means_alert_after_peak": true
+      }
+    },
+    "fedprox:A_init_buffers": {
+      "threshold": 0.15999999999999995,
+      "cooldown_windows": 5,
+      "n_windows": 75263,
+      "n_event_groups": 4409,
+      "n_true_events": 65,
+      "n_detected_events": 62,
+      "event_detection_rate": 0.9538461538461539,
+      "n_missed_events": 3,
+      "missed_events": [
+        "M1.0@10277.0:ar5446",
+        "M1.3@10566.0:ar5637",
+        "M2.3@11665.0:ar6206"
+      ],
+      "alerts_per_detected_event_mean": 3.2,
+      "duplicate_alert_rate": 0.7019230769230769,
+      "false_alarm_windows": 3535,
+      "background_groups_with_alerts": 1014,
+      "total_alerts": 3743,
+      "alert_rate_per_window": 0.04973227216560594,
+      "lead_time_minutes": {
+        "median": 0.0,
+        "min": 0.0,
+        "max": 120.0,
+        "n_events_with_lead_time": 62
+      },
+      "observation_days": 1258.325,
+      "alerts_per_day": 2.9745892356903023,
+      "false_alarm_windows_per_day": 2.80929012774919,
+      "caveats": [
+        "window-level FPR != operational false-alarm rate: overlapping windows of one active region are correlated decisions",
+        "event grouping quality bounds all event-level statistics; region-id-only grouping is an approximation",
+        "lead time requires the event start time; without raw SWAN-SF metadata it is reported as null"
+      ],
+      "lead_to_flare_peak_minutes": {
+        "median": 1399.5,
+        "p10": 485.80000000000007,
+        "p90": 1441.0,
+        "n": 62,
+        "negative_means_alert_after_peak": true
+      }
+    },
+    "fedprox:B_recalibrated": {
+      "threshold": 0.05,
+      "cooldown_windows": 5,
+      "n_windows": 75263,
+      "n_event_groups": 4409,
+      "n_true_events": 65,
+      "n_detected_events": 0,
+      "event_detection_rate": 0.0,
+      "n_missed_events": 65,
+      "missed_events": [
+        "M1.0@10277.0:ar5446",
+        "M1.0@10620.0:ar5692",
+        "M1.0@10708.0:ar5745",
+        "M1.0@10911.0:ar5885",
+        "M1.0@11368.0:ar6063",
+        "M1.0@11848.0:ar6327",
+        "M1.0@11874.0:ar6327",
+        "M1.1@10629.0:ar5673",
+        "M1.1@11039.0:ar5956",
+        "M1.1@11125.0:ar5983",
+        "M1.1@11130.0:ar5983",
+        "M1.1@11162.0:ar5983",
+        "M1.1@11251.0:ar6015",
+        "M1.1@11616.0:ar6206",
+        "M1.1@11882.0:ar6327",
+        "M1.2@10285.0:ar5447",
+        "M1.2@10285.0:ar5456",
+        "M1.2@10869.0:ar5885",
+        "M1.2@10878.0:ar5885",
+        "M1.2@13862.0:ar7115",
+        "M1.3@10368.0:ar5526",
+        "M1.3@10566.0:ar5637",
+        "M1.3@11160.0:ar5983",
+        "M1.3@13549.0:ar7075",
+        "M1.4@10201.0:ar5415",
+        "M1.4@10872.0:ar5885",
+        "M1.5@10694.0:ar5738",
+        "M1.6@11151.0:ar5983",
+        "M1.7@10715.0:ar5745",
+        "M1.8@11860.0:ar6327",
+        "M1.9@11108.0:ar5983",
+        "M1.9@11410.0:ar6052",
+        "M2.1@11065.0:ar5956",
+        "M2.2@10883.0:ar5885",
+        "M2.2@10961.0:ar5885",
+        "M2.3@11665.0:ar6206",
+        "M2.4@13588.0:ar7075",
+        "M2.5@11416.0:ar6052",
+        "M2.6@10371.0:ar5526",
+        "M2.6@10624.0:ar5692",
+        "M2.7@10623.0:ar5692",
+        "M2.9@10950.0:ar5885",
+        "M2.9@11143.0:ar5983",
+        "M3.0@10607.0:ar5692",
+        "M3.5@10889.0:ar5885",
+        "M3.6@11122.0:ar5982",
+        "M3.7@11417.0:ar6063",
+        "M3.7@13934.0:ar7115",
+        "M3.8@10625.0:ar5673",
+        "M3.8@13878.0:ar7115"
+      ],
+      "alerts_per_detected_event_mean": 0.0,
+      "duplicate_alert_rate": 0.0,
+      "false_alarm_windows": 0,
+      "background_groups_with_alerts": 0,
+      "total_alerts": 0,
+      "alert_rate_per_window": 0.0,
+      "lead_time_minutes": {
+        "median": null,
+        "min": null,
+        "max": null,
+        "n_events_with_lead_time": 0
+      },
+      "observation_days": 1258.325,
+      "alerts_per_day": 0.0,
+      "false_alarm_windows_per_day": 0.0,
+      "caveats": [
+        "window-level FPR != operational false-alarm rate: overlapping windows of one active region are correlated decisions",
+        "event grouping quality bounds all event-level statistics; region-id-only grouping is an approximation",
+        "lead time requires the event start time; without raw SWAN-SF metadata it is reported as null"
+      ],
+      "lead_to_flare_peak_minutes": {
+        "median": null,
+        "p10": null,
+        "p90": null,
+        "n": 0,
+        "negative_means_alert_after_peak": true
+      }
+    },
+    "fedprox:C_batch_stats": {
+      "threshold": 0.17999999999999994,
+      "cooldown_windows": 5,
+      "n_windows": 75263,
+      "n_event_groups": 4409,
+      "n_true_events": 65,
+      "n_detected_events": 50,
+      "event_detection_rate": 0.7692307692307693,
+      "n_missed_events": 15,
+      "missed_events": [
+        "M1.0@10277.0:ar5446",
+        "M1.0@10708.0:ar5745",
+        "M1.1@10629.0:ar5673",
+        "M1.1@11251.0:ar6015",
+        "M1.2@10285.0:ar5447",
+        "M1.2@10285.0:ar5456",
+        "M1.2@10869.0:ar5885",
+        "M1.2@13862.0:ar7115",
+        "M1.3@10368.0:ar5526",
+        "M1.4@10201.0:ar5415",
+        "M1.5@10694.0:ar5738",
+        "M2.3@11665.0:ar6206",
+        "M2.6@10371.0:ar5526",
+        "M3.6@11122.0:ar5982",
+        "M3.9@11432.0:ar6078"
+      ],
+      "alerts_per_detected_event_mean": 2.169230769230769,
+      "duplicate_alert_rate": 0.6453900709219857,
+      "false_alarm_windows": 537,
+      "background_groups_with_alerts": 210,
+      "total_alerts": 678,
+      "alert_rate_per_window": 0.00900841050715491,
+      "lead_time_minutes": {
+        "median": 0.0,
+        "min": 0.0,
+        "max": 1080.0,
+        "n_events_with_lead_time": 50
+      },
+      "observation_days": 1258.325,
+      "alerts_per_day": 0.5388115153080484,
+      "false_alarm_windows_per_day": 0.4267577930979675,
+      "caveats": [
+        "window-level FPR != operational false-alarm rate: overlapping windows of one active region are correlated decisions",
+        "event grouping quality bounds all event-level statistics; region-id-only grouping is an approximation",
+        "lead time requires the event start time; without raw SWAN-SF metadata it is reported as null"
+      ],
+      "lead_to_flare_peak_minutes": {
+        "median": 1350.5,
+        "p10": 335.1,
+        "p90": 1432.7,
+        "n": 50,
+        "negative_means_alert_after_peak": true
+      }
+    },
+    "scaffold:A_init_buffers": {
+      "threshold": 0.3649999999999998,
+      "cooldown_windows": 5,
+      "n_windows": 75263,
+      "n_event_groups": 4409,
+      "n_true_events": 65,
+      "n_detected_events": 50,
+      "event_detection_rate": 0.7692307692307693,
+      "n_missed_events": 15,
+      "missed_events": [
+        "M1.0@10708.0:ar5745",
+        "M1.1@10629.0:ar5673",
+        "M1.1@11251.0:ar6015",
+        "M1.2@10869.0:ar5885",
+        "M1.2@13862.0:ar7115",
+        "M1.3@10566.0:ar5637",
+        "M1.5@10694.0:ar5738",
+        "M1.9@11410.0:ar6052",
+        "M2.3@11665.0:ar6206",
+        "M2.5@11416.0:ar6052",
+        "M3.6@11122.0:ar5982",
+        "M3.8@10625.0:ar5673",
+        "M4.4@13204.0:ar6972",
+        "M5.7@13217.0:ar6972",
+        "M5.8@13229.0:ar6972"
+      ],
+      "alerts_per_detected_event_mean": 2.4,
+      "duplicate_alert_rate": 0.6794871794871795,
+      "false_alarm_windows": 4765,
+      "background_groups_with_alerts": 1767,
+      "total_alerts": 4921,
+      "alert_rate_per_window": 0.06538405325325858,
+      "lead_time_minutes": {
+        "median": 0.0,
+        "min": 0.0,
+        "max": 900.0,
+        "n_events_with_lead_time": 50
+      },
+      "observation_days": 1258.325,
+      "alerts_per_day": 3.9107543758567935,
+      "false_alarm_windows_per_day": 3.7867800449009597,
+      "caveats": [
+        "window-level FPR != operational false-alarm rate: overlapping windows of one active region are correlated decisions",
+        "event grouping quality bounds all event-level statistics; region-id-only grouping is an approximation",
+        "lead time requires the event start time; without raw SWAN-SF metadata it is reported as null"
+      ],
+      "lead_to_flare_peak_minutes": {
+        "median": 1378.0,
+        "p10": 493.50000000000006,
+        "p90": 1440.1,
+        "n": 50,
+        "negative_means_alert_after_peak": true
+      }
+    },
+    "scaffold:B_recalibrated": {
+      "threshold": 0.05,
+      "cooldown_windows": 5,
+      "n_windows": 75263,
+      "n_event_groups": 4409,
+      "n_true_events": 65,
+      "n_detected_events": 0,
+      "event_detection_rate": 0.0,
+      "n_missed_events": 65,
+      "missed_events": [
+        "M1.0@10277.0:ar5446",
+        "M1.0@10620.0:ar5692",
+        "M1.0@10708.0:ar5745",
+        "M1.0@10911.0:ar5885",
+        "M1.0@11368.0:ar6063",
+        "M1.0@11848.0:ar6327",
+        "M1.0@11874.0:ar6327",
+        "M1.1@10629.0:ar5673",
+        "M1.1@11039.0:ar5956",
+        "M1.1@11125.0:ar5983",
+        "M1.1@11130.0:ar5983",
+        "M1.1@11162.0:ar5983",
+        "M1.1@11251.0:ar6015",
+        "M1.1@11616.0:ar6206",
+        "M1.1@11882.0:ar6327",
+        "M1.2@10285.0:ar5447",
+        "M1.2@10285.0:ar5456",
+        "M1.2@10869.0:ar5885",
+        "M1.2@10878.0:ar5885",
+        "M1.2@13862.0:ar7115",
+        "M1.3@10368.0:ar5526",
+        "M1.3@10566.0:ar5637",
+        "M1.3@11160.0:ar5983",
+        "M1.3@13549.0:ar7075",
+        "M1.4@10201.0:ar5415",
+        "M1.4@10872.0:ar5885",
+        "M1.5@10694.0:ar5738",
+        "M1.6@11151.0:ar5983",
+        "M1.7@10715.0:ar5745",
+        "M1.8@11860.0:ar6327",
+        "M1.9@11108.0:ar5983",
+        "M1.9@11410.0:ar6052",
+        "M2.1@11065.0:ar5956",
+        "M2.2@10883.0:ar5885",
+        "M2.2@10961.0:ar5885",
+        "M2.3@11665.0:ar6206",
+        "M2.4@13588.0:ar7075",
+        "M2.5@11416.0:ar6052",
+        "M2.6@10371.0:ar5526",
+        "M2.6@10624.0:ar5692",
+        "M2.7@10623.0:ar5692",
+        "M2.9@10950.0:ar5885",
+        "M2.9@11143.0:ar5983",
+        "M3.0@10607.0:ar5692",
+        "M3.5@10889.0:ar5885",
+        "M3.6@11122.0:ar5982",
+        "M3.7@11417.0:ar6063",
+        "M3.7@13934.0:ar7115",
+        "M3.8@10625.0:ar5673",
+        "M3.8@13878.0:ar7115"
+      ],
+      "alerts_per_detected_event_mean": 0.0,
+      "duplicate_alert_rate": 0.0,
+      "false_alarm_windows": 0,
+      "background_groups_with_alerts": 0,
+      "total_alerts": 0,
+      "alert_rate_per_window": 0.0,
+      "lead_time_minutes": {
+        "median": null,
+        "min": null,
+        "max": null,
+        "n_events_with_lead_time": 0
+      },
+      "observation_days": 1258.325,
+      "alerts_per_day": 0.0,
+      "false_alarm_windows_per_day": 0.0,
+      "caveats": [
+        "window-level FPR != operational false-alarm rate: overlapping windows of one active region are correlated decisions",
+        "event grouping quality bounds all event-level statistics; region-id-only grouping is an approximation",
+        "lead time requires the event start time; without raw SWAN-SF metadata it is reported as null"
+      ],
+      "lead_to_flare_peak_minutes": {
+        "median": null,
+        "p10": null,
+        "p90": null,
+        "n": 0,
+        "negative_means_alert_after_peak": true
+      }
+    },
+    "scaffold:C_batch_stats": {
+      "threshold": 0.16499999999999992,
+      "cooldown_windows": 5,
+      "n_windows": 75263,
+      "n_event_groups": 4409,
+      "n_true_events": 65,
+      "n_detected_events": 46,
+      "event_detection_rate": 0.7076923076923077,
+      "n_missed_events": 19,
+      "missed_events": [
+        "M1.0@10277.0:ar5446",
+        "M1.0@10708.0:ar5745",
+        "M1.0@10911.0:ar5885",
+        "M1.0@11368.0:ar6063",
+        "M1.0@11874.0:ar6327",
+        "M1.1@11251.0:ar6015",
+        "M1.1@11616.0:ar6206",
+        "M1.1@11882.0:ar6327",
+        "M1.2@10285.0:ar5447",
+        "M1.2@13862.0:ar7115",
+        "M1.3@10368.0:ar5526",
+        "M1.3@10566.0:ar5637",
+        "M1.4@10201.0:ar5415",
+        "M1.5@10694.0:ar5738",
+        "M1.8@11860.0:ar6327",
+        "M2.5@11416.0:ar6052",
+        "M3.6@11122.0:ar5982",
+        "M5.5@11174.0:ar5983",
+        "M5.6@10901.0:ar5885"
+      ],
+      "alerts_per_detected_event_mean": 1.8153846153846154,
+      "duplicate_alert_rate": 0.6101694915254237,
+      "false_alarm_windows": 4039,
+      "background_groups_with_alerts": 1895,
+      "total_alerts": 4157,
+      "alert_rate_per_window": 0.055232983006258056,
+      "lead_time_minutes": {
+        "median": 0.0,
+        "min": 0.0,
+        "max": 960.0,
+        "n_events_with_lead_time": 46
+      },
+      "observation_days": 1258.325,
+      "alerts_per_day": 3.303598037073093,
+      "false_alarm_windows_per_day": 3.2098225816065007,
+      "caveats": [
+        "window-level FPR != operational false-alarm rate: overlapping windows of one active region are correlated decisions",
+        "event grouping quality bounds all event-level statistics; region-id-only grouping is an approximation",
+        "lead time requires the event start time; without raw SWAN-SF metadata it is reported as null"
+      ],
+      "lead_to_flare_peak_minutes": {
+        "median": 1293.5,
+        "p10": 401.5,
+        "p90": 1432.0,
+        "n": 46,
+        "negative_means_alert_after_peak": true
+      }
+    }
+  },
+  "event_level_summary": {
+    "cooldown_windows": 5,
+    "n_windows": 75263,
+    "n_matched_by_audit": 75263,
+    "n_event_groups": 4409,
+    "n_true_events": 65,
+    "flare_peak_match_rate": 1.0
+  }
+}

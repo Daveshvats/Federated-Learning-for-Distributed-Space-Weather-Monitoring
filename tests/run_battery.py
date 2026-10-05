@@ -25,7 +25,18 @@ suppressed for crashed modules, and the dead second crash disjunct
 is removed (T1) — plus the new module tests/test_raw_bn_diagnostic.py
 (the v4.8 / E1 raw-substrate BN-diagnostic guard: static contract
 pins everywhere, owner-side artefact validation once
-outputs/raw_bn_diagnostic.json exists)
+outputs/raw_bn_diagnostic.json exists); v4.9 — the E1 artefact of
+record is committed (owner-executed, RUNLOG ask #4): the raw-BN
+artefact layer re-pinned to the disclosed MISMATCH state + sha256
+freeze, .gitattributes makes every frozen artefact check out
+byte-identical on every platform (the owner's v4.8 battery failed the
+interpretability sha pin on a CRLF-smudged but content-identical
+record), test_raw_lstm exits through a disclosed win32 teardown guard
+(the 0xC0000409 interpreter-finalization fastfail the ask #3 queue
+children already exhibited — a battery module must exit 0 after a
+green run), and test_fl_smoke's CUDA-tensor .numpy() sites fixed
+(.detach().cpu().numpy(); latent on CPU batteries, live on the owner's
+gpu machine)
 ─────────────────────────────────────────
 Single entry point for the integrity battery. Runs every test module,
 aggregates PASS/FAIL across all of them, prints ONE total, and
@@ -62,7 +73,7 @@ ROOT = os.path.dirname(HERE)
 # Single source of truth for the log's title line. Dossier R-FS9-R3
 # (N2) caught a v4.2-era log whose title still read "(v4.1)" because
 # this string was hardcoded; bump BATTERY_VERSION with every release.
-BATTERY_VERSION = "v4.8"
+BATTERY_VERSION = "v4.9"
 
 # Default write path, versioned off BATTERY_VERSION. Dossier R-FS9-R4
 # (P2): the previous default was the un-versioned logs/test_battery.log

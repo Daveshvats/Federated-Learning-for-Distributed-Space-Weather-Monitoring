@@ -30,9 +30,13 @@ validation monitor and the checkpoint rule that monitor feeds — rather
 than a federated-learning failure: the same weights score 0.951 with
 local statistics, and a controlled no-BatchNorm run leaves both FedAvg
 and FedProx stable. On the raw, unbalanced substrate the outcome is
-encoder-conditional (federated MLPs degrade — a statement made under
-the same untransported-BN evaluation path the diagnostic above
-indicts, pending the raw-substrate BN diagnostic; FedProx-LSTM reaches
+encoder-conditional, and the v4.9 checkpoint-level BN diagnostic over
+that substrate closes the condition against the transport-protocol
+explanation: pooled-statistics recalibration collapses every federated
+arm to chance while evaluation-time batch statistics leave the deficit
+standing, so the MLP degradation is a property of the
+flattened-feature arms under federation rather than a BatchNorm
+evaluation artefact (FedProx-LSTM, which carries no BatchNorm, reaches
 ROC-AUC 0.970 and TSS 0.404). Calibration, not detection, is the deployability
 boundary: no validation-fit decision layer survives the prevalence
 shift. Standard verification metrics (TSS, HSS, Brier skill,

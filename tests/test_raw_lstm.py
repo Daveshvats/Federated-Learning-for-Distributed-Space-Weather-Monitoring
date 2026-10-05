@@ -276,4 +276,30 @@ def main():
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    _rc = main()
+    if sys.platform == "win32":
+        # v4.9, RUNLOG ask #3's documented exit species: on Windows with
+        # torch/CUDA loaded, CPython can fastfail (0xC0000409,
+        # STATUS_STACK_BUFFER_OVERRUN) during interpreter finalization
+        # AFTER every verdict has printed — the ask #3 queue children
+        # showed the same benign-after-the-atomic-writes exit, but a
+        # battery module cannot lean on that argument since R-FS9-R8 C1
+        # (any non-zero exit is a battery failure). Disclosed workaround:
+        # flush, attempt a CUDA teardown, and exit without finalization
+        # on win32. The verdict lines and the exit code are exactly what
+        # run_battery.py reads; no check is skipped. If another torch
+        # module ever exhibits the same teardown fastfail, adopt this
+        # guard there too (RUNLOG v4.9).
+        try:
+            import gc
+            import torch
+            if torch.cuda.is_available():
+                torch.cuda.synchronize()
+                torch.cuda.empty_cache()
+        except Exception:
+            pass
+        gc.collect()
+        sys.stdout.flush()
+        sys.stderr.flush()
+        os._exit(_rc)
+    sys.exit(_rc)

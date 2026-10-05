@@ -1,0 +1,11 @@
+# R-FS9 v4.9: frozen artefacts must check out byte-identical on
+# every platform. outputs/interpretability.json and
+# outputs/raw_bn_diagnostic.json are sha256-pinned by the
+# battery; a Windows checkout under core.autocrlf=true smudged
+# LF->CRLF and failed the interpretability pin on a record whose
+# CONTENT was byte-identical to the committed blob (RUNLOG
+# v4.9 row). -text disables EOL conversion for the artefact
+# trees; the canonical/historical logs under logs/ are equally
+# byte-frozen records.
+outputs/** -text
+logs/** -text
