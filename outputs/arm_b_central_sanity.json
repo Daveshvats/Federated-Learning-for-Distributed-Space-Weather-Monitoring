@@ -1,0 +1,191 @@
+{
+  "runner": "experiments/run_arm_b_central_sanity.py",
+  "purpose": "R-FS9-R10 master change register item A1: the centralised arm-B sanity check. The third-party review's decisive experiment \u2014 apply arm B (pooled per-client BN recalibration over the seed-42 train shards) to the CENTRALISED raw MLP, where pooled statistics should reconstruct the model's own running statistics. Validated: Table 8's B column stands and becomes the validated proxy for the transport fix. Broken: the column withdraws and the 'actively destructive' sentence goes. Costs seconds; gates the reading of everything else in Table 8.",
+  "protocol": {
+    "seed": 42,
+    "alpha": 1.0,
+    "clients": 6,
+    "calibration": "prior_shift",
+    "evaluation_device": "cpu",
+    "note": "identical weights per treatment; no retraining; frozen seed-42 substrate/shards from the rawsubstrate cache; the centralised checkpoint is the ask-#4 retrain's baselines.pt (the v3.x-era central checkpoint was never persisted \u2014 same premise amendment as RUNLOG ask #4)"
+  },
+  "substrate": {
+    "train": 214888,
+    "val": 40932,
+    "test": 75365,
+    "train_pos": 0.020499050617218018,
+    "val_pos": 0.020497409626841545,
+    "test_pos": 0.013136071152985096
+  },
+  "reproduction_gate": {
+    "published_roc_auc": 0.9710213258636788,
+    "reproduced_roc_auc": 0.9687031525337408,
+    "delta_roc_auc": 0.0023181733299380003,
+    "published_pr_auc": 0.44496043514010586,
+    "reproduced_pr_auc": 0.4256614199053463,
+    "delta_pr_auc": 0.019299015234759576,
+    "tolerance": {
+      "roc_auc": 0.01,
+      "pr_auc": 0.025
+    },
+    "tolerance_basis": "per-metric retrain bracket (v4.9.3): the frozen ask-#4 pooled-baseline drift itself \u2014 ROC deltas LR +1.7e-4 / XGBoost +1.5e-3 / MLP -2.32e-3 vs bracket 1e-2; PR deltas LR +8.3e-4 / XGBoost -1.9e-3 / MLP -1.93e-2 vs bracket 2.5e-2. The v4.9.2 single 1e-2 bracket cited the ROC-only '<= 2.3e-3 pooled-baseline drift' measurement (the paper's own disclosure is metric-scoped) and generalised it to PR-AUC, which the record's own MLP PR drift (1.93e-2) made unsatisfiable by construction; the first ask-#8 execution (2026-10-06) failed it on the PR side alone and that MISMATCH is frozen in the RUNLOG; NOT the 1e-4 same-weights gate",
+    "verdict": "match"
+  },
+  "reproduction_gate_verdict": "match",
+  "identity_gate": {
+    "reference": "outputs/raw_substrate_rerun.json (the ask-#4 retrain record, committed at v4.9 \u2014 the tightest reference that exists for THIS checkpoint: same weights, same frozen evaluation path)",
+    "retrain_roc_auc": 0.9687031661149309,
+    "retrain_pr_auc": 0.425662301907387,
+    "reproduced_roc_auc": 0.9687031525337408,
+    "reproduced_pr_auc": 0.4256614199053463,
+    "delta_roc_auc": 1.358119006145131e-08,
+    "delta_pr_auc": 8.820020407362961e-07,
+    "tolerance": 0.001,
+    "tolerance_basis": "same-weights reproduction bracket (v4.9.3): the first ask-#8 execution reproduced the record to <1e-5, so 1e-3 leaves 100x margin over that while being 10x tighter than the v4.9.2 published bracket \u2014 the wrong-checkpoint tripwire the v4.9.2 design reached for",
+    "verdict": "match"
+  },
+  "identity_gate_verdict": "match",
+  "results": {
+    "centralized_mlp": {
+      "A_own_buffers": {
+        "threshold": 0.23499999999999993,
+        "val_fbeta": 0.6666666666666666,
+        "test": {
+          "threshold": 0.23499999999999993,
+          "accuracy": 0.9717640814701785,
+          "precision": 0.24688612099644128,
+          "recall": 0.5606060606060606,
+          "f1": 0.342804200123533,
+          "f2": 0.44700386597938147,
+          "roc_auc": 0.9687031525337408,
+          "pr_auc": 0.4256614199053463,
+          "brier": 0.01086108586278637,
+          "ece": 0.011493483688538643,
+          "prevalence": 0.013136071120546673,
+          "recall@0.5%FPR": 0.3515151515151515,
+          "recall@1%FPR": 0.4080808080808081,
+          "recall@2%FPR": 0.5373737373737374,
+          "recall@5%FPR": 0.796969696969697,
+          "preds": "[0 0 0 ... 0 0 0]"
+        },
+        "frozen_operating_points": {
+          "0.5%FPR": {
+            "frozen_threshold": 0.379644099269716,
+            "realised_fpr": 0.0027966386554621847,
+            "recall": 0.30707070707070705,
+            "precision": 0.59375,
+            "alert_rate": 0.006793604458302926
+          },
+          "1%FPR": {
+            "frozen_threshold": 0.3347222298335287,
+            "realised_fpr": 0.008752941176470588,
+            "recall": 0.39595959595959596,
+            "precision": 0.37583892617449666,
+            "alert_rate": 0.013839315332050687
+          },
+          "2%FPR": {
+            "frozen_threshold": 0.2764676634630552,
+            "realised_fpr": 0.015959663865946217,
+            "recall": 0.4898989898989899,
+            "precision": 0.2900717703349282,
+            "alert_rate": 0.022185364559145493
+          },
+          "5%FPR": {
+            "frozen_threshold": 0.17913543364813056,
+            "realised_fpr": 0.036746218487394955,
+            "recall": 0.7090909090909091,
+            "precision": 0.20436681222707423,
+            "alert_rate": 0.04557818616068467
+          }
+        },
+        "treatment": "A_own_buffers"
+      },
+      "B_pooled_recalibrated": {
+        "threshold": 0.2599999999999999,
+        "val_fbeta": 0.6672394043528064,
+        "test": {
+          "threshold": 0.2599999999999999,
+          "accuracy": 0.9734624825847542,
+          "precision": 0.25650916104146576,
+          "recall": 0.5373737373737374,
+          "f1": 0.3472584856396867,
+          "f2": 0.4408352668213457,
+          "roc_auc": 0.9686355182072829,
+          "pr_auc": 0.4305147481520864,
+          "brier": 0.010849938853205664,
+          "ece": 0.010608584907152612,
+          "prevalence": 0.013136071120546673,
+          "recall@0.5%FPR": 0.3484848484848485,
+          "recall@1%FPR": 0.4222222222222222,
+          "recall@2%FPR": 0.5232323232323233,
+          "recall@5%FPR": 0.797979797979798,
+          "preds": "[0 0 0 ... 0 0 0]"
+        },
+        "frozen_operating_points": {
+          "0.5%FPR": {
+            "frozen_threshold": 0.40377750337951684,
+            "realised_fpr": 0.003858823529411765,
+            "recall": 0.33535353535353535,
+            "precision": 0.5363489499192245,
+            "alert_rate": 0.008213361640018577
+          },
+          "1%FPR": {
+            "frozen_threshold": 0.37199498184607155,
+            "realised_fpr": 0.008349579831932774,
+            "recall": 0.39696969696969697,
+            "precision": 0.3875739644970414,
+            "alert_rate": 0.013454521329529623
+          },
+          "2%FPR": {
+            "frozen_threshold": 0.30498700378262206,
+            "realised_fpr": 0.015300840336134453,
+            "recall": 0.4919191919191919,
+            "precision": 0.2996923076923077,
+            "alert_rate": 0.021561732899887217
+          },
+          "5%FPR": {
+            "frozen_threshold": 0.18378392176318448,
+            "realised_fpr": 0.03624873949579832,
+            "recall": 0.7121212121212122,
+            "precision": 0.2072919729491326,
+            "alert_rate": 0.04512704836462549
+          }
+        },
+        "treatment": "B_pooled_recalibrated"
+      }
+    }
+  },
+  "pooled_vs_own_buffer_deltas": [
+    {
+      "layer": 0,
+      "pooled_vs_own_mean_rel_l2": 0.02050686662745806,
+      "pooled_vs_own_var_mean_rel_delta": 0.018500471487641335
+    },
+    {
+      "layer": 1,
+      "pooled_vs_own_mean_rel_l2": 0.04323947661617357,
+      "pooled_vs_own_var_mean_rel_delta": 0.11802465468645096
+    },
+    {
+      "layer": 2,
+      "pooled_vs_own_mean_rel_l2": 0.11264821592456141,
+      "pooled_vs_own_var_mean_rel_delta": 0.18132197856903076
+    }
+  ],
+  "verdict": "arm_b_validated",
+  "verdict_basis": {
+    "pass_bands": {
+      "roc_ge": 0.95,
+      "pr_ge": 0.35
+    },
+    "fail_bands": {
+      "roc_le": 0.6,
+      "pr_le": 0.1
+    },
+    "observed": {
+      "roc_auc": 0.9686355182072829,
+      "pr_auc": 0.4305147481520864
+    }
+  },
+  "elapsed_s": 2.0238561630249023
+}

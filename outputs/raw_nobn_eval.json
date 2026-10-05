@@ -1,0 +1,729 @@
+{
+  "runner": "experiments/run_raw_nobn.py",
+  "fedavg": {
+    "runner": "experiments/run_raw_nobn.py",
+    "algorithm": "fedavg",
+    "protocol": {
+      "seed": 42,
+      "rounds": 50,
+      "arch": "SolarMLP with BatchNorm1d->Identity",
+      "n_params": 28929,
+      "mu": 0.0,
+      "alpha": 1.0,
+      "clients": 6,
+      "calibration": "prior_shift",
+      "note": "frozen raw protocol, architecture-only intervention; state file nobn_fedavg_state.pt carries arch='nobn'"
+    },
+    "history": [
+      {
+        "round": 5,
+        "threshold": 0.35,
+        "accuracy": 0.9825320042998144,
+        "precision": 0.746031746031746,
+        "recall": 0.22407628128724671,
+        "f1": 0.3446379468377635,
+        "f2": 0.26053215077605324,
+        "roc_auc": 0.9735986596360127,
+        "pr_auc": 0.5342975844192062,
+        "brier": 0.01499887013374453,
+        "ece": 0.015507332424626487,
+        "prevalence": 0.020497410339098993,
+        "recall@0.5%FPR": 0.3814064362336114,
+        "recall@1%FPR": 0.49463647199046484,
+        "recall@2%FPR": 0.6281287246722288,
+        "recall@5%FPR": 0.8355184743742551
+      },
+      {
+        "round": 10,
+        "threshold": 0.35,
+        "accuracy": 0.9831427733802404,
+        "precision": 0.7769516728624535,
+        "recall": 0.24910607866507747,
+        "f1": 0.37725631768953066,
+        "f2": 0.2882758620689655,
+        "roc_auc": 0.9751449453322576,
+        "pr_auc": 0.5726250882252117,
+        "brier": 0.014413613415775703,
+        "ece": 0.013975676309713594,
+        "prevalence": 0.020497410339098993,
+        "recall@0.5%FPR": 0.42908224076281287,
+        "recall@1%FPR": 0.5411203814064363,
+        "recall@2%FPR": 0.6758045292014303,
+        "recall@5%FPR": 0.8426698450536353
+      },
+      {
+        "round": 15,
+        "threshold": 0.35,
+        "accuracy": 0.9836558194077983,
+        "precision": 0.791095890410959,
+        "recall": 0.27532777115613827,
+        "f1": 0.40848806366047746,
+        "f2": 0.31661184210526316,
+        "roc_auc": 0.9755129217299219,
+        "pr_auc": 0.5885857964693791,
+        "brier": 0.014032100384758635,
+        "ece": 0.012712334498086503,
+        "prevalence": 0.020497410339098993,
+        "recall@0.5%FPR": 0.43146603098927294,
+        "recall@1%FPR": 0.5482717520858165,
+        "recall@2%FPR": 0.6877234803337307,
+        "recall@5%FPR": 0.8486293206197855
+      },
+      {
+        "round": 20,
+        "threshold": 0.35,
+        "accuracy": 0.9842910192514415,
+        "precision": 0.7552083333333334,
+        "recall": 0.3456495828367104,
+        "f1": 0.4742436631234669,
+        "f2": 0.3877005347593583,
+        "roc_auc": 0.9760798693692708,
+        "pr_auc": 0.6053905288419075,
+        "brier": 0.013771982291902511,
+        "ece": 0.013174798850808105,
+        "prevalence": 0.020497410339098993,
+        "recall@0.5%FPR": 0.4505363528009535,
+        "recall@1%FPR": 0.5744934445768772,
+        "recall@2%FPR": 0.7020262216924911,
+        "recall@5%FPR": 0.8450536352800954
+      },
+      {
+        "round": 25,
+        "threshold": 0.35,
+        "accuracy": 0.9844620345939608,
+        "precision": 0.7569620253164557,
+        "recall": 0.3563766388557807,
+        "f1": 0.4846029173419773,
+        "f2": 0.3985603838976273,
+        "roc_auc": 0.9761374232799087,
+        "pr_auc": 0.6100872553995684,
+        "brier": 0.013520447604688375,
+        "ece": 0.011496431991312202,
+        "prevalence": 0.020497410339098993,
+        "recall@0.5%FPR": 0.45530393325387364,
+        "recall@1%FPR": 0.5578069129916567,
+        "recall@2%FPR": 0.7103694874851013,
+        "recall@5%FPR": 0.8486293206197855
+      },
+      {
+        "round": 30,
+        "threshold": 0.35,
+        "accuracy": 0.9849017888318675,
+        "precision": 0.8010899182561307,
+        "recall": 0.3504171632896305,
+        "f1": 0.48756218905472637,
+        "f2": 0.39484286865431106,
+        "roc_auc": 0.9767182688806333,
+        "pr_auc": 0.6211725925972938,
+        "brier": 0.013419656840823108,
+        "ece": 0.012236470254737446,
+        "prevalence": 0.020497410339098993,
+        "recall@0.5%FPR": 0.4505363528009535,
+        "recall@1%FPR": 0.5876042908224076,
+        "recall@2%FPR": 0.7115613825983313,
+        "recall@5%FPR": 0.8581644815256257
+      },
+      {
+        "round": 35,
+        "threshold": 0.35,
+        "accuracy": 0.9845841884100459,
+        "precision": 0.7639593908629442,
+        "recall": 0.35876042908224076,
+        "f1": 0.4882400648824006,
+        "f2": 0.4013333333333333,
+        "roc_auc": 0.9769342298226943,
+        "pr_auc": 0.6238226231306371,
+        "brier": 0.013224752335989506,
+        "ece": 0.011246232188925205,
+        "prevalence": 0.020497410339098993,
+        "recall@0.5%FPR": 0.4600715137067938,
+        "recall@1%FPR": 0.5864123957091776,
+        "recall@2%FPR": 0.7270560190703218,
+        "recall@5%FPR": 0.8629320619785459
+      },
+      {
+        "round": 40,
+        "threshold": 0.35,
+        "accuracy": 0.9847552037525652,
+        "precision": 0.7641277641277642,
+        "recall": 0.3706793802145411,
+        "f1": 0.49919743178170145,
+        "f2": 0.4132341217114005,
+        "roc_auc": 0.9772604380155826,
+        "pr_auc": 0.6291342546670604,
+        "brier": 0.013080792915297791,
+        "ece": 0.010927560102922375,
+        "prevalence": 0.020497410339098993,
+        "recall@0.5%FPR": 0.47437425506555425,
+        "recall@1%FPR": 0.5852205005959475,
+        "recall@2%FPR": 0.733015494636472,
+        "recall@5%FPR": 0.865315852205006
+      },
+      {
+        "round": 45,
+        "threshold": 0.35,
+        "accuracy": 0.9850239421479527,
+        "precision": 0.7825,
+        "recall": 0.3730631704410012,
+        "f1": 0.5052461662631155,
+        "f2": 0.4166666666666667,
+        "roc_auc": 0.9770550603339487,
+        "pr_auc": 0.6321906402629069,
+        "brier": 0.013159220405137742,
+        "ece": 0.010973660525230899,
+        "prevalence": 0.020497410339098993,
+        "recall@0.5%FPR": 0.4731823599523242,
+        "recall@1%FPR": 0.5804529201430274,
+        "recall@2%FPR": 0.7234803337306317,
+        "recall@5%FPR": 0.866507747318236
+      },
+      {
+        "round": 50,
+        "threshold": 0.35,
+        "accuracy": 0.9854148343594253,
+        "precision": 0.7867298578199052,
+        "recall": 0.3957091775923719,
+        "f1": 0.5265662172878668,
+        "f2": 0.4393859184753838,
+        "roc_auc": 0.9772581638037212,
+        "pr_auc": 0.6398446956190063,
+        "brier": 0.01291058009792389,
+        "ece": 0.010150209366955,
+        "prevalence": 0.020497410339098993,
+        "recall@0.5%FPR": 0.4755661501787843,
+        "recall@1%FPR": 0.600715137067938,
+        "recall@2%FPR": 0.7294398092967819,
+        "recall@5%FPR": 0.8605482717520858
+      }
+    ],
+    "best_val_f1": 0.526566,
+    "best_round": 50,
+    "selected_checkpoint_test": {
+      "threshold": 0.18999999999999995,
+      "val_fbeta": 0.6501924245493215,
+      "test": {
+        "threshold": 0.18999999999999995,
+        "accuracy": 0.9767133284681218,
+        "precision": 0.2727272727272727,
+        "recall": 0.4636363636363636,
+        "f1": 0.3434343434343434,
+        "f2": 0.40669856459330145,
+        "roc_auc": 0.9625921602580426,
+        "pr_auc": 0.3656781659907392,
+        "brier": 0.01023115605119955,
+        "ece": 0.0025471870321186574,
+        "prevalence": 0.013136071120546673,
+        "recall@0.5%FPR": 0.29797979797979796,
+        "recall@1%FPR": 0.3747474747474748,
+        "recall@2%FPR": 0.4888888888888889,
+        "recall@5%FPR": 0.7555555555555555,
+        "preds": "[0 0 0 ... 0 0 0]"
+      },
+      "frozen_operating_points": {
+        "0.5%FPR": {
+          "frozen_threshold": 0.30067570035443025,
+          "realised_fpr": 0.004087394957983193,
+          "recall": 0.2777777777777778,
+          "precision": 0.4749568221070812,
+          "alert_rate": 0.00768261129171366
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.2436663532166585,
+          "realised_fpr": 0.007905882352941176,
+          "recall": 0.3474747474747475,
+          "precision": 0.36909871244635195,
+          "alert_rate": 0.012366483115504544
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.19982254485733938,
+          "realised_fpr": 0.014521008403361345,
+          "recall": 0.4393939393939394,
+          "precision": 0.2871287128712871,
+          "alert_rate": 0.020102169442048696
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.1330216889143744,
+          "realised_fpr": 0.031260504201680674,
+          "recall": 0.603030303030303,
+          "precision": 0.20431211498973306,
+          "alert_rate": 0.03877131294367412
+        }
+      },
+      "selection_rule": "best_val_f1 (shipped rule)"
+    },
+    "sensitivity_val_roc_selected_test": {
+      "round": 40,
+      "threshold": 0.1999999999999999,
+      "val_fbeta": 0.6436469851867307,
+      "test": {
+        "threshold": 0.1999999999999999,
+        "accuracy": 0.9779473230279307,
+        "precision": 0.2862595419847328,
+        "recall": 0.45454545454545453,
+        "f1": 0.351288056206089,
+        "f2": 0.4067245119305857,
+        "roc_auc": 0.9635499397334691,
+        "pr_auc": 0.35915669377984805,
+        "brier": 0.010243586548096987,
+        "ece": 0.002787465855171812,
+        "prevalence": 0.013136071120546673,
+        "recall@0.5%FPR": 0.31616161616161614,
+        "recall@1%FPR": 0.3797979797979798,
+        "recall@2%FPR": 0.5040404040404041,
+        "recall@5%FPR": 0.7606060606060606,
+        "preds": "[0 0 0 ... 0 0 0]"
+      },
+      "frozen_operating_points": {
+        "0.5%FPR": {
+          "frozen_threshold": 0.29676722456128035,
+          "realised_fpr": 0.0036974789915966387,
+          "recall": 0.2878787878787879,
+          "precision": 0.5089285714285714,
+          "alert_rate": 0.007430504876268825
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.2455455347110732,
+          "realised_fpr": 0.008,
+          "recall": 0.3595959595959596,
+          "precision": 0.3743427970557308,
+          "alert_rate": 0.01261858953094938
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.20135146327713313,
+          "realised_fpr": 0.014803361344537816,
+          "recall": 0.4535353535353535,
+          "precision": 0.2896774193548387,
+          "alert_rate": 0.0205665759968155
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.1367843800867177,
+          "realised_fpr": 0.03132773109243697,
+          "recall": 0.6161616161616161,
+          "precision": 0.20748299319727892,
+          "alert_rate": 0.03901015060041133
+        }
+      },
+      "selection_rule": "best_val_roc (sensitivity row, B1 hygiene)"
+    },
+    "selection_disclosure": "shipped best-val-F1 rule selected round 50 (val F1 0.5266); the val-ROC-selected sensitivity row selects round 40 \u2014 both disclosed, neither test-based (register item B1 hygiene, born with these arms)",
+    "test_trajectory": {
+      "5": {
+        "roc_auc": 0.974371,
+        "pr_auc": 0.446101
+      },
+      "10": {
+        "roc_auc": 0.970027,
+        "pr_auc": 0.421107
+      },
+      "15": {
+        "roc_auc": 0.968363,
+        "pr_auc": 0.415581
+      },
+      "20": {
+        "roc_auc": 0.967178,
+        "pr_auc": 0.404512
+      },
+      "25": {
+        "roc_auc": 0.965803,
+        "pr_auc": 0.379583
+      },
+      "30": {
+        "roc_auc": 0.965027,
+        "pr_auc": 0.372858
+      },
+      "35": {
+        "roc_auc": 0.964483,
+        "pr_auc": 0.373059
+      },
+      "40": {
+        "roc_auc": 0.96355,
+        "pr_auc": 0.359157
+      },
+      "45": {
+        "roc_auc": 0.962583,
+        "pr_auc": 0.358279
+      },
+      "50": {
+        "roc_auc": 0.962592,
+        "pr_auc": 0.365678
+      }
+    }
+  },
+  "fedprox": {
+    "runner": "experiments/run_raw_nobn.py",
+    "algorithm": "fedprox",
+    "protocol": {
+      "seed": 42,
+      "rounds": 50,
+      "arch": "SolarMLP with BatchNorm1d->Identity",
+      "n_params": 28929,
+      "mu": 0.01,
+      "alpha": 1.0,
+      "clients": 6,
+      "calibration": "prior_shift",
+      "note": "frozen raw protocol, architecture-only intervention; state file nobn_fedprox_state.pt carries arch='nobn'"
+    },
+    "history": [
+      {
+        "round": 5,
+        "threshold": 0.35,
+        "accuracy": 0.979502589660901,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "f2": 0.0,
+        "roc_auc": 0.9299727210516835,
+        "pr_auc": 0.26909665979414993,
+        "brier": 0.0199013197489655,
+        "ece": 0.04154848391211104,
+        "prevalence": 0.020497410339098993,
+        "recall@0.5%FPR": 0.17520858164481526,
+        "recall@1%FPR": 0.24195470798519726,
+        "recall@2%FPR": 0.3504171632896305,
+        "recall@5%FPR": 0.5458879618593564
+      },
+      {
+        "round": 10,
+        "threshold": 0.35,
+        "accuracy": 0.979502589660901,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "f2": 0.0,
+        "roc_auc": 0.9514106906448468,
+        "pr_auc": 0.3393390468644597,
+        "brier": 0.01847480119157387,
+        "ece": 0.03343332275667549,
+        "prevalence": 0.020497410339098993,
+        "recall@0.5%FPR": 0.2526817640047676,
+        "recall@1%FPR": 0.35518474374255066,
+        "recall@2%FPR": 0.46722288438617404,
+        "recall@5%FPR": 0.6901072705601907
+      },
+      {
+        "round": 15,
+        "threshold": 0.35,
+        "accuracy": 0.979502589660901,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "f2": 0.0,
+        "roc_auc": 0.959095103883471,
+        "pr_auc": 0.3688080309593223,
+        "brier": 0.01786446472760803,
+        "ece": 0.03279569340568604,
+        "prevalence": 0.020497410339098993,
+        "recall@0.5%FPR": 0.2943980929678188,
+        "recall@1%FPR": 0.3766388557806913,
+        "recall@2%FPR": 0.5029797377830751,
+        "recall@5%FPR": 0.7294398092967819
+      },
+      {
+        "round": 20,
+        "threshold": 0.35,
+        "accuracy": 0.979502589660901,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "f2": 0.0,
+        "roc_auc": 0.9628461710908311,
+        "pr_auc": 0.38761382520149484,
+        "brier": 0.017335538050532992,
+        "ece": 0.03005855369043976,
+        "prevalence": 0.020497410339098993,
+        "recall@0.5%FPR": 0.29558998808104886,
+        "recall@1%FPR": 0.3873659117997616,
+        "recall@2%FPR": 0.531585220500596,
+        "recall@5%FPR": 0.7508939213349225
+      },
+      {
+        "round": 25,
+        "threshold": 0.35,
+        "accuracy": 0.979502589660901,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "f2": 0.0,
+        "roc_auc": 0.9649235818735743,
+        "pr_auc": 0.40939168875712856,
+        "brier": 0.016916046164402402,
+        "ece": 0.02759585396983401,
+        "prevalence": 0.020497410339098993,
+        "recall@0.5%FPR": 0.30274135876042907,
+        "recall@1%FPR": 0.3933253873659118,
+        "recall@2%FPR": 0.5435041716328963,
+        "recall@5%FPR": 0.7735399284862932
+      },
+      {
+        "round": 30,
+        "threshold": 0.35,
+        "accuracy": 0.979502589660901,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "f2": 0.0,
+        "roc_auc": 0.965893778490635,
+        "pr_auc": 0.4218533740557997,
+        "brier": 0.01668311074339432,
+        "ece": 0.02615718454712913,
+        "prevalence": 0.020497410339098993,
+        "recall@0.5%FPR": 0.30870083432657924,
+        "recall@1%FPR": 0.4064362336114422,
+        "recall@2%FPR": 0.5446960667461264,
+        "recall@5%FPR": 0.7747318235995232
+      },
+      {
+        "round": 35,
+        "threshold": 0.35,
+        "accuracy": 0.9795758819505521,
+        "precision": 1.0,
+        "recall": 0.003575685339690107,
+        "f1": 0.007125890736342043,
+        "f2": 0.004465614766299494,
+        "roc_auc": 0.966761189650035,
+        "pr_auc": 0.4282639395018565,
+        "brier": 0.016499004229195044,
+        "ece": 0.025081997629652936,
+        "prevalence": 0.020497410339098993,
+        "recall@0.5%FPR": 0.3063170441001192,
+        "recall@1%FPR": 0.4171632896305125,
+        "recall@2%FPR": 0.5458879618593564,
+        "recall@5%FPR": 0.7878426698450537
+      },
+      {
+        "round": 40,
+        "threshold": 0.35,
+        "accuracy": 0.9798201895827225,
+        "precision": 0.782608695652174,
+        "recall": 0.021454112038140644,
+        "f1": 0.04176334106728538,
+        "f2": 0.026635099141757917,
+        "roc_auc": 0.9675597055677492,
+        "pr_auc": 0.435011283805558,
+        "brier": 0.01642826104653686,
+        "ece": 0.024707342254676162,
+        "prevalence": 0.020497410339098993,
+        "recall@0.5%FPR": 0.3134684147794994,
+        "recall@1%FPR": 0.433849821215733,
+        "recall@2%FPR": 0.5542312276519666,
+        "recall@5%FPR": 0.7949940405244339
+      },
+      {
+        "round": 45,
+        "threshold": 0.35,
+        "accuracy": 0.980064497214903,
+        "precision": 0.7948717948717948,
+        "recall": 0.03694874851013111,
+        "f1": 0.07061503416856492,
+        "f2": 0.045655375552282766,
+        "roc_auc": 0.9685082005552822,
+        "pr_auc": 0.4406486943046176,
+        "brier": 0.016386318031531955,
+        "ece": 0.024617811035827768,
+        "prevalence": 0.020497410339098993,
+        "recall@0.5%FPR": 0.33134684147794996,
+        "recall@1%FPR": 0.4398092967818832,
+        "recall@2%FPR": 0.5530393325387366,
+        "recall@5%FPR": 0.7926102502979738
+      },
+      {
+        "round": 50,
+        "threshold": 0.35,
+        "accuracy": 0.9802843740838464,
+        "precision": 0.82,
+        "recall": 0.04886769964243146,
+        "f1": 0.0922384701912261,
+        "f2": 0.06018790369935408,
+        "roc_auc": 0.9690045435780166,
+        "pr_auc": 0.44580505455073266,
+        "brier": 0.016240533292834362,
+        "ece": 0.023406441189760135,
+        "prevalence": 0.020497410339098993,
+        "recall@0.5%FPR": 0.33849821215733017,
+        "recall@1%FPR": 0.4445768772348033,
+        "recall@2%FPR": 0.5601907032181168,
+        "recall@5%FPR": 0.7961859356376639
+      }
+    ],
+    "best_val_f1": 0.092238,
+    "best_round": 50,
+    "selected_checkpoint_test": {
+      "threshold": 0.15499999999999997,
+      "val_fbeta": 0.5593803786574871,
+      "test": {
+        "threshold": 0.15499999999999997,
+        "accuracy": 0.9699462615272342,
+        "precision": 0.2710951526032316,
+        "recall": 0.7626262626262627,
+        "f1": 0.4,
+        "f2": 0.5596738324684952,
+        "roc_auc": 0.9754889262371615,
+        "pr_auc": 0.34476460884499854,
+        "brier": 0.010927328107066965,
+        "ece": 0.018421556823848367,
+        "prevalence": 0.013136071120546673,
+        "recall@0.5%FPR": 0.23939393939393938,
+        "recall@1%FPR": 0.3565656565656566,
+        "recall@2%FPR": 0.6383838383838384,
+        "recall@5%FPR": 0.8939393939393939,
+        "preds": "[0 0 0 ... 0 0 0]"
+      },
+      "frozen_operating_points": {
+        "0.5%FPR": {
+          "frozen_threshold": 0.26041134614534533,
+          "realised_fpr": 0.0053512605042016805,
+          "recall": 0.2505050505050505,
+          "precision": 0.38390092879256965,
+          "alert_rate": 0.008571618125124395
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.23344651563817043,
+          "realised_fpr": 0.008968067226890756,
+          "recall": 0.3292929292929293,
+          "precision": 0.3282980866062437,
+          "alert_rate": 0.013175877396669542
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.19976634043538513,
+          "realised_fpr": 0.01679327731092437,
+          "recall": 0.5505050505050505,
+          "precision": 0.30379041248606464,
+          "alert_rate": 0.023804153121475487
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.1486844230064128,
+          "realised_fpr": 0.029163025210084032,
+          "recall": 0.7898989898989899,
+          "precision": 0.2649949169772958,
+          "alert_rate": 0.03915610694619518
+        }
+      },
+      "selection_rule": "best_val_f1 (shipped rule)"
+    },
+    "sensitivity_val_roc_selected_test": {
+      "round": 50,
+      "threshold": 0.15499999999999997,
+      "val_fbeta": 0.5593803786574871,
+      "test": {
+        "threshold": 0.15499999999999997,
+        "accuracy": 0.9699462615272342,
+        "precision": 0.2710951526032316,
+        "recall": 0.7626262626262627,
+        "f1": 0.4,
+        "f2": 0.5596738324684952,
+        "roc_auc": 0.9754889262371615,
+        "pr_auc": 0.34476460884499854,
+        "brier": 0.010927328107066965,
+        "ece": 0.018421556823848367,
+        "prevalence": 0.013136071120546673,
+        "recall@0.5%FPR": 0.23939393939393938,
+        "recall@1%FPR": 0.3565656565656566,
+        "recall@2%FPR": 0.6383838383838384,
+        "recall@5%FPR": 0.8939393939393939,
+        "preds": "[0 0 0 ... 0 0 0]"
+      },
+      "frozen_operating_points": {
+        "0.5%FPR": {
+          "frozen_threshold": 0.26041134614534533,
+          "realised_fpr": 0.0053512605042016805,
+          "recall": 0.2505050505050505,
+          "precision": 0.38390092879256965,
+          "alert_rate": 0.008571618125124395
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.23344651563817043,
+          "realised_fpr": 0.008968067226890756,
+          "recall": 0.3292929292929293,
+          "precision": 0.3282980866062437,
+          "alert_rate": 0.013175877396669542
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.19976634043538513,
+          "realised_fpr": 0.01679327731092437,
+          "recall": 0.5505050505050505,
+          "precision": 0.30379041248606464,
+          "alert_rate": 0.023804153121475487
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.1486844230064128,
+          "realised_fpr": 0.029163025210084032,
+          "recall": 0.7898989898989899,
+          "precision": 0.2649949169772958,
+          "alert_rate": 0.03915610694619518
+        }
+      },
+      "selection_rule": "best_val_roc (sensitivity row, B1 hygiene)"
+    },
+    "selection_disclosure": "shipped best-val-F1 rule selected round 50 (val F1 0.0922); the val-ROC-selected sensitivity row selects round 50 \u2014 both disclosed, neither test-based (register item B1 hygiene, born with these arms)",
+    "test_trajectory": {
+      "5": {
+        "roc_auc": 0.93118,
+        "pr_auc": 0.182585
+      },
+      "10": {
+        "roc_auc": 0.955924,
+        "pr_auc": 0.290145
+      },
+      "15": {
+        "roc_auc": 0.966791,
+        "pr_auc": 0.345227
+      },
+      "20": {
+        "roc_auc": 0.971269,
+        "pr_auc": 0.3553
+      },
+      "25": {
+        "roc_auc": 0.973452,
+        "pr_auc": 0.36473
+      },
+      "30": {
+        "roc_auc": 0.974382,
+        "pr_auc": 0.361607
+      },
+      "35": {
+        "roc_auc": 0.974955,
+        "pr_auc": 0.360637
+      },
+      "40": {
+        "roc_auc": 0.975374,
+        "pr_auc": 0.360309
+      },
+      "45": {
+        "roc_auc": 0.975445,
+        "pr_auc": 0.349659
+      },
+      "50": {
+        "roc_auc": 0.975489,
+        "pr_auc": 0.344765
+      }
+    }
+  },
+  "reference_columns": {
+    "fedavg_mlp": {
+      "roc_auc": 0.8747205704099822,
+      "pr_auc": 0.05614600405791456
+    },
+    "fedprox_mlp": {
+      "roc_auc": 0.9302553263729735,
+      "pr_auc": 0.148668867684149
+    },
+    "centralized_mlp": {
+      "roc_auc": 0.9710213258636788,
+      "pr_auc": 0.44496043514010586
+    },
+    "fedavg_lstm": {
+      "roc_auc": 0.9581284576861048,
+      "pr_auc": 0.3053507227647554
+    },
+    "fedprox_lstm": {
+      "roc_auc": 0.9697419098548511,
+      "pr_auc": 0.40445689247237226
+    },
+    "central_lstm": {
+      "roc_auc": 0.9622052728970375,
+      "pr_auc": 0.31412579739049007
+    }
+  },
+  "purpose": "R-FS9-R10 master change register item A3: no-BatchNorm MLP federation (FedAvg and FedProx) on the raw substrate \u2014 the encoder-conditional vs BatchNorm-under-federation-conditional attribution control. Architecture-only intervention (the run_nobn_control.py construction: BatchNorm1d -> Identity); evaluation identical to run_raw_substrate.py section 5 for direct comparability with the BN raw arms. The reference_columns block is read from the committed artefacts at run time \u2014 the attribution question is answerable from this artefact alone.",
+  "elapsed_s": 1698.7806103229523
+}

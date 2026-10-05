@@ -152,6 +152,7 @@ LETTER_REGISTRY = {
     "RESPONSE_v4.8_ERRATA.md": True,
     "RESPONSE_R-FS9-R10_v4.9.2.md": True,
     "RESPONSE_R-FS9-R10_v4.9.3.md": True,
+    "RESPONSE_R-FS9-R10_v4.9.4.md": True,
 }
 
 
