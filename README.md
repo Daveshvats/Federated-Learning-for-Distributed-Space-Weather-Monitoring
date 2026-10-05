@@ -46,14 +46,24 @@ transport, checkpoint selection, novelty repositioning).
 > diagnostic EXECUTED owner-side — the v4.8 BN-conditional qualifier
 > resolved against the BN explanation, the replication MISMATCH
 > disclosed and battery-pinned, and the frozen artefacts made
-> byte-stable on every platform via `.gitattributes`).
+> byte-stable on every platform via `.gitattributes`), and the
+> Round-13 third-party adjudication's register (Dossier R-FS9-R10):
+> repo-only errata v4.9.1-v4.9.4 (instruments shipped, owner
+> executed, artefacts landed) and the paper-side integration **v4.10**
+> (A1's `arm_b_validated` verdict integrated — Table 8's B column
+> re-framed as the validated proxy for the transport fix; A3's
+> no-BatchNorm raw federation integrated — the raw-substrate MLP
+> collapse re-attributed to BatchNorm-under-federation, contribution 5
+> rewritten; the abstract's closure clause scoped, the metric label
+> corrected, the persistence sentence reordered, the manifest sentence
+> separated; the submission regenerated from the record).
 > The manuscript of record is `paper/main.pdf`, compiled from
-> `paper/main.tex` (v4.9). The journal submission edition is
+> `paper/main.tex` (v4.10). The journal submission edition is
 > `submission/main.pdf`, generated from the record by
 > `tools/build_submission.py` (never hand-edited; the battery verifies
 > it). Verification
 > apparatus: `python tests/run_battery.py` — the single-entry integrity
-> battery, **297 checks torch-less** (canonical 219/219 v4.1 torch-equipped record at
+> battery, **375 checks torch-less** (canonical 219/219 v4.1 torch-equipped record at
 > `logs/test_battery.log`; skips are counted honestly — torch-gated
 > checks that print [SKIP] are not passes); it requires `pdftotext`
 > (poppler-utils) for the rendered-bibliography guard, writes a

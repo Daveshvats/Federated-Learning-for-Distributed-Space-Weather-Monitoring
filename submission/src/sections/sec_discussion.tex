@@ -28,11 +28,22 @@ always argued: under adversarial heterogeneity, proximal
 regularisation keeps the federation converging where plain averaging
 collapses (0.976 vs 0.906, with checkpoint-independent dynamics),
 and it does so without data movement. On the raw substrate the same
-statement is encoder-conditional: the flattened-feature arms collapse
-there under every regulariser studied, while the sequence arms of
-Section~\ref{sec:res-lstm} restore it (FedProx-LSTM 0.970 vs
-FedAvg-LSTM 0.958), relocating the fragility from the federation
-mechanism to the representation the clients share.
+statement is BatchNorm-conditional: every BatchNorm-carrying MLP arm
+collapses there under every regulariser studied, while every
+BatchNorm-free arm --- the sequence arms of
+Section~\ref{sec:res-lstm} (FedProx-LSTM 0.970 vs FedAvg-LSTM
+0.958) and the no-BatchNorm MLP control of
+Section~\ref{sec:res-rawnobn} (FedProx 0.975 vs FedAvg 0.963) ---
+restores it, relocating the fragility from the federation mechanism
+to the BatchNorm-under-federation interaction. The stabilisation
+reading itself gains a sharper, metric-scoped form there: with
+BatchNorm removed, FedProx's test ROC-AUC climbs monotonically
+(0.931 to 0.975 over 50 rounds) while FedAvg's declines (0.974 to
+0.963) despite its improving validation monitor --- the proximal
+term's variance reduction is visible exactly once the confound is
+gone --- but on PR-AUC the no-BN ordering inverts (FedAvg 0.366
+above FedProx 0.345), so the raw-substrate stabilisation claim is
+ROC-scoped.
 
 \subsection{Why the shipped evaluation separates FedAvg from FedProx}
 

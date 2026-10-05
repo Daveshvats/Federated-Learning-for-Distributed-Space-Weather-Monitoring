@@ -51,12 +51,15 @@ unchanged at 0.978; centralised MLP PR-AUC rises to 0.445),
 XGBoost's minority-class precision was inflated by the synthetic
 positives (PR-AUC 0.457$\to$0.329), and every federated \emph{MLP}
 arm degrades sharply (FedProx 0.930/0.149; FedAvg detects zero of 65
-events; SCAFFOLD, executed here for the first time on a real
+events --- 38 of 65 (58.5\%) at 0.28 false-alarm windows per day
+under the diagnostic's batch-statistics treatment, the only one with
+a usable validation operating point, Section~\ref{sec:res-rawbn};
+SCAFFOLD, executed here for the first time on a real
 substrate, fails at 0.768/0.057, while the same implementation's
 LSTM instance recovers to 0.970/0.294 --- both cells measuring the
 sign-inverted, cold-start variant disclosed in
-Section~\ref{sec:method}, not the reference algorithm). The sequence
-encoder qualifies the
+Section~\ref{sec:method}, not the reference algorithm). The
+architecture qualifies the
 ending: the identical frozen protocol with the SolarLSTM, executed
 on the owner GPU, restores the federated arms substantially
 (FedAvg-LSTM 0.958/0.305 where the FedAvg MLP fell to 0.875/0.056;
@@ -64,9 +67,15 @@ FedProx-LSTM 0.970/0.404, above its own pooled comparator
 0.962/0.314 and XGBoost's raw PR-AUC, though still below logistic
 regression 0.978/0.448, and at event level the substrate's highest
 detection rate, SCAFFOLD-LSTM's 55/65 at 0.4 false-alarm windows per
-day, bought at a higher alarm budget)---so the balanced-substrate
-standing is a property of the flattened-feature MLP arms, not of
-federation per se, and no federated arm exceeds the best
+day, bought at a higher alarm budget)---and the architecture-only
+control completes the re-attribution: removing the MLP's three
+BatchNorm layers and changing nothing else restores FedAvg to
+0.963/0.366 and FedProx to 0.975/0.345, at or above the sequence
+arms' ranking and with FedProx above the centralised MLP on ROC-AUC
+(Section~\ref{sec:res-rawnobn})---so the balanced-substrate
+standing is a property of BatchNorm under federation, not of
+federation per se and not of the flattened-feature representation as
+such, and no federated arm exceeds the best
 centralised baseline on any substrate's window-level ranking (the
 SCAFFOLD-LSTM event-level detection rate is the one priced
 exception, achieved at roughly twice the centralised arms'
@@ -142,12 +151,16 @@ The performance message is correspondingly conditional. Matching the
 same-architecture pooled model's ranking is, on the leakage-free
 protocol, a property the pooled reference shares rather than a
 federation advantage, and on the raw unbalanced benchmark that parity
-is encoder-dependent: with the flattened-feature MLP every federated
-configuration is strictly dominated by simple centralised baselines,
-while with the sequence encoder the best federated arm
-(FedProx-LSTM, 0.970/0.404) comes within 0.008 ROC-AUC and 0.044
-PR-AUC of the best centralised baseline. No federated arm exceeds the
-best centralised baseline on any substrate, so the case for federating
+is BatchNorm-conditional: every federated configuration carrying
+BatchNorm is strictly dominated by simple centralised baselines,
+while every BatchNorm-free configuration reaches the centralised
+MLP's ranking --- the best sequence arm (FedProx-LSTM, 0.970/0.404)
+comes within 0.008 ROC-AUC and 0.044
+PR-AUC of the best centralised baseline, and the no-BatchNorm
+FedProx MLP (0.975/0.345, Section~\ref{sec:res-rawnobn}) within
+0.003/0.103, above the centralised MLP's ROC-AUC. No federated arm
+exceeds the best centralised baseline on any substrate, so the case
+for federating
 this problem rests on methodology (controlled heterogeneity studies,
 parameter-only transport), not on predictive performance. For the machine-learning community the study is a caution and a
 demonstration on two levels. Instance-level provenance audits can

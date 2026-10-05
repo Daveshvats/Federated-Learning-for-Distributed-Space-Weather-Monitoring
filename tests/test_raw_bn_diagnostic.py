@@ -145,6 +145,12 @@ PASS, FAIL = 0, 0
 # these pins freeze THAT state so any change is loud.
 ARTEFACT_SHA256 = (
     "9cebc01e6839f93aabf51a1cec8b63b19e611fe60d2be3e28dc0dbeced5768e2")
+# v4.10 / register item B4: the ask-#4 retrain record named in the
+# paper's Section 6.3 — the identity-gate reference the A1 sanity
+# check reproduces — pinned under the same artefact-pin convention.
+RERUN_PATH = os.path.join(ROOT, "outputs", "raw_substrate_rerun.json")
+RERUN_SHA256 = (
+    "caca966a3b86b3127cfb1367a89ee7836dd98ec70bbf1440ea24c7ca6094b0a1")
 DISCLOSED_GATE_VERDICTS = {"fedavg_mlp": "MISMATCH",
                            "fedprox_mlp": "MISMATCH",
                            "scaffold_mlp": "MISMATCH"}
@@ -247,6 +253,20 @@ def artefact_layer():
     check("artefact sha256 matches the frozen v4.9 record of the "
           "executed E1 run", digest == ARTEFACT_SHA256,
           f"(got {digest[:16]}…)")
+    # v4.10 / B4: the retrain record is named in the paper (Section
+    # 6.3) — its absence or drift is a defect of the record, not a
+    # pending owner run (it has been committed since v4.9).
+    if not os.path.exists(RERUN_PATH):
+        check("raw_substrate_rerun.json present (B4: named in the "
+              "paper's Section 6.3)", False,
+              "(the committed ask-#4 retrain record is missing)")
+    else:
+        with open(RERUN_PATH, "rb") as f:
+            import hashlib
+            rdigest = hashlib.sha256(f.read()).hexdigest()
+        check("raw_substrate_rerun.json sha256 matches the frozen "
+              "ask-#4 retrain record (B4 pin, v4.10)",
+              rdigest == RERUN_SHA256, f"(got {rdigest[:16]}…)")
     with open(ARTEFACT, encoding="utf-8") as f:
         d = json.load(f)
 

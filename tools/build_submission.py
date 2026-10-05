@@ -22,8 +22,9 @@ structurally impossible:
 Declared transformations (the complete list of deviations):
   T1  journal front matter: re-ordered title, submission-edition note,
       pdftitle metadata (title block composed here, not copied);
-  T2  abstract pair carries metric names (made in the RECORD at v4.6:
-      paper/main.tex now reads "ROC-AUC 0.970 and TSS 0.404"; this
+  T2  abstract pair carries metric names (made in the RECORD at v4.6,
+      re-pinned at v4.10: paper/main.tex now reads "ROC-AUC 0.970 and
+      PR-AUC 0.404" — the register A4/F1 metric-label correction; this
       generator ASSERTS the names are present in the extracted
       abstract rather than re-editing it);
   T3  sec_experiments: the un-regenerable "estimated 74 h" CPU figure
@@ -129,13 +130,17 @@ def main():
     if not m:
         raise AssertionError("abstract block not found in paper/main.tex")
     abstract_body = m.group(1)
-    if "ROC-AUC 0.970 and TSS 0.404" not in abstract_body:
+    # v4.10 (A4/F1): the record's abstract now carries the corrected
+    # PR-AUC label for the 0.404 figure (was "TSS 0.404" — the panel's
+    # F1 metric-label error, fixed with the register's A4 rewrite).
+    if "ROC-AUC 0.970 and PR-AUC 0.404" not in abstract_body:
         raise AssertionError(
             "T2: the record's abstract no longer carries metric names for "
             "the 0.970/0.404 pair — the submission must not regress the "
-            "R-FS9-R6 R8-7 fix; restore them in paper/main.tex")
+            "R-FS9-R6 R8-7 fix (v4.10: the corrected PR-AUC label); "
+            "restore them in paper/main.tex")
     report.append("T2: abstract extracted from the record with metric "
-                  "names asserted present (ROC-AUC 0.970 and TSS 0.404)")
+                  "names asserted present (ROC-AUC 0.970 and PR-AUC 0.404)")
 
     keywords = re.search(
         r"\\noindent\\textbf\{Keywords:\}(.*?)\\end\{minipage\}",

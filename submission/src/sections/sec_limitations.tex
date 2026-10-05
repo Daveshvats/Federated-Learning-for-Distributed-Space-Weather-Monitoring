@@ -170,8 +170,11 @@ in its disclosed sign-inverted, cold-start implementation,
 Section~\ref{sec:method})
 ---while the sequence arms of Section~\ref{sec:res-lstm}
 substantially restore the federated standing (FedProx-LSTM
-0.970/0.404), relocating the fragility from the federation mechanism
-to the flattened-feature representation. A v4.8 errata qualifier on
+0.970/0.404), relocating the fragility to the
+BatchNorm-under-federation interaction: the no-BatchNorm control of
+Section~\ref{sec:res-rawnobn} removes the three BN layers and nothing
+else, and the federated MLP recovers to at-or-above the sequence
+arms' ranking. A v4.8 errata qualifier on
 the MLP half of that sentence was discharged at v4.9: the raw-substrate
 federated MLP evaluations pass through the same
 untransported-BatchNorm path that Section~\ref{sec:res-bn} shows
@@ -185,7 +188,16 @@ v3.x-era checkpoints were never persisted, so the diagnostic executed
 over a fresh seed-42 replication whose arm-A numbers deviate from the
 published rows by 0.002--0.023 ROC-AUC (a recorded MISMATCH, frozen
 and battery-pinned with the artefact); the sequence arms carry no
-BatchNorm and are unaffected.
+BatchNorm and are unaffected, and the no-BatchNorm re-training has
+since run over that substrate and completes the attribution: with
+the three BN layers removed and nothing else changed, both federated
+MLP arms recover to at-or-above the sequence arms' ranking (FedAvg
+0.963/0.366, FedProx 0.975/0.345, the latter above the centralised
+MLP on ROC-AUC, Section~\ref{sec:res-rawnobn}), so the MLP half of
+this paragraph's framing is superseded by the
+BatchNorm-under-federation attribution; the SCAFFOLD arm has no
+no-BN counterpart in the executed register, so its reading stays
+qualified.
 What remains open is fold-replication breadth: the seed-replication
 and natural-prevalence balancing questions queued in earlier
 revisions are now executed (Section~\ref{sec:res-lstmrep}: every
@@ -227,7 +239,12 @@ the sequence arms restore the federated standing, FedProx-LSTM
 and the second owner-GPU batch executed the remaining queue
 (Section~\ref{sec:res-lstmrep}: SCAFFOLD-LSTM, the seed-43
 replication of all four arms, and the natural-prevalence SMOTE
-ablation, 8.7\,h, validated by a 64-check artefact audit).
+ablation, 8.7\,h, validated by a 64-check artefact audit), and the
+third owner-GPU batch executed the Round-13 register's two decisive
+controls (the arm-B centralised sanity check, seconds, and the
+no-BatchNorm raw-substrate federation, 1{,}699\,s; artefacts
+committed and battery-pinned, Sections~\ref{sec:res-rawbn}
+and~\ref{sec:res-rawnobn}).
 What remains queued is fold-replication breadth: the remaining
 temporally-preceding folds for the leakage-free and raw-substrate
 runs, and the sequence arms' cleaned-fold pairing.

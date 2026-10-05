@@ -467,6 +467,45 @@ guard (the 0xC0000409 interpreter-finalization fastfail the ask \#3
 queue children already exhibited — a battery module must exit 0
 after a green run); \texttt{test\_fl\_smoke}'s CUDA-tensor
 \texttt{.numpy()} sites fixed. \\
+v4.10 & Register-integration errata (the Round-13 master change
+register's paper-side phase; the repo-only v4.9.2–v4.9.4 errata
+chain shipped the instruments, the owner executed them, and this
+revision integrates the verdicts): A1 EXECUTED, verdict
+\texttt{arm\_b\_validated} — arm B applied to the centralised raw
+MLP preserves the ranking ($-6.8\times10^{-5}$ ROC-AUC,
+$+4.9\times10^{-3}$ PR-AUC against own buffers, both gates match;
+\texttt{arm\_b\_central\_sanity.json} committed and battery-checked)
+— so Table~\ref{tab:rawbndiag}'s B column is re-framed as the
+\emph{validated proxy} for the pooled-statistics transport fix and
+the faithful arm-D re-run is not required for the reading (A2, the
+re-frame branch); A3 EXECUTED — the no-BatchNorm raw-substrate
+federation (\texttt{raw\_nobn\_eval.json}, new
+Section~\ref{sec:res-rawnobn} + Table~\ref{tab:rawnobn}) re-attributes
+the raw-substrate federated MLP collapse to
+BatchNorm-under-federation (no-BN FedAvg 0.963/0.366, FedProx
+0.975/0.345, the latter above the centralised MLP on ROC-AUC), and
+contribution 5 is rewritten accordingly — the encoder-conditional
+attribution is withdrawn; A4 the abstract's closure clause scoped to
+the executed attribution, the ``TSS 0.404'' label corrected to
+PR-AUC, the internal version tag dropped; B1 the degenerate
+checkpoint rule's round disclosed (the strict-inequality rule ships
+the final round on an all-zero history), the new arms'
+val-ROC sensitivity rows and per-round test trajectories
+integrated, and Section 9's ``zero of 65'' re-qualified with the
+arm-C 38/65 companion cell; B2 the implementation-case qualifier
+extended to Table~\ref{tab:rawbndiag}'s SCAFFOLD row; B3 the
+abstract's persistence sentence reordered (lagged persistence leads,
+label inertia second); B4 \texttt{raw\_substrate\_rerun.json} named
+in Section~\ref{sec:res-rawbn} and sha-pinned by the battery; B5 the
+abstract's manifest sentence separated (result artefacts vs the
+20-file data manifest). & Apparatus: the page-count pins bumped with
+the disclosed recompile (the B7 convention);
+\texttt{raw\_substrate\_rerun.json} sha-pinned in
+\texttt{test\_raw\_bn\_diagnostic.py} (B4); the submission
+regenerated from the record (\texttt{tools/build\_submission.py},
+its T2 metric-name assertion re-pinned to the corrected PR-AUC
+label); the letters registry carries this revision's letter; battery
+version v4.10. \\
 \end{longtable}
 \endgroup
 

@@ -152,13 +152,15 @@ PINNED_ENTRIES = [
 # strings. Deliberately bump these when the documents legitimately
 # reflow (a disclosed recompile), never silently.
 PINNED_PAGE_COUNTS = {
-    os.path.join("paper", "main.pdf"): 59,
-    os.path.join("submission", "main.pdf"): 59,
+    os.path.join("paper", "main.pdf"): 62,
+    os.path.join("submission", "main.pdf"): 62,
 }
-# (59 since v4.9: the executed E1 diagnostic's new subsection + Table 8
-# + the appendix v4.9 row reflowed the document by three pages — a
-# disclosed recompile, the pin bumped deliberately per the B7
-# convention; 56 at v4.8, 55 at v4.5-v4.7)
+# (62 since v4.10: the Round-13 register integration — the new no-BN
+# attribution-control subsection + Table 9, the arm-B validation
+# paragraph, the re-attributed encoder readings, and the appendix
+# v4.10 row reflowed the document by three pages — a disclosed
+# recompile, the pin bumped deliberately per the B7 convention;
+# 59 at v4.9, 56 at v4.8, 55 at v4.5-v4.7)
 
 
 def read(path):
@@ -272,7 +274,7 @@ def check_floor_apparatus():
         "Brier skill": "Brier skill",
         "arms-clearing statement": "alone clear 24-hour-lagged "
                                    "persistence",
-        "abstract metric names": "ROC-AUC 0.970 and TSS 0.404",
+        "abstract metric names": "ROC-AUC 0.970 and PR-AUC 0.404",
     }
     missing = [label for label, m in markers.items() if m not in src]
     if missing:
@@ -281,7 +283,8 @@ def check_floor_apparatus():
         return False
     print("[PASS] floor apparatus present: TSS/HSS/inertia/persistence "
           "floors, Brier skill, the v4.2-corrected arms-clearing "
-          "statement, and metric names on the abstract pair")
+          "statement, and metric names on the abstract pair "
+          "(v4.10: the corrected PR-AUC label, register A4/F1)")
     return True
 
 

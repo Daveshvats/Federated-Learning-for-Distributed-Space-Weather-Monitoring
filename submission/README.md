@@ -2,17 +2,22 @@
 
 This directory is the **journal-formatted submission manuscript** of
 the SF9 paper, regenerated programmatically from the repository of
-record (current build: **v4.9**), per **Dossier R-FS9-R6, register
+record (current build: **v4.10**), per **Dossier R-FS9-R6, register
 item 4** (R8-6/R8-7/R8-8/R8-9/R8-10) and re-verified at **Dossier
 R-FS9-R7** (B1: the two v4.5-truncated bibliography entries restored
-and the rendered bibliography now guarded). The v4.9 regeneration
+and the rendered bibliography now guarded). The v4.10 regeneration
 inherits the post-closure content errata (E1 BN-conditional
 disclosure, E2 implementation-case qualifiers, E3 abstract reorder,
-the 23.25 h display erratum, and the R-FS9-R8 residual register) and
-the v4.9 results integration: the executed raw-substrate BN
-diagnostic (Section 6.9b + its table; the E1 condition resolved
-against the BN explanation, the replication MISMATCH disclosed and
-battery-pinned).
+the 23.25 h display erratum, and the R-FS9-R8 residual register), the
+v4.9 results integration (the executed raw-substrate BN diagnostic;
+the E1 condition resolved against the BN explanation, the replication
+MISMATCH disclosed and battery-pinned), and the Round-13 register's
+paper-side integration: the A1 `arm_b_validated` verdict (Table 8's B
+column re-framed as the validated proxy for the transport fix), the
+A3 no-BatchNorm raw-substrate federation (the collapse re-attributed
+to BatchNorm-under-federation), the abstract's scoped closure clause
+with the corrected PR-AUC metric label, the reordered persistence
+sentence, and the separated manifest sentence.
 
 ## Why this exists
 

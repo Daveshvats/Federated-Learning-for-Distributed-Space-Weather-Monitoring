@@ -129,9 +129,10 @@ literature). The specific contributions are:
   detection is not the deployability boundary---XGBoost's false-alarm
   burden is roughly $7\times$ lower than every neural arm's
   (Section~\ref{sec:res-leakfree}).
-  \item \textbf{A raw-substrate re-execution and the encoder-conditional
-  collapse.} Retraining the identical frozen protocol on the raw,
-  unbalanced benchmark (natural prevalence, no synthetic positives, the
+  \item \textbf{A raw-substrate re-execution and the
+  BatchNorm-under-federation-conditional collapse.} Retraining the
+  identical frozen protocol on the raw, unbalanced benchmark (natural
+  prevalence, no synthetic positives, the
   release's imputation and normalisation reproduced in-pipeline with
   train-only parameters) separates the arms decisively: every
   federated \emph{MLP} arm degrades sharply (FedAvg detects zero of 65
@@ -140,11 +141,17 @@ literature). The specific contributions are:
   0.970/0.404; SCAFFOLD-LSTM the substrate's highest event-level
   detection, 55/65 at 0.4 false-alarm windows per day --- an
   implementation-case result, since the arm runs as the sign-inverted,
-  cold-start variant disclosed in Section~\ref{sec:method}), a second seed
+  cold-start variant disclosed in Section~\ref{sec:method}) --- and an
+  architecture-only control re-attributes the split: replacing the
+  MLP's three BatchNorm layers with the identity and changing nothing
+  else restores FedAvg to 0.963/0.366 and FedProx to 0.975/0.345, at
+  or above the sequence arms' ranking (FedProx above the centralised
+  MLP on ROC-AUC), so the collapse is dominated by BatchNorm under
+  federation rather than by the flattened-feature representation.
+  A second seed
   holds all four sequence arms within $\pm$0.005 ROC-AUC, and
-  per-client SMOTE at natural prevalence is a clean negative---so the
-  balanced-substrate standing is a property of the flattened-feature
-  MLP, not of federation per se (Sections~\ref{sec:res-raw}--\ref{sec:res-lstmrep}).
+  per-client SMOTE at natural prevalence is a clean negative
+  (Sections~\ref{sec:res-raw}--\ref{sec:res-rawnobn}).
   \item \textbf{A BatchNorm-transport diagnostic and a controlled
   no-BatchNorm experiment, which re-attribute the in-partition
   FedAvg-versus-FedProx gap.} The underlying mechanism---weight

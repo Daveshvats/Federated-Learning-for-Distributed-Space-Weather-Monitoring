@@ -292,13 +292,15 @@ checkpoints carry never-updated running buffers into a
 degradation above was therefore \emph{BN-evaluation-conditional} on
 its face; the checkpoint-level diagnostic has since been executed
 (Section~\ref{sec:res-rawbn}, \texttt{raw\_bn\_diagnostic.json}) and
-the condition resolves \emph{against} the BN explanation: no
-treatment recovers the centralised reference, pooled recalibration
-actively destroys ranking, and the deficit is a property of the
-flattened-feature arms under federation. The sequence arms are
-outside the confound entirely (SolarLSTM carries no BatchNorm), so
-the encoder-contrast reading of Section~\ref{sec:res-lstm} stands
-either way.
+resolves the evaluation-path question \emph{against} the BN
+explanation: no evaluation-time treatment recovers the centralised
+reference. The deficit itself, however, is neither
+evaluation-conditional nor encoder-conditional --- the
+no-BatchNorm re-training of Section~\ref{sec:res-rawnobn} removes the
+three BN layers and nothing else, and the federated MLP recovers to
+the sequence arms' ranking. The sequence arms (SolarLSTM carries no
+BatchNorm) were never exposed to the mechanism, which is exactly why
+they never collapsed on this substrate.
 
 \begin{table}[t]
 \centering
@@ -384,7 +386,9 @@ The v4.8 revision shipped the runner for this diagnostic
 (\texttt{experiments/run\_raw\_bn\_diagnostic.py}) and queued its
 execution owner-side; it has since run (RUNLOG ask \#4), and its
 artefact of record --- \texttt{outputs/raw\_bn\_diagnostic.json},
-sha-pinned by the battery --- is what this subsection reads. One
+sha-pinned by the battery, together with the retrain record it
+reproduces, \texttt{outputs/raw\_substrate\_rerun.json}, pinned under
+the same convention --- is what this subsection reads. One
 structural fact precedes the numbers, disclosed at equal length in the
 RUNLOG: the v3.x-era raw-substrate checkpoints were \emph{never
 persisted} (that era's runner stored the 3D caches and the
@@ -416,7 +420,10 @@ exact per-client statistics pooled by the law of total variance
 (training shards only); C: evaluation-time batch statistics. Gate
 $\Delta$ is arm A's ROC-AUC delta against the published rows of
 Table~\ref{tab:rawsubstr} (the disclosed MISMATCH; FedAvg carries
-the replication's retrain variance).}
+the replication's retrain variance). The SCAFFOLD row measures the
+implementation's sign-inverted, cold-start variant (the five
+departures of Section~\ref{sec:method}) --- an implementation case,
+not the reference algorithm.}
 \label{tab:rawbndiag}
 \small
 \begin{tabular}{@{}l c c c c@{}}
@@ -454,7 +461,10 @@ evaluation-time batch statistics (arm C) move ROC-AUC by at most
 calibration instrument, not a rescue. The diagnostic's event-level
 layer also records the operating-point pathology the A-path
 thresholds inherit --- the replication's checkpoint rule returned
-best-val-F1 states of 0.0 for FedAvg and FedProx, FedAvg's val-frozen
+best-val-F1 states of 0.0 for FedAvg and FedProx (and since the
+strict-inequality rule initialises its best at 0.0 and never fires on
+an all-zero history, the shipped checkpoint is the final round's
+global model, round 50, in both cases), FedAvg's val-frozen
 threshold sat at the 0.05 floor, and the arm detects 0 of 65 events
 under A while arm C, the only treatment with a usable validation
 operating point, detects 38 (58.5\%) at 0.28 false-alarm windows per
@@ -464,6 +474,142 @@ statistics can manufacture collapse --- in-partition proved that ---
 but the raw-substrate federated MLP degradation is not that
 phenomenon, and the sequence arms (no BatchNorm) were never exposed
 to it.
+
+Two follow-ups complete the reading. First, arm B's own instrument
+has been validated: applying the byte-identical
+pooled-recalibration machinery to the \emph{centralised} raw MLP ---
+where pooled per-client statistics should reconstruct the model's own
+running statistics --- preserves the centralised ranking to
+$-6.8\times10^{-5}$ ROC-AUC and \emph{improves} PR-AUC by
+$4.9\times10^{-3}$ (0.96864/0.43051 against arm A's own-buffer
+0.96870/0.42566, both reproducing the retrain record to better than
+$10^{-6}$; \texttt{outputs/arm\_b\_central\_sanity.json}, committed
+and battery-checked). The supporting diagnostics record the
+reconstruction's drift directly: pooled-versus-own buffer deltas run
+0.021/0.043/0.113 (mean relative L2) across layers 0--2,
+depth-monotone and non-trivial at the last layer, and yet the ranking
+holds --- the instrument tolerates realistic statistics drift without
+collapsing. Arm B's federated collapse is therefore a genuine
+property of pooling per-client statistics across six
+raw-prevalence clients, not an implementation artefact, and the B
+column of Table~\ref{tab:rawbndiag} is its \emph{validated proxy}:
+what a transport fix that pooled normalisation statistics would
+actually deliver on this substrate. The faithful buffer-transport
+re-run (arm D) remains the endorsed clean-closure option for an
+external submission, but the reading no longer depends on it.
+Second, the attribution question this analysis left open ---
+evaluation artefact, encoder, or BatchNorm-under-federation --- is
+answered by the control of the next subsection.
+
+\subsection{No-BatchNorm federation on the raw substrate: the
+attribution control}
+\label{sec:res-rawnobn}
+
+The diagnostic above fixes the evaluation-path question but leaves
+the attribution open: the collapsing arms of
+Table~\ref{tab:rawsubstr} carry BatchNorm, the rescuing sequence arms
+of Section~\ref{sec:res-lstm} do not, so ``the flattened-feature MLP
+degrades under federation'' could not be separated from ``BatchNorm
+degrades under federation'' --- the FedBN line of work the paper
+itself cites keeps exactly that alternative alive. The control is one
+intervention: the three \texttt{BatchNorm1d} layers replaced by the
+identity (the in-partition construction of
+Section~\ref{sec:res-nobn}: same stack minus gamma/beta, 28{,}929
+parameters against the BN baseline's 29{,}377, no running statistics,
+so the shipped evaluation path \emph{is} the exact evaluation),
+retrained end to end under the frozen raw protocol --- identical
+seed-42 Dirichlet shards, 50 rounds, Fed-Focal, prior-shift
+calibration, validation-frozen thresholds
+(\texttt{experiments/run\_raw\_nobn.py}; artefact of record
+\texttt{outputs/raw\_nobn\_eval.json}, its reference columns read
+live from the committed artefacts at run time, never hand-typed; both
+arms executed owner-side, 1{,}699\,s total, the FedAvg arm's 50
+rounds preserved through a mid-run crash by the round-resumable state
+design, and the round-selection bug that caused the crash fixed and
+battery-guarded --- an erratum disclosed in the RUNLOG, not
+in the numbers).
+
+\begin{table}[t]
+\centering
+\caption{The attribution control on the raw substrate: test
+window-level ROC-AUC / PR-AUC under the frozen protocol, seed 42,
+shipped validation-selected checkpoints. The no-BatchNorm arms are
+the single-intervention retraining (three \texttt{BatchNorm1d}
+layers $\to$ identity, nothing else changed); the reference rows are
+read from the committed artefacts at run time.}
+\label{tab:rawnobn}
+\small
+\begin{tabular}{@{}l c c@{}}
+\toprule
+\textbf{Arm (raw substrate)} & \textbf{ROC-AUC} & \textbf{PR-AUC} \\
+\midrule
+FedAvg MLP (BatchNorm, published) & 0.875 & 0.056 \\
+FedAvg MLP (no BatchNorm, this control) & 0.963 & 0.366 \\
+FedProx MLP (BatchNorm, published) & 0.930 & 0.149 \\
+FedProx MLP (no BatchNorm, this control) & 0.975 & 0.345 \\
+\midrule
+Centralised MLP (reference) & 0.971 & 0.445 \\
+FedAvg LSTM (reference) & 0.958 & 0.305 \\
+FedProx LSTM (reference) & 0.970 & 0.404 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Removing BatchNorm --- and nothing else --- recovers the overwhelming
+majority of the raw MLP's federation penalty
+(Table~\ref{tab:rawnobn}): FedAvg gains $+0.088$ ROC-AUC and
+$+0.310$ PR-AUC ($6.5\times$); FedProx gains $+0.045$ and $+0.196$
+($2.3\times$). In gap terms: FedAvg's ROC-AUC gap to the centralised
+MLP closes from 0.096 to 0.008 (91\%) and its PR-AUC gap from 0.389
+to 0.079 (80\%); FedProx's ROC-AUC gap closes \emph{past} zero
+($-0.005$ residual, the federated arm above its centralised
+counterpart) and its PR-AUC gap from 0.296 to 0.100 (66\%). Both
+no-BN arms sit at or above their sequence counterparts on ROC-AUC
+(0.963 vs 0.958; 0.975 vs 0.970), and no-BN FedProx exceeds the
+\emph{centralised} MLP on ROC-AUC (0.975 vs 0.971). The federated
+collapse of the BN raw MLP arms is therefore dominated by
+BatchNorm-under-federation --- not by the flattened-feature encoder,
+not by the evaluation path (Section~\ref{sec:res-rawbn}), and not by
+federation per se. The sequence arms' rescue of
+Section~\ref{sec:res-lstm} is real but is one instance of the
+BatchNorm-free rescue, of which this control is the direct proof;
+SCAFFOLD's raw-substrate failure (0.768/0.057) is the one federated
+collapse this control has not been run against, so its reading stays
+implementation-case-qualified as before.
+
+Checkpoint-selection hygiene is born with these arms and disclosed
+in full, because the degenerate-monitor pathology of the BN arms
+(Section~\ref{sec:res-rawbn}) is what it guards against. The
+shipped best-val-F1 rule selects round 50 for both arms (FedAvg's
+validation F1 0.527; FedProx's 0.092 --- its validation scores are
+compressed at the 0.35 default threshold, and its calibrated test
+operating point sits at 0.155, test F1 0.400 at recall 0.763), and a
+validation-ROC-selected sensitivity row rides beside it (FedAvg:
+round 40, 0.9635/0.3592; FedProx: round 50, identical to the shipped
+row) --- both rules disclosed, neither test-based. The per-round
+test trajectories carry the real dynamics: FedAvg's test ROC-AUC
+\emph{declines} monotonically from 0.974 (round 5) to 0.963 (round
+50) while its validation F1 still improves --- client drift
+unmitigated, with the validation prevalence (2.05\%) optimised
+against the test prevalence (1.31\%), so the shipped rule selects
+the weakest test-ROC monitored round of its own trajectory; FedProx
+climbs monotonically from 0.931 to 0.975, the proximal term's
+stabilisation becoming visible precisely once BatchNorm is removed
+--- a dynamics signature the BN arms' confound had hidden.
+
+Three boundaries keep the claim honest. (a) PR-AUC, not ROC-AUC, is
+where work remains: no-BN FedProx's 0.345 sits below the
+BN-carrying FedProx-LSTM's 0.404 and the centralised MLP's 0.445 ---
+what these arms license is the \emph{attribution}, not a new
+state-of-the-art row. (b) The paper's in-partition no-BN control
+(Section~\ref{sec:res-nobn}) is a different substrate --- balanced,
+same-partition --- and ends \emph{below} the
+BN-with-correct-statistics arm there; these raw-substrate arms are
+its natural-prevalence, out-of-partition complement, and the two
+results are not readable into each other. (c) FedAvg's declining
+test trajectory means its row is a conservative lower bound on what
+a selection rule with a usable monitor would ship; the sensitivity
+row and the trajectory are the honest record.
 
 \subsection{The sequence encoder rescues the federated arms}
 \label{sec:res-lstm}
@@ -504,17 +650,24 @@ Section~\ref{sec:res-raw} inverts. Centrally, the LSTM is the
 0.971/0.445 on the same windows. Federated, the ordering reverses.
 FedAvg-LSTM holds 0.958/0.305 where the FedAvg MLP fell to
 0.875/0.056---a $+0.083$ ROC-AUC and $+0.249$ PR-AUC swing from the
-encoder alone, under identical shards, budgets, and aggregation.
+architecture, under identical shards, budgets, and aggregation (the
+no-BatchNorm control of Section~\ref{sec:res-rawnobn} attributes the
+bulk of that swing to BatchNorm-freeness rather than to sequential
+encoding as such: with the encoder held fixed, the no-BN FedAvg MLP
+swings $+0.088$/$+0.310$).
 FedProx-LSTM reaches 0.970/0.404: above its own pooled centralised
 comparator ($+0.008$ ROC, $+0.090$ PR) and above XGBoost's raw
 PR-AUC (0.329). SCAFFOLD-LSTM lands at 0.970/0.294 against its MLP
-counterpart's 0.768/0.057---the largest single encoder swing on
+counterpart's 0.768/0.057---the largest single architecture swing on
 this substrate ($+0.202$ ROC-AUC, $+0.238$ PR-AUC): the hardest
-failure of the flattened-feature matrix is fully recovered by the
-sequence encoder under the identical protocol, completing the
+failure of the BatchNorm-carrying matrix is fully recovered by the
+BatchNorm-free sequence encoder under the identical protocol, completing the
 four-arm federation matrix on this benchmark. The two contrasts isolate what happened. Between
-federated arms of identical budget and aggregation, the sequence
-encoder removes the natural-prevalence collapse the MLP suffers; the
+federated arms of identical budget and aggregation, the
+BatchNorm-free encoder removes the natural-prevalence collapse the
+BatchNorm MLP suffers --- a property the no-BN MLP control shares,
+so the load-bearing attribute is the architecture's normalisation-free
+construction, not the sequence itself; the
 load-bearing comparison is budget-matched by construction. Between
 the pooled and federated instances of the same sequence encoder,
 federation costs nothing (FedAvg) or appears to help (FedProx)---but
@@ -705,19 +858,26 @@ of genuine early-round optimisation benefit and compatibility with the
 shipped evaluation path (Sections~\ref{sec:res-bn}--\ref{sec:res-nobn})---transfers
 to the cleaned fold (0.976 vs 0.906) and, in diminished form, to the
 raw substrate (0.930 vs 0.875 for the MLP arms; 0.970 vs 0.958 for
-the sequence arms of Section~\ref{sec:res-lstm}); it is the only
-claim now observed on every substrate executed and on both encoders
-wherever both were run. Three
+the sequence arms of Section~\ref{sec:res-lstm}; 0.975 vs 0.963 for
+the no-BatchNorm arms of Section~\ref{sec:res-rawnobn}, where the
+claim is metric-scoped --- the no-BN PR-AUC ordering inverts, FedAvg
+0.366 above FedProx 0.345); it is the only
+claim now observed on every substrate executed, on both encoders
+wherever both were run, and with and without BatchNorm. Three
 claims do not transfer beyond the cleaned fold, and all three are
-statements about the \emph{MLP} arms: the
+statements about the \emph{BatchNorm-carrying MLP} arms: the
 federated-versus-centralised ROC gap (0.003 on the cleaned fold,
-0.048 in favour of centralised on raw; 0.008 for the sequence arms),
+0.048 in favour of centralised on raw; 0.008 for the sequence arms,
+$-0.005$ for the no-BN arms),
 FedProx's in-partition PR-AUC edge (its raw PR-AUC of 0.149 is a
 third of the centralised MLP's 0.445, though the sequence arm
 reaches 0.404), and the absolute discrimination levels of the
 flattened-feature federated arms themselves (FedAvg-MLP detects zero
-of 65 events on the raw substrate; the sequence arm detects 35,
-Section~\ref{sec:res-lstm}).
+of 65 events on the raw substrate --- 38 under the diagnostic's
+batch-statistics treatment, the only one with a usable validation
+operating point --- while the sequence arm detects 35 and the
+no-BatchNorm MLP restores the window-level ranking,
+Sections~\ref{sec:res-lstm} and~\ref{sec:res-rawnobn}).
 The multi-seed, sweep, ablation, and client-level
 studies of the following subsections were executed under the
 in-partition protocol and are retained as protocol-stability
@@ -1413,6 +1573,6 @@ question, not a data-locality question. What the study does \emph{not}
 establish is that these in-partition numbers generalise: budget
 parity and natural-prevalence retraining have both since been
 executed (the gap survives budget parity, Section~\ref{sec:budget},
-but is substrate- and encoder-conditional,
-Section~\ref{sec:res-raw}), and within-fold region-disjoint
+but is substrate- and BatchNorm-conditional,
+Sections~\ref{sec:res-raw}--\ref{sec:res-rawnobn}), and within-fold region-disjoint
 validation remains the open item (Section~\ref{sec:limitations}).
