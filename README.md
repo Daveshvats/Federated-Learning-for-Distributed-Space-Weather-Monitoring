@@ -45,7 +45,7 @@ transport, checkpoint selection, novelty repositioning).
 > federated arm to chance.
 >
 > Verification apparatus: `python tests/run_battery.py` - the
-> single-entry integrity battery, **386 checks torch-less** (requires
+> single-entry integrity battery, **387 checks torch-less** (requires
 > `pdftotext` from poppler-utils; skips are counted honestly -
 > torch-gated checks that print [SKIP] are not passes). Execution
 > environments of record: `docs/ENVIRONMENTS.md`; response letters:
@@ -79,7 +79,7 @@ python data_manifest/generate_manifest.py
 
 # 2. integrity battery (no dataset required — synthetic fixtures;
 #    single entry point, one authoritative count)
-python tests/run_battery.py     # 386 checks torch-less (pdftotext required)
+python tests/run_battery.py     # 387 checks torch-less (pdftotext required)
 
 # 3. place the Cleaned SWAN-SF pkl files under data/cleaned/{train,test}/
 #    https://github.com/samresume/Cleaned-SWANSF-Dataset
