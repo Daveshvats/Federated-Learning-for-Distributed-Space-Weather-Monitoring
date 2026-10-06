@@ -74,8 +74,11 @@ BatchNorm layers and changing nothing else restores FedAvg to
 arms' ranking and with FedProx matching the centralised MLP on
 ROC-AUC within recorded retrain nondeterminism --- a level match
 the seed-43 replication confirms (both arms within 0.002 ROC-AUC
-of their seed-42 selections,
-Section~\ref{sec:res-rawnobn})---so the balanced-substrate
+of their seed-42 selections) and whose validation-divergence
+diagnosis the region-disjoint re-run closes: the random carve's
+rising monitor was region-sharing leakage, and under the
+whole-region carve the monitor declines with the test trajectory
+while the selections hold (Section~\ref{sec:res-rawnobn})---so the balanced-substrate
 standing is a property of BatchNorm under federation, not of
 federation per se and not of the flattened-feature representation as
 such, and no federated arm exceeds the best
@@ -137,14 +140,14 @@ consolidated in Appendix~\ref{sec:app-scaffold}).
 An independent re-execution from the public dataset artefacts ---
 byte-verified against the frozen SHA-256 manifest by a committed,
 executable verification script (20/20 files; Section~\ref{sec:repro})
---- reproduces every in-partition headline metric exactly; eleven items of the re-run
+--- reproduces every in-partition headline metric exactly; twelve items of the re-run
 programme---the frozen-FPR report, the calibration arms, the
 untouched holdouts, the budget-matched and $\alpha{=}5.0$ re-runs,
 the raw-metadata provenance audit, the event-level/leakage-free
 evaluation on the temporally-preceding fold, the raw-substrate
 retraining with the SCAFFOLD arm, the federated LSTM arms, their
-seed-43 replication, and the natural-prevalence SMOTE
-ablation---have
+seed-43 replication, the natural-prevalence SMOTE
+ablation, and the region-disjoint validation re-run---have
 since been executed with results in Section~\ref{sec:results}; the
 remaining
 items are listed in

@@ -156,8 +156,8 @@ PINNED_ENTRIES = [
 # tab:rawnobnrep reflowed the full edition from 65); submission 12
 # pp (sentence-level replication verdicts, no reflow).
 PINNED_PAGE_COUNTS = {
-    os.path.join("paper", "main.pdf"): 67,
-    os.path.join("submission", "main.pdf"): 12,
+    os.path.join("paper", "main.pdf"): 68,
+    os.path.join("submission", "main.pdf"): 13,
 }
 
 

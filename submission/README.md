@@ -1,11 +1,11 @@
 # Journal Submission Edition (the trimmed paper, regenerated from the record)
 
 This directory is the **journal submission manuscript** of the SF9
-paper (current build: **v4.13**). Since v4.12 it is the **trimmed,
-publishable edition** — the 12-page paper covering exactly what an
+paper (current build: **v4.14**). Since v4.12 it is the **trimmed,
+publishable edition** — the 13-page paper covering exactly what an
 external reviewer needs: provenance and leakage, the leakage-free
 fold, persistence baselines, the two BatchNorm findings, and
-calibration failure. The extended record (the full 65-page edition
+calibration failure. The extended record (the full 68-page edition
 with the complete experiment apparatus) lives at `paper/` and is
 kept alongside by design.
 

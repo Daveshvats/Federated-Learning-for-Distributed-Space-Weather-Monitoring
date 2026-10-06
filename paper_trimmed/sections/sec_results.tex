@@ -276,23 +276,26 @@ FedProx LSTM (reference, no BatchNorm) & 0.970 & 0.404 \\
 \end{tabular}
 \end{table}
 
-\paragraph{The validation divergence, honestly.}
+\paragraph{The validation divergence, resolved.}
 FedAvg's no-BN test ROC-AUC \emph{declines} from 0.974 (round 5) to
 0.963 (round 50) while its validation ROC-AUC and $F_1$ still
 improve (0.974 to 0.977; 0.345 to 0.527), so the shipped
 best-validation rule selects the weakest test-ROC round of its own
-monitored trajectory. A prevalence difference cannot explain this
-divergence: ROC-AUC is a rank statistic, invariant to class
-prevalence, so the validation carve's 2.05\% against the test fold's
-1.31\% moves thresholded quantities, not the ranking. Two candidate
-mechanisms remain, both testable with the released region-disjoint
-split generator: the random validation carve shares active regions
-with the training shards (the same leakage class the provenance
-audit documents benchmark-wide), and partition 5 is the temporally
-latest fold, so late-round specialisation to partitions 1--4 can
-register as validation gain and test loss at once. The
-within-fold region-disjoint validation re-run of both arms is
-prepared in the released code and is the first remaining compute
-item; FedProx's trajectory, for contrast, climbs monotonically from
-0.931 to 0.975 --- the proximal term's stabilisation becoming
-visible precisely once BatchNorm is removed.
+monitored trajectory --- and prevalence cannot explain the
+divergence, since ROC-AUC is a rank statistic: the carve's 2.05\%
+against the test fold's 1.31\% moves thresholded quantities, not
+the ranking. Two candidate mechanisms remained --- region-sharing
+between the random validation carve and the training shards, or the
+temporal position of partition 5 --- and the region-disjoint re-run
+(whole active regions held out, 390 of 2{,}447) separates them: the
+divergence disappears. Validation ROC-AUC declines (0.980 to
+0.974) in parallel with the test trajectory (0.975 to 0.960): the
+rising monitor was region-sharing inflation, temporal position
+rejected, the shipped selections moved within noise (FedAvg 0.962/0.367,
+FedProx 0.974/0.358), and the validation-ROC-selected checkpoint
+became round 5 --- the best test round of the trajectory
+(0.975/0.450). The decline itself is carve-invariant (real client
+drift; the shipped row a conservative lower bound) with a stable
+$\sim$0.014 validation--test offset of genuine held-out-region
+difficulty, not leakage. FedProx, for contrast, climbs monotonically
+from 0.931 to 0.975 once BatchNorm is removed.

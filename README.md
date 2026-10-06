@@ -14,7 +14,7 @@ transport, checkpoint selection, novelty repositioning).
 > record (65 pp - the complete experiment apparatus, the LSTM/SMOTE/
 > client studies, the SCAFFOLD consolidation appendix, and the
 > configuration version-history table); `submission/` is the trimmed,
-> publishable 12-page paper covering provenance and leakage, the
+> publishable 13-page paper covering provenance and leakage, the
 > leakage-free fold, persistence baselines, the two BatchNorm
 > findings, and calibration failure (generated from `paper_trimmed/`
 > by `tools/build_submission.py`, never hand-edited; the battery
@@ -45,7 +45,7 @@ transport, checkpoint selection, novelty repositioning).
 > federated arm to chance.
 >
 > Verification apparatus: `python tests/run_battery.py` - the
-> single-entry integrity battery, **498 checks torch-less** (requires
+> single-entry integrity battery, **579 checks torch-less** (requires
 > `pdftotext` from poppler-utils; skips are counted honestly -
 > torch-gated checks that print [SKIP] are not passes). Execution
 > environments of record: `docs/ENVIRONMENTS.md`; response letters:
@@ -79,7 +79,7 @@ python data_manifest/generate_manifest.py
 
 # 2. integrity battery (no dataset required — synthetic fixtures;
 #    single entry point, one authoritative count)
-python tests/run_battery.py     # 498 checks torch-less (pdftotext required)
+python tests/run_battery.py     # 579 checks torch-less (pdftotext required)
 
 # 3. place the Cleaned SWAN-SF pkl files under data/cleaned/{train,test}/
 #    https://github.com/samresume/Cleaned-SWANSF-Dataset
@@ -155,7 +155,7 @@ SF9/
 ├── privacy_analysis/           # threat model
 ├── limitations/                # honest limitations
 ├── docs/                       # GIC boundary, lit-search, review-2 response
-├── tests/                      # integrity battery (run_battery.py: 498 checks torch-less; crashed guards fail, skips declared, frozen artefacts byte-stable via .gitattributes) + substrate + LSTM + queue + artefact suites
+├── tests/                      # integrity battery (run_battery.py: 579 checks torch-less; crashed guards fail, skips declared, frozen artefacts byte-stable via .gitattributes) + substrate + LSTM + queue + artefact suites
 ├── logs/                       # execution logs
 ├── paper/                      # manuscript (LaTeX + PDF) + review
 └── outputs/                    # results.json, figures (regenerated)

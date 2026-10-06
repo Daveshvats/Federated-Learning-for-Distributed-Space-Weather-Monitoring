@@ -611,7 +611,7 @@ divergence: ROC-AUC is a rank statistic, invariant to class
 prevalence, so the validation carve's 2.05\% against the test
 fold's 1.31\% moves thresholded quantities, not the ranking --- the
 divergence must live in the splits. Two candidate mechanisms
-remain, both testable with the committed region-disjoint split
+remained, both testable with the committed region-disjoint split
 generator: the random validation carve shares active regions with
 the training shards (the same leakage class the provenance audit
 of Section~\ref{sec:provenance} documents benchmark-wide, which
@@ -619,8 +619,11 @@ would inflate validation while test declines), and partition 5 is
 the temporally latest fold, so late-round specialisation to
 partitions 1--4 can register as validation gain and test loss at
 once. The within-fold region-disjoint validation re-run of both
-arms is therefore first in the remaining re-run programme
-(Section~\ref{sec:limitations}); FedProx climbs monotonically from
+arms has since executed and separates them decisively: the
+divergence disappears, the region-sharing mechanism is confirmed
+as the monitor's inflation, and partition-5 recency is rejected
+(the verdict and its residuals are recorded two paragraphs below);
+FedProx climbs monotonically from
 0.931 to 0.975, the proximal term's stabilisation becoming visible
 precisely once BatchNorm is removed --- a dynamics signature the BN
 arms' confound had hidden.
@@ -667,9 +670,10 @@ sequence arms' own seed-43 batch --- the same six client sizes and
 flare rates, a cross-runner reproducibility fact the battery pins.
 Its artefact of record is the owner console transcript (committed
 at \texttt{logs/run\_raw\_nobn\_seed43\_transcript.txt},
-sha256-pinned; the full-fidelity JSON, present owner-side, lands
-with the owner push and will be frozen on arrival per the
-established convention).
+sha256-pinned; its full-fidelity JSON
+(\texttt{outputs/raw\_nobn\_eval\_seed43.json}) has since landed
+with the owner push and is sha256-frozen under the same
+convention).
 
 \begin{table}[t]
 \centering
@@ -693,6 +697,53 @@ FedProx & 0.975 & 0.345 & 0.976 & 0.321 \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+The region-disjoint re-run closes the diagnosis. With whole NOAA
+active regions held out (390 of 2{,}447; 40{,}959 validation rows
+at 1.49\% prevalence against the random carve's 2.05\%; train and
+test untouched, disjointness asserted by the runner), the FedAvg
+monitor moves with the test trajectory for the first time:
+validation ROC-AUC \emph{declines} (0.980 to 0.974, rounds 5--50)
+in parallel with the test decline (0.975 to 0.960) --- the random
+carve's rising monitor (0.974 to 0.977; 0.978 to 0.989 at seed 43,
+where the divergence sharpened) was region-sharing inflation, and
+partition-5 recency is rejected as its cause. The shipped
+selections are unchanged within noise (FedAvg 0.962/0.367 at
+round 35, FedProx 0.974/0.358 at round 50 --- $-0.001$ and
+$-0.001$ ROC-AUC against the random-carve seed-42 rows of
+Table~\ref{tab:rawnobnrep}): the leak inflated the monitor's
+\emph{trend}, not the selections, because the selection rule is
+validation-based and the thresholded validation-F1 band was flat
+in both carves. What the honest monitor buys is the sensitivity
+row: the validation-ROC rule now selects round 5 --- simultaneously
+the best test round of the entire trajectory (0.975/0.450) ---
+where under the random carve it selected round 40, mid-decay.
+
+Three residuals keep the resolution honest. First, the test
+decline itself is carve-invariant (0.974$\to$0.960 under the
+region-disjoint carve against 0.974$\to$0.963 under the random
+carve), so boundary (c)'s conservative-lower-bound reading
+survives: the decline is real client drift, not a validation
+artefact. Second, a stable $\sim$0.014 validation--test ROC-AUC
+level offset remains --- a genuine held-out-region difficulty
+difference now, not leakage --- and the divergence persists in PR
+space (validation PR-AUC drifting up 0.675$\to$0.715 while test
+PR-AUC falls 0.450$\to$0.357), the expected behaviour of a
+prevalence- and population-sensitive statistic, which is precisely
+why ROC-AUC is the diagnostic axis throughout this subsection.
+Third, FedProx shows no divergence in either carve (validation and
+test both climb), and its region-disjoint monitor recovers to
+validation F1 0.574 against the random carve's 0.092 \emph{at the
+same seed and protocol} --- the fifth independent confirmation
+that the fixed-threshold monitor is the fragile layer: its
+thresholded values travel with the validation population while
+the ranking moves by 0.001. The artefact of record
+(\texttt{outputs/raw\_nobn\_region\_disjoint.json}, sha256-frozen
+by the battery) rode the frozen substrate cache with its region
+map supplied by the parse metadata the run kit commits, shards
+rebuilt at $\alpha{=}1.0$/seed 42 on the 214{,}861-row
+region-disjoint train pool, executed owner-side in 3{,}119\,s on
+the same GPU class as every batch of this programme.
 
 \subsection{The BatchNorm-free sequence arms rescue the federated
 arms}

@@ -1,37 +1,48 @@
-# RUN CARD (rev. v4.13.2) — the external-review compute items (2) and (3)
+# RUN CARD (rev. v4.14) — the external-review compute items (2)
+and (3): BOTH EXECUTED, BOTH INTEGRATED
 
 The independent re-review of v4.11 asked for two small compute jobs
-that this sandbox cannot run (no GPU, no dataset cache). Both are
+that this sandbox cannot run (no GPU, no dataset cache). Both were
 prepared, guarded, and namespaced so they cannot disturb the frozen
-v4.9.4 artefacts. This card is the exact recipe.
+v4.9.4 artefacts. This card is the exact recipe — and, as of v4.14,
+the closed record of both executions.
 
-**v4.13 status (2026-10-06, after the owner's second execution):**
+**v4.14 status (2026-10-06, after the owner's third execution):**
 
-- **Item 3 (seed 43) is EXECUTED and integrated at v4.13.** Both
-  arms completed on the owner GPU (2,899 s; transcript committed at
-  `logs/run_raw_nobn_seed43_transcript.txt`). Verdict per the
-  decision rules below: **parity holds** — shipped selections move
-  −0.002/+0.001 ROC-AUC (FedAvg 0.9626→0.961, FedProx
-  0.9755→0.976), every level claim survives, both dynamics
-  signatures reproduce, and the thresholded validation-F1 monitor
-  is the seed-sensitive layer (0.527→0.660 / 0.092→0.300). The
-  paper's boundary (d), the re-run programme, the conclusion, the
-  trimmed edition, and the new Table `tab:rawnobnrep` all carry it.
-  The full-fidelity JSON the run wrote has since LANDED (the owner
-  paste, committed + sha256-frozen at v4.13.1 — see "Item 3
-  follow-up" below): item 3 is fully closed, nothing owner-side.
-- **Item 2 (region-disjoint): the prerequisite is GONE — the parse
-  metadata is now SHIPPED IN THE REPO (v4.13.2).** The four files
-  `raw/p1_meta.csv .. raw/p4_meta.csv` (the labels + NOAA-AR
-  column, regenerated from the public benchmark by streaming the
-  Dataverse archives through the exact parse semantics) are
-  committed and battery-pinned (tests/test_region_meta.py: sha256
-  byte-pins, audit-count checks, the 45,194-row slim-meta join with
-  100% label agreement, and the runner's own pre-flight/load
-  contract). **The owner recipe collapses to: git pull, then run
-  the command under "The run" below.** Steps 0-1 below are kept for
-  the record (and for anyone rebuilding from scratch); they are no
-  longer needed on your box.
+- **Item 2 (region-disjoint) is EXECUTED and integrated at
+  v4.14.** Both arms completed on the owner GPU (3,119 s; the
+  artefact was pushed directly by the owner and committed at
+  `outputs/raw_nobn_region_disjoint.json` — 742 lines, the
+  Windows CRLF form, 25,722 bytes — the first full-fidelity
+  owner push of the cycle). Verdict per the decision rules
+  below: **the divergence disappears** — FedAvg's validation
+  ROC-AUC declines (0.980→0.974) in parallel with the test
+  decline (0.975→0.960) under the whole-region carve (390 of
+  2,447 active regions held out, 1.49% validation prevalence),
+  so the random carve's rising monitor (0.974→0.977; sharper at
+  seed 43, 0.978→0.989) was region-sharing leakage and
+  partition-5 recency is rejected. The shipped selections are
+  unchanged within noise (FedAvg 0.9626→0.9617, FedProx
+  0.9755→0.9743 — note the card's earlier "likely improve"
+  guess did NOT materialise: the leak inflated the monitor's
+  trend, not the validation-based selections); the shipped
+  checkpoint is no longer the weakest test round of its own
+  trajectory; and the validation-ROC sensitivity rule now
+  selects round 5, simultaneously the best test round of the
+  entire trajectory (0.975/0.450). FedProx shows no divergence
+  in either carve, and its validation-F1 monitor recovers
+  0.092→0.574 at the same seed — the fifth independent
+  confirmation that the fixed-threshold monitor is the fragile
+  layer. The paper (6.4 mechanisms paragraph resolved in place +
+  the verdict/residuals paragraphs, the limitations' fifth
+  owner-GPU batch row + queued-list removal, the conclusion
+  clause, the appendix v4.14 row, the trimmed edition's
+  divergence paragraph and discharged caveat) carries it, and
+  `tests/test_region_disjoint_verdict.py` (80 checks) pins the
+  artefact, the verdict, and every integration site. **No owner
+  action remains on this card.**
+- **Item 3 (seed 43): EXECUTED and integrated at v4.13/v4.13.1**
+  (see below). Fully closed, nothing owner-side.
 - **(Historical, v4.12.1:) Item 2 was blocked on two causes, both
   fixed in that revision:**
   1. *PowerShell reserves the `<` character.* The v4.12 card wrote
@@ -98,7 +109,11 @@ bytes + the byte-pinned inventory). The sha256 freeze the v4.13
 card promised is live: battery layer 6 now byte-pins the artefact,
 re-verifies every transcript-consistency fact against it, and a
 missing file is a FAILURE, not a SKIP. **No owner action remains
-for item 3.** The only open item on this card is item 2 below.
+for item 3 — and since v4.14, none remains for item 2 either: the
+item-2 artefact was owner-pushed (17af7e4) and the integration is
+live. This card is now the closed record of both runs; the recipe
+sections below are retained for the record and for anyone
+re-running from scratch.**
 
 ## Item 2 — the region-disjoint re-run (PowerShell-safe recipe)
 
@@ -188,32 +203,38 @@ it contains spaces — e.g. `--raw-dir "C:\tmp\swansf_raw"`.)
 
 ## How to read the outcomes (decision rules)
 
-- **Item 2, divergence disappears** (val ROC no longer rises while
-  test falls; the shipped checkpoint is no longer the weakest test
-  round): the random carve was region-leaky — the paper's validation
-  story updates at v4.14, and the shipped numbers likely *improve*
-  under the honest monitor.
-- **Item 2, divergence persists**: partition-5 recency (temporal
-  drift) becomes the leading explanation; the FedAvg declining
-  trajectory is real client drift and the row stays a conservative
-  lower bound.
+- **Item 2 — RESOLVED at v4.14: the divergence disappears**
+  (val ROC no longer rises while test falls; the shipped
+  checkpoint is no longer the weakest test round — measured:
+  val ROC 0.980→0.974 declining in parallel with test
+  0.975→0.960 under the region-disjoint carve; the random carve
+  was region-leaky, and partition-5 recency is rejected). The
+  paper's validation story updated at v4.14. One honest
+  correction to this card's own earlier guess: the shipped
+  numbers did NOT improve under the honest monitor (both
+  deltas ≈ −0.001) — the leak inflated the monitor's trend, not
+  the validation-based selections.
+- **Item 2, divergence persists** (the alternative branch, NOT
+  taken): partition-5 recency would have become the leading
+  explanation; the FedAvg declining trajectory would have stayed
+  a conservative lower bound. In the event, the test decline
+  proved carve-invariant, so the lower-bound reading survives
+  regardless.
 - **Item 3 — RESOLVED at v4.13**: parity holds within ±0.005
   ROC-AUC (measured: −0.002/+0.001); the level claims stand with
   replication.
 
-## Reporting back
+## Reporting back — CLOSED (v4.14)
 
-After the item-2 run completes:
-
-```powershell
-git add outputs\raw_nobn_region_disjoint.json
-git commit -m "artefact: raw_nobn_region_disjoint.json (owner-side, external-review item 2)"
-git push
-```
-
-Then paste (or leave in the pushed commit) the stdout tail — the
-`[nobn]` summary lines and the REGION-DISJOINT carve line.
-Integration at v4.14 then follows the established convention: the
-artefact lands byte-faithfully, gets sha256-pinned, and the paper
-integrates the verdict (Sections 6.4/9 and the limitations re-run
-programme).
+The item-2 run completed, the owner pushed the artefact directly
+(commit 17af7e4, `outputs/raw_nobn_region_disjoint.json`), the
+analysis session validated it against the run's own console
+output (40+ cross-checks; the pasted pre-push reconstruction had
+four deep-decimal digit transpositions that the push corrected,
+and the selected-vs-trajectory 4.6e-6 ROC gap at round 35 is a
+property of the owner's own file — two separate post-hoc
+evaluation passes), and the v4.14 integration landed per the
+established convention: the artefact sha256-frozen by the new
+battery module, the paper's Sections 6.4/9 and the limitations
+re-run programme carrying the verdict, both editions recompiled.
+Nothing remains owner-side on this card.

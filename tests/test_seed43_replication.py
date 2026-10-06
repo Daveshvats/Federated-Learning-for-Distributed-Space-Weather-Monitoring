@@ -341,10 +341,11 @@ def paper_layer(sel):
           "2{,}899" in lim)
     check("sec_limitations.tex: the seed-43 replication REMOVED "
           "from the queued list (an executed item cannot stay "
-          "queued)",
+          "queued) — v4.14: the region-disjoint entry left the queue "
+          "as well, executed as the fifth owner-GPU batch",
           "the seed-43 replication of the no-BN MLP arms;" not in lim
           and "blocked only on regenerating the raw parse metadata"
-          in lim)
+          not in lim and "the fifth owner-GPU batch" in lim)
 
     con = _read(PAPER_CONCL)
     check("sec_conclusion.tex: the parity claim now carries the "
@@ -374,13 +375,18 @@ def paper_layer(sel):
     # JSON" (the recipe) to DONE (landed + sha256-frozen) — the pin
     # follows the card state, never a stale recipe. v4.13.2: the rev
     # line bumped again (the parse metadata shipped in-repo); the
-    # item-3 facts are unchanged.
-    check("run card rev. v4.13.2: item 3 executed with the verdict, "
+    # item-3 facts are unchanged. v4.14: the card closed item 2
+    # (EXECUTED + integrated, the reporting-back recipe retired);
+    # every item-3 fact below is still intact.
+    check("run card rev. v4.14: item 3 executed with the verdict, "
           "the JSON push marked DONE (landed, sha256-frozen), and "
-          "the PowerShell-safe item-2 recipe ($parts) still intact",
-          "rev. v4.13.2" in rc and "parity holds" in rc and
+          "the card now the closed record of BOTH items (item 2 "
+          "EXECUTED at v4.14, the $parts recipe retained as the "
+          "record)",
+          "rev. v4.14" in rc and "parity holds" in rc and
           "JSON push" in rc and "DONE (v4.13.1" in rc and
           "No owner action remains" in rc and
+          "the divergence disappears" in rc and
           "git add outputs\\raw_nobn_eval_seed43.json" not in rc and
           "$parts" in rc)
 

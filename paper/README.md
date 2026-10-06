@@ -1,12 +1,12 @@
 # paper/ — the extended edition of record
 
-## Status (v4.13, 2026-10): the full/extended edition
+## Status (v4.14, 2026-10): the full/extended edition
 
 This directory is the **full edition** — the extended record of the
 study: the complete experiment apparatus, the LSTM/SMOTE/client
 studies, the SCAFFOLD consolidation appendix, and the configuration
 version-history table. The publishable edition is the trimmed
-12-page paper at `paper_trimmed/` (compiled to
+13-page paper at `paper_trimmed/` (compiled to
 `submission/main.pdf`); both editions are kept by design. The v4.12
 revision responds to an independent external re-review (five
 findings, all accepted): the FedProx parity claim re-worded to
@@ -19,7 +19,7 @@ appendix with their implementation status disclosed.
 
 | File | Status |
 |---|---|
-| `main.pdf` + `main.tex` + `sections/` + `refs.bib` | **The extended edition of record** (v4.13, 67 pp), compiled with `tectonic`. Every printed number regenerates from a committed artefact in `outputs/`. |
+| `main.pdf` + `main.tex` + `sections/` + `refs.bib` | **The extended edition of record** (v4.14, 68 pp), compiled with `tectonic`. Every printed number regenerates from a committed artefact in `outputs/`. |
 | `review.tex` | Source of the historical v2.x-era companion audit (findings B1-B25) that drove the `improvements` branch — kept as a historical document. Its compiled PDF and the superseded manuscript PDF were removed at v4.5 (R-FS9-R5 front-door finding; preserved in git history). |
 | `figures/` | The live figure set referenced by `main.tex` (8 figures). Root-level duplicate figures and the two unreferenced `figures/` leftovers were removed at v4.5; the results figures regenerate via `visualize_results.py` (writes `outputs/*.png`), the client/partition pair via `tools/make_fig_clients.py` / `tools/make_fig_partition.py` (the `scripts/fig_analysis.py` reference that stood here pointed at a path that does not exist in this repository — Dossier R-FS9-R7 B11). |
 
