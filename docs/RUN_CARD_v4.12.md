@@ -1,4 +1,4 @@
-# RUN CARD (rev. v4.13) — the external-review compute items (2) and (3)
+# RUN CARD (rev. v4.13.1) — the external-review compute items (2) and (3)
 
 The independent re-review of v4.11 asked for two small compute jobs
 that this sandbox cannot run (no GPU, no dataset cache). Both are
@@ -17,8 +17,9 @@ v4.9.4 artefacts. This card is the exact recipe.
   is the seed-sensitive layer (0.527→0.660 / 0.092→0.300). The
   paper's boundary (d), the re-run programme, the conclusion, the
   trimmed edition, and the new Table `tab:rawnobnrep` all carry it.
-  One follow-up remains owner-side, cost ~10 seconds: **push the
-  full-fidelity JSON** (see "Item 3 follow-up" below).
+  The full-fidelity JSON the run wrote has since LANDED (the owner
+  paste, committed + sha256-frozen at v4.13.1 — see "Item 3
+  follow-up" below): item 3 is fully closed, nothing owner-side.
 - **Item 2 (region-disjoint) is BLOCKED on a prerequisite, and the
   card's own v4.12 instructions were un-pasteable.** Two causes,
   both now fixed in this revision:
@@ -73,21 +74,20 @@ is battery-guarded by `tests/test_region_disjoint.py`.
 3. **The raw parse metadata** `p1..p4_meta.csv` — required by item 2
    only. See the recipe below.
 
-## Item 3 follow-up — push the JSON (10 seconds, do this first)
+## Item 3 follow-up — the JSON push — DONE (v4.13.1, 2026-10-06)
 
-The run already wrote `outputs\raw_nobn_eval_seed43.json` (24,768
-bytes — the box inventory confirms it exists). It has NOT been
-committed yet. The v4.13 integration rides the committed console
-transcript (every paper number battery-pinned to its parsed lines);
-this push lands the full-fidelity record, which will be sha256-
-frozen on arrival per the established convention:
-
-```powershell
-git pull    # picks up v4.13
-git add outputs\raw_nobn_eval_seed43.json
-git commit -m "artefact: raw_nobn_eval_seed43.json (owner-side, external-review item 3)"
-git push
-```
+The owner pasted the full-fidelity JSON back (the whole file,
+verbatim). It has been reconstructed byte-faithfully and COMMITTED
+at `outputs/raw_nobn_eval_seed43.json`: the LF-committed form is
+24,063 bytes (sha256 7c3d30fe9c35ca0e...bde63741, byte-pinned in
+battery layer 6), and its Windows CRLF form is EXACTLY the
+24,768 bytes the owner-disk inventory recorded, so the landing is
+reconciled against two independent owner-side records (the pasted
+bytes + the byte-pinned inventory). The sha256 freeze the v4.13
+card promised is live: battery layer 6 now byte-pins the artefact,
+re-verifies every transcript-consistency fact against it, and a
+missing file is a FAILURE, not a SKIP. **No owner action remains
+for item 3.** The only open item on this card is item 2 below.
 
 ## Item 2 — the region-disjoint re-run (PowerShell-safe recipe)
 

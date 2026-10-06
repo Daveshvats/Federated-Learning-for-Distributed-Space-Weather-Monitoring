@@ -1,0 +1,706 @@
+{
+  "runner": "experiments/run_raw_nobn.py",
+  "fedavg": {
+    "runner": "experiments/run_raw_nobn.py",
+    "algorithm": "fedavg",
+    "protocol": {
+      "seed": 43,
+      "rounds": 50,
+      "arch": "SolarMLP with BatchNorm1d->Identity",
+      "n_params": 28929,
+      "mu": 0.0,
+      "alpha": 1.0,
+      "clients": 6,
+      "calibration": "prior_shift",
+      "validation": "random stratified carve, frozen seed-42 recipe, seed 43 re-init and shard draw (v4.12 item 3)",
+      "note": "frozen raw protocol, architecture-only intervention; state file nobns43_fedavg_state.pt carries arch='nobn'"
+    },
+    "history": [
+      {
+        "round": 5,
+        "threshold": 0.35,
+        "accuracy": 0.9836558194077983,
+        "precision": 0.6634615384615384,
+        "recall": 0.41120381406436235,
+        "f1": 0.5077262693156733,
+        "f2": 0.44504643962848295,
+        "roc_auc": 0.9781259911587562,
+        "pr_auc": 0.5889002661546808,
+        "brier": 0.014764377941776872,
+        "ece": 0.02070809121731123,
+        "prevalence": 0.020497410339098993,
+        "recall@0.5%FPR": 0.43146603098927294,
+        "recall@1%FPR": 0.5578069129916567,
+        "recall@2%FPR": 0.6805721096543504,
+        "recall@5%FPR": 0.8533969010727056
+      },
+      {
+        "round": 10,
+        "threshold": 0.35,
+        "accuracy": 0.9843887423043096,
+        "precision": 0.6582278481012658,
+        "recall": 0.4958283671036949,
+        "f1": 0.5656016315431679,
+        "f2": 0.5215646940822467,
+        "roc_auc": 0.9830322390787071,
+        "pr_auc": 0.6562899548611799,
+        "brier": 0.013632070859521636,
+        "ece": 0.018739598595181227,
+        "prevalence": 0.020497410339098993,
+        "recall@0.5%FPR": 0.48390941597139453,
+        "recall@1%FPR": 0.6197854588796186,
+        "recall@2%FPR": 0.7413587604290822,
+        "recall@5%FPR": 0.899880810488677
+      },
+      {
+        "round": 15,
+        "threshold": 0.35,
+        "accuracy": 0.9851705267272549,
+        "precision": 0.676829268292683,
+        "recall": 0.5292014302741359,
+        "f1": 0.5939799331103679,
+        "f2": 0.5533399800598205,
+        "roc_auc": 0.9847100723238019,
+        "pr_auc": 0.6796707741816281,
+        "brier": 0.012980096163964425,
+        "ece": 0.016985470026609214,
+        "prevalence": 0.020497410339098993,
+        "recall@0.5%FPR": 0.5256257449344458,
+        "recall@1%FPR": 0.6388557806912991,
+        "recall@2%FPR": 0.7771156138259833,
+        "recall@5%FPR": 0.9106078665077473
+      },
+      {
+        "round": 20,
+        "threshold": 0.35,
+        "accuracy": 0.9864653571777582,
+        "precision": 0.7444253859348199,
+        "recall": 0.5172824791418356,
+        "f1": 0.6104078762306611,
+        "f2": 0.5509012439705508,
+        "roc_auc": 0.9864115692635599,
+        "pr_auc": 0.713456541465994,
+        "brier": 0.012278425992774046,
+        "ece": 0.015519189526717934,
+        "prevalence": 0.020497410339098993,
+        "recall@0.5%FPR": 0.5470798569725864,
+        "recall@1%FPR": 0.6686531585220501,
+        "recall@2%FPR": 0.8152562574493445,
+        "recall@5%FPR": 0.9189511323003575
+      },
+      {
+        "round": 25,
+        "threshold": 0.35,
+        "accuracy": 0.9864653571777582,
+        "precision": 0.7188940092165899,
+        "recall": 0.5578069129916567,
+        "f1": 0.6281879194630873,
+        "f2": 0.5839780384327427,
+        "roc_auc": 0.9866394512377317,
+        "pr_auc": 0.7240282422093,
+        "brier": 0.012038468080469178,
+        "ece": 0.01512992238427308,
+        "prevalence": 0.020497410339098993,
+        "recall@0.5%FPR": 0.5625744934445769,
+        "recall@1%FPR": 0.6805721096543504,
+        "recall@2%FPR": 0.8307508939213349,
+        "recall@5%FPR": 0.9201430274135876
+      },
+      {
+        "round": 30,
+        "threshold": 0.35,
+        "accuracy": 0.9869784032053162,
+        "precision": 0.7383177570093458,
+        "recall": 0.564958283671037,
+        "f1": 0.6401080351114112,
+        "f2": 0.5927963981990996,
+        "roc_auc": 0.9874353510685986,
+        "pr_auc": 0.737281114008693,
+        "brier": 0.011565359681673416,
+        "ece": 0.014095615116339303,
+        "prevalence": 0.020497410339098993,
+        "recall@0.5%FPR": 0.5780691299165673,
+        "recall@1%FPR": 0.7056019070321812,
+        "recall@2%FPR": 0.8414779499404053,
+        "recall@5%FPR": 0.930870083432658
+      },
+      {
+        "round": 35,
+        "threshold": 0.35,
+        "accuracy": 0.9873204338903547,
+        "precision": 0.7580645161290323,
+        "recall": 0.5601907032181168,
+        "f1": 0.6442769019876627,
+        "f2": 0.5910462776659959,
+        "roc_auc": 0.9879723623505029,
+        "pr_auc": 0.7505471975023638,
+        "brier": 0.01144503298817805,
+        "ece": 0.014473031663986573,
+        "prevalence": 0.020497410339098993,
+        "recall@0.5%FPR": 0.5840286054827175,
+        "recall@1%FPR": 0.7187127532777116,
+        "recall@2%FPR": 0.8569725864123957,
+        "recall@5%FPR": 0.930870083432658
+      },
+      {
+        "round": 40,
+        "threshold": 0.35,
+        "accuracy": 0.9877846183914786,
+        "precision": 0.7783251231527094,
+        "recall": 0.564958283671037,
+        "f1": 0.6546961325966851,
+        "f2": 0.5977301387137453,
+        "roc_auc": 0.9883772761107539,
+        "pr_auc": 0.7585027702261911,
+        "brier": 0.011093938855468749,
+        "ece": 0.013382246519162505,
+        "prevalence": 0.020497410339098993,
+        "recall@0.5%FPR": 0.5876042908224076,
+        "recall@1%FPR": 0.7318235995232419,
+        "recall@2%FPR": 0.8641239570917759,
+        "recall@5%FPR": 0.9404052443384983
+      },
+      {
+        "round": 45,
+        "threshold": 0.35,
+        "accuracy": 0.9881755106029513,
+        "precision": 0.8044596912521441,
+        "recall": 0.5589988081048868,
+        "f1": 0.659634317862166,
+        "f2": 0.5953287636455953,
+        "roc_auc": 0.9885860279498555,
+        "pr_auc": 0.7635528229979882,
+        "brier": 0.010953184054221741,
+        "ece": 0.013094235494423193,
+        "prevalence": 0.020497410339098993,
+        "recall@0.5%FPR": 0.5947556615017878,
+        "recall@1%FPR": 0.7389749702026222,
+        "recall@2%FPR": 0.8629320619785459,
+        "recall@5%FPR": 0.9427890345649583
+      },
+      {
+        "round": 50,
+        "threshold": 0.35,
+        "accuracy": 0.9877357568650444,
+        "precision": 0.7713365539452496,
+        "recall": 0.5709177592371871,
+        "f1": 0.6561643835616439,
+        "f2": 0.6022127231581594,
+        "roc_auc": 0.9889448777718144,
+        "pr_auc": 0.7731461312210836,
+        "brier": 0.010782658238261739,
+        "ece": 0.013410897882017844,
+        "prevalence": 0.020497410339098993,
+        "recall@0.5%FPR": 0.6042908224076281,
+        "recall@1%FPR": 0.767580452920143,
+        "recall@2%FPR": 0.865315852205006,
+        "recall@5%FPR": 0.9368295589988082
+      }
+    ],
+    "best_val_f1": 0.659634,
+    "best_round": 45,
+    "selected_checkpoint_test": {
+      "threshold": 0.24499999999999988,
+      "val_fbeta": 0.7495195387572069,
+      "test": {
+        "threshold": 0.24499999999999988,
+        "accuracy": 0.9781065481324223,
+        "precision": 0.27146814404432135,
+        "recall": 0.39595959595959596,
+        "f1": 0.32210353327855384,
+        "f2": 0.3626943005181347,
+        "roc_auc": 0.9605310449028097,
+        "pr_auc": 0.3485911779584981,
+        "brier": 0.010736877631838572,
+        "ece": 0.006606194211908466,
+        "prevalence": 0.013136071120546673,
+        "recall@0.5%FPR": 0.28888888888888886,
+        "recall@1%FPR": 0.3434343434343434,
+        "recall@2%FPR": 0.4727272727272727,
+        "recall@5%FPR": 0.6898989898989899,
+        "preds": "[0 0 0 ... 0 0 0]"
+      },
+      "frozen_operating_points": {
+        "0.5%FPR": {
+          "frozen_threshold": 0.33042810091303054,
+          "realised_fpr": 0.004880672268907563,
+          "recall": 0.2878787878787879,
+          "precision": 0.4398148148148148,
+          "alert_rate": 0.008598155642539641
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.28394122136634353,
+          "realised_fpr": 0.009398319327731093,
+          "recall": 0.3383838383838384,
+          "precision": 0.3239845261121857,
+          "alert_rate": 0.013719896503682081
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.22267822312867971,
+          "realised_fpr": 0.01733109243697479,
+          "recall": 0.44242424242424244,
+          "precision": 0.25361899247249564,
+          "alert_rate": 0.02291514628806475
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.13400142627257577,
+          "realised_fpr": 0.03585882352941176,
+          "recall": 0.601010101010101,
+          "precision": 0.18240343347639484,
+          "alert_rate": 0.043282690904265904
+        }
+      },
+      "selection_rule": "best_val_f1 (shipped rule)"
+    },
+    "sensitivity_val_roc_selected_test": {
+      "round": 50,
+      "threshold": 0.2549999999999999,
+      "val_fbeta": 0.756202804746494,
+      "test": {
+        "threshold": 0.2549999999999999,
+        "accuracy": 0.9785311484110661,
+        "precision": 0.27113702623906705,
+        "recall": 0.37575757575757573,
+        "f1": 0.31498729889923793,
+        "f2": 0.3488372093023256,
+        "roc_auc": 0.9591571785077667,
+        "pr_auc": 0.33911516311753165,
+        "brier": 0.010847531790574898,
+        "ece": 0.006887581926600388,
+        "prevalence": 0.013136071120546673,
+        "recall@0.5%FPR": 0.2717171717171717,
+        "recall@1%FPR": 0.3383838383838384,
+        "recall@2%FPR": 0.4616161616161616,
+        "recall@5%FPR": 0.6717171717171717,
+        "preds": "[0 0 0 ... 0 0 0]"
+      },
+      "frozen_operating_points": {
+        "0.5%FPR": {
+          "frozen_threshold": 0.3333771981016158,
+          "realised_fpr": 0.00533781512605042,
+          "recall": 0.2818181818181818,
+          "precision": 0.41272189349112426,
+          "alert_rate": 0.008969680886353082
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.2847589980686388,
+          "realised_fpr": 0.010084033613445379,
+          "recall": 0.3393939393939394,
+          "precision": 0.30939226519337015,
+          "alert_rate": 0.014409871956478472
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.22471596919594533,
+          "realised_fpr": 0.01729075630252101,
+          "recall": 0.42525252525252527,
+          "precision": 0.2466315172817809,
+          "alert_rate": 0.022649771113912292
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.13149064193388427,
+          "realised_fpr": 0.0358453781512605,
+          "recall": 0.5858585858585859,
+          "precision": 0.1786814540973506,
+          "alert_rate": 0.04307039076494394
+        }
+      },
+      "selection_rule": "best_val_roc (sensitivity row, B1 hygiene)"
+    },
+    "selection_disclosure": "shipped best-val-F1 rule selected round 45 (val F1 0.6596); the val-ROC-selected sensitivity row selects round 50 \u2014 both disclosed, neither test-based (register item B1 hygiene, born with these arms)",
+    "test_trajectory": {
+      "5": {
+        "roc_auc": 0.976086,
+        "pr_auc": 0.476111
+      },
+      "10": {
+        "roc_auc": 0.971506,
+        "pr_auc": 0.45745
+      },
+      "15": {
+        "roc_auc": 0.968187,
+        "pr_auc": 0.423016
+      },
+      "20": {
+        "roc_auc": 0.965632,
+        "pr_auc": 0.38632
+      },
+      "25": {
+        "roc_auc": 0.964707,
+        "pr_auc": 0.377632
+      },
+      "30": {
+        "roc_auc": 0.963535,
+        "pr_auc": 0.36505
+      },
+      "35": {
+        "roc_auc": 0.962136,
+        "pr_auc": 0.362185
+      },
+      "40": {
+        "roc_auc": 0.961262,
+        "pr_auc": 0.351236
+      },
+      "45": {
+        "roc_auc": 0.960531,
+        "pr_auc": 0.348591
+      },
+      "50": {
+        "roc_auc": 0.959157,
+        "pr_auc": 0.339115
+      }
+    }
+  },
+  "fedprox": {
+    "runner": "experiments/run_raw_nobn.py",
+    "algorithm": "fedprox",
+    "protocol": {
+      "seed": 43,
+      "rounds": 50,
+      "arch": "SolarMLP with BatchNorm1d->Identity",
+      "n_params": 28929,
+      "mu": 0.01,
+      "alpha": 1.0,
+      "clients": 6,
+      "calibration": "prior_shift",
+      "validation": "random stratified carve, frozen seed-42 recipe, seed 43 re-init and shard draw (v4.12 item 3)",
+      "note": "frozen raw protocol, architecture-only intervention; state file nobns43_fedprox_state.pt carries arch='nobn'"
+    },
+    "history": [
+      {
+        "round": 5,
+        "threshold": 0.35,
+        "accuracy": 0.979502589660901,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "f2": 0.0,
+        "roc_auc": 0.9399764290575068,
+        "pr_auc": 0.29159487418566155,
+        "brier": 0.021126396363414596,
+        "ece": 0.04932537173265663,
+        "prevalence": 0.020497410339098993,
+        "recall@0.5%FPR": 0.2026221692491061,
+        "recall@1%FPR": 0.2765196662693683,
+        "recall@2%FPR": 0.41477949940405245,
+        "recall@5%FPR": 0.635280095351609
+      },
+      {
+        "round": 10,
+        "threshold": 0.35,
+        "accuracy": 0.979502589660901,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "f2": 0.0,
+        "roc_auc": 0.9548253825945262,
+        "pr_auc": 0.35505444916188694,
+        "brier": 0.0196858680772034,
+        "ece": 0.045621930530018014,
+        "prevalence": 0.020497410339098993,
+        "recall@0.5%FPR": 0.2896305125148987,
+        "recall@1%FPR": 0.37902264600715135,
+        "recall@2%FPR": 0.5017878426698451,
+        "recall@5%FPR": 0.700834326579261
+      },
+      {
+        "round": 15,
+        "threshold": 0.35,
+        "accuracy": 0.979502589660901,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "f2": 0.0,
+        "roc_auc": 0.9620924705245049,
+        "pr_auc": 0.3963512010158673,
+        "brier": 0.018483329824784445,
+        "ece": 0.03906105666119627,
+        "prevalence": 0.020497410339098993,
+        "recall@0.5%FPR": 0.29916567342073896,
+        "recall@1%FPR": 0.38974970202622167,
+        "recall@2%FPR": 0.5208581644815257,
+        "recall@5%FPR": 0.7497020262216925
+      },
+      {
+        "round": 20,
+        "threshold": 0.35,
+        "accuracy": 0.979502589660901,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "f2": 0.0,
+        "roc_auc": 0.9652890165050406,
+        "pr_auc": 0.42333741483592363,
+        "brier": 0.01790055073848417,
+        "ece": 0.035731986041614934,
+        "prevalence": 0.020497410339098993,
+        "recall@0.5%FPR": 0.300357568533969,
+        "recall@1%FPR": 0.4064362336114422,
+        "recall@2%FPR": 0.5566150178784267,
+        "recall@5%FPR": 0.7818831942789034
+      },
+      {
+        "round": 25,
+        "threshold": 0.35,
+        "accuracy": 0.9804065278999315,
+        "precision": 0.7605633802816901,
+        "recall": 0.06436233611442194,
+        "f1": 0.11868131868131868,
+        "f2": 0.07878611030055442,
+        "roc_auc": 0.966704349217628,
+        "pr_auc": 0.43362683186993084,
+        "brier": 0.017647438231224128,
+        "ece": 0.033852272865791566,
+        "prevalence": 0.020497410339098993,
+        "recall@0.5%FPR": 0.30512514898688914,
+        "recall@1%FPR": 0.42073897497020263,
+        "recall@2%FPR": 0.5566150178784267,
+        "recall@5%FPR": 0.7902264600715138
+      },
+      {
+        "round": 30,
+        "threshold": 0.35,
+        "accuracy": 0.9805042509527998,
+        "precision": 0.6394557823129252,
+        "recall": 0.11203814064362336,
+        "f1": 0.19066937119675456,
+        "f2": 0.13417071081929774,
+        "roc_auc": 0.9677413006416814,
+        "pr_auc": 0.4387723349909543,
+        "brier": 0.017426591347893705,
+        "ece": 0.03226238069843529,
+        "prevalence": 0.020497410339098993,
+        "recall@0.5%FPR": 0.3075089392133492,
+        "recall@1%FPR": 0.43504171632896305,
+        "recall@2%FPR": 0.5733015494636472,
+        "recall@5%FPR": 0.797377830750894
+      },
+      {
+        "round": 35,
+        "threshold": 0.35,
+        "accuracy": 0.9809928662171407,
+        "precision": 0.6648648648648648,
+        "recall": 0.1466030989272944,
+        "f1": 0.240234375,
+        "f2": 0.173679751482632,
+        "roc_auc": 0.9687278032091478,
+        "pr_auc": 0.44423812093933307,
+        "brier": 0.01741653597273907,
+        "ece": 0.03221705248266331,
+        "prevalence": 0.020497410339098993,
+        "recall@0.5%FPR": 0.31942789034564956,
+        "recall@1%FPR": 0.4410011918951132,
+        "recall@2%FPR": 0.5780691299165673,
+        "recall@5%FPR": 0.7914183551847438
+      },
+      {
+        "round": 40,
+        "threshold": 0.35,
+        "accuracy": 0.980626404768885,
+        "precision": 0.6619718309859155,
+        "recall": 0.11203814064362336,
+        "f1": 0.19164118246687054,
+        "f2": 0.1343624928530589,
+        "roc_auc": 0.9693276897601635,
+        "pr_auc": 0.44808167360166135,
+        "brier": 0.016857063706392977,
+        "ece": 0.029461623118567825,
+        "prevalence": 0.020497410339098993,
+        "recall@0.5%FPR": 0.31942789034564956,
+        "recall@1%FPR": 0.4433849821215733,
+        "recall@2%FPR": 0.5780691299165673,
+        "recall@5%FPR": 0.798569725864124
+      },
+      {
+        "round": 45,
+        "threshold": 0.35,
+        "accuracy": 0.9810417277435747,
+        "precision": 0.6666666666666666,
+        "recall": 0.1501787842669845,
+        "f1": 0.245136186770428,
+        "f2": 0.1777150916784203,
+        "roc_auc": 0.9700435462519845,
+        "pr_auc": 0.4523646886824688,
+        "brier": 0.016812863396587212,
+        "ece": 0.029306153101715984,
+        "prevalence": 0.020497410339098993,
+        "recall@0.5%FPR": 0.3396901072705602,
+        "recall@1%FPR": 0.45172824791418353,
+        "recall@2%FPR": 0.5804529201430274,
+        "recall@5%FPR": 0.8009535160905841
+      },
+      {
+        "round": 50,
+        "threshold": 0.35,
+        "accuracy": 0.9812860353757451,
+        "precision": 0.6431372549019608,
+        "recall": 0.19547079856972585,
+        "f1": 0.29981718464351004,
+        "f2": 0.22708391027416228,
+        "roc_auc": 0.9705305100088064,
+        "pr_auc": 0.4535610761679629,
+        "brier": 0.01689029615276604,
+        "ece": 0.029496539596030304,
+        "prevalence": 0.020497410339098993,
+        "recall@0.5%FPR": 0.3361144219308701,
+        "recall@1%FPR": 0.4469606674612634,
+        "recall@2%FPR": 0.5792610250297974,
+        "recall@5%FPR": 0.799761620977354
+      }
+    ],
+    "best_val_f1": 0.299817,
+    "best_round": 50,
+    "selected_checkpoint_test": {
+      "threshold": 0.21999999999999992,
+      "val_fbeta": 0.5696554279362727,
+      "test": {
+        "threshold": 0.21999999999999992,
+        "accuracy": 0.9727857758906654,
+        "precision": 0.28105654147750725,
+        "recall": 0.6878787878787879,
+        "f1": 0.3990624084383241,
+        "f2": 0.5334482218392606,
+        "roc_auc": 0.9757504931669638,
+        "pr_auc": 0.3206391403356306,
+        "brier": 0.011457340544350351,
+        "ece": 0.0219760151332846,
+        "prevalence": 0.013136071120546673,
+        "recall@0.5%FPR": 0.2515151515151515,
+        "recall@1%FPR": 0.3787878787878788,
+        "recall@2%FPR": 0.6494949494949495,
+        "recall@5%FPR": 0.8909090909090909,
+        "preds": "[0 0 0 ... 0 0 0]"
+      },
+      "frozen_operating_points": {
+        "0.5%FPR": {
+          "frozen_threshold": 0.32505343320524627,
+          "realised_fpr": 0.004867226890756303,
+          "recall": 0.24646464646464647,
+          "precision": 0.40264026402640263,
+          "alert_rate": 0.008040867776819479
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.2945564727198724,
+          "realised_fpr": 0.008752941176470588,
+          "recall": 0.34949494949494947,
+          "precision": 0.34704112337011034,
+          "alert_rate": 0.013228952431500032
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.2586253631696935,
+          "realised_fpr": 0.016174789915966388,
+          "recall": 0.5696969696969697,
+          "precision": 0.31918505942275044,
+          "alert_rate": 0.023445896636369666
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.1951359143836089,
+          "realised_fpr": 0.029431932773109244,
+          "recall": 0.7717171717171717,
+          "precision": 0.2587199458178124,
+          "alert_rate": 0.03918264446361043
+        }
+      },
+      "selection_rule": "best_val_f1 (shipped rule)"
+    },
+    "sensitivity_val_roc_selected_test": {
+      "round": 50,
+      "threshold": 0.21999999999999992,
+      "val_fbeta": 0.5696554279362727,
+      "test": {
+        "threshold": 0.21999999999999992,
+        "accuracy": 0.9727857758906654,
+        "precision": 0.28105654147750725,
+        "recall": 0.6878787878787879,
+        "f1": 0.3990624084383241,
+        "f2": 0.5334482218392606,
+        "roc_auc": 0.9757504931669638,
+        "pr_auc": 0.3206391403356306,
+        "brier": 0.011457340544350351,
+        "ece": 0.0219760151332846,
+        "prevalence": 0.013136071120546673,
+        "recall@0.5%FPR": 0.2515151515151515,
+        "recall@1%FPR": 0.3787878787878788,
+        "recall@2%FPR": 0.6494949494949495,
+        "recall@5%FPR": 0.8909090909090909,
+        "preds": "[0 0 0 ... 0 0 0]"
+      },
+      "frozen_operating_points": {
+        "0.5%FPR": {
+          "frozen_threshold": 0.32505343320524627,
+          "realised_fpr": 0.004867226890756303,
+          "recall": 0.24646464646464647,
+          "precision": 0.40264026402640263,
+          "alert_rate": 0.008040867776819479
+        },
+        "1%FPR": {
+          "frozen_threshold": 0.2945564727198724,
+          "realised_fpr": 0.008752941176470588,
+          "recall": 0.34949494949494947,
+          "precision": 0.34704112337011034,
+          "alert_rate": 0.013228952431500032
+        },
+        "2%FPR": {
+          "frozen_threshold": 0.2586253631696935,
+          "realised_fpr": 0.016174789915966388,
+          "recall": 0.5696969696969697,
+          "precision": 0.31918505942275044,
+          "alert_rate": 0.023445896636369666
+        },
+        "5%FPR": {
+          "frozen_threshold": 0.1951359143836089,
+          "realised_fpr": 0.029431932773109244,
+          "recall": 0.7717171717171717,
+          "precision": 0.2587199458178124,
+          "alert_rate": 0.03918264446361043
+        }
+      },
+      "selection_rule": "best_val_roc (sensitivity row, B1 hygiene)"
+    },
+    "selection_disclosure": "shipped best-val-F1 rule selected round 50 (val F1 0.2998); the val-ROC-selected sensitivity row selects round 50 \u2014 both disclosed, neither test-based (register item B1 hygiene, born with these arms)",
+    "test_trajectory": {
+      "5": {
+        "roc_auc": 0.939473,
+        "pr_auc": 0.200781
+      },
+      "10": {
+        "roc_auc": 0.960827,
+        "pr_auc": 0.308615
+      },
+      "15": {
+        "roc_auc": 0.970061,
+        "pr_auc": 0.319529
+      },
+      "20": {
+        "roc_auc": 0.973249,
+        "pr_auc": 0.314612
+      },
+      "25": {
+        "roc_auc": 0.974364,
+        "pr_auc": 0.315324
+      },
+      "30": {
+        "roc_auc": 0.974727,
+        "pr_auc": 0.310318
+      },
+      "35": {
+        "roc_auc": 0.975102,
+        "pr_auc": 0.311625
+      },
+      "40": {
+        "roc_auc": 0.975219,
+        "pr_auc": 0.312265
+      },
+      "45": {
+        "roc_auc": 0.975532,
+        "pr_auc": 0.313988
+      },
+      "50": {
+        "roc_auc": 0.97575,
+        "pr_auc": 0.320639
+      }
+    }
+  },
+  "reference_columns": {},
+  "purpose": "R-FS9-R10 master change register item A3: no-BatchNorm MLP federation (FedAvg and FedProx) on the raw substrate \u2014 the encoder-conditional vs BatchNorm-under-federation-conditional attribution control. Architecture-only intervention (the run_nobn_control.py construction: BatchNorm1d -> Identity); evaluation identical to run_raw_substrate.py section 5 for direct comparability with the BN raw arms. The reference_columns block is read from the committed artefacts at run time \u2014 the attribution question is answerable from this artefact alone.",
+  "elapsed_s": 2898.813860177994
+}

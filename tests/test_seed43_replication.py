@@ -35,8 +35,10 @@ Layers (all torch-free; pure file/text parsing):
      level claims standing);
   5. paper tex pins at every integration site (never hand-typed:
      the table rows are constructed from the parsed values);
-  6. gated JSON layer (activates on the owner push; consistency
-     with the transcript, protocol pins, monitor-pathology pins).
+  6. the JSON layer — LANDED 2026-10-06 (the owner paste, byte-
+     reconciled against the inventory; sha256-frozen per the v4.9.4-
+     onwards convention) + consistency with the transcript, protocol
+     pins, monitor-pathology pins.
 
 Run:  python tests/test_seed43_replication.py   (or via the battery)
 """
@@ -56,6 +58,17 @@ QUEUE_SEED43 = os.path.join(ROOT, "logs", "queue_seed43.log")
 ARTEFACT_S42 = os.path.join(ROOT, "outputs", "raw_nobn_eval.json")
 ARTEFACT_S43 = os.path.join(ROOT, "outputs",
                             "raw_nobn_eval_seed43.json")
+
+# v4.13.1: the push LANDED on 2026-10-06 (the owner pasted the full
+# JSON; reconstructed byte-faithfully — the LF-committed form hashes
+# to this value, and its CRLF form is exactly the 24,768 bytes the
+# owner-disk inventory pinned, so the reconstruction is reconciled
+# against TWO independent owner-side records)
+JSON_SHA256 = (
+    "7c3d30fe9c35ca0ef7da9049cdcb06d7c650cdeb63dea1bc747eb3b8bde63741"
+)
+JSON_BYTES_CRLF = 24768   # the owner-disk form (Windows text mode)
+JSON_ELAPSED_S = 2898.813860177994   # the transcript's 2,899 s
 
 TRANSCRIPT_SHA256 = (
     "a36355270368695339168d03db1aa83448dd4da59b6b874334ffc39dd"
@@ -357,26 +370,49 @@ def paper_layer(sel):
           "within 0.002 ROC-AUC" in td)
 
     rc = _read(RUN_CARD)
-    check("run card rev. v4.13: item 3 marked executed with the "
-          "verdict, the JSON push recipe, and the PowerShell-safe "
-          "item-2 recipe (the angle-bracket failure documented)",
-          "rev. v4.13" in rc and "parity holds" in rc and
-          "git add outputs\\raw_nobn_eval_seed43.json" in rc and
+    # v4.13.1: the card's item-3 follow-up flipped from "push the
+    # JSON" (the recipe) to DONE (landed + sha256-frozen) — the pin
+    # follows the card state, never a stale recipe
+    check("run card rev. v4.13.1: item 3 executed with the verdict, "
+          "the JSON push marked DONE (landed, sha256-frozen), and "
+          "the PowerShell-safe item-2 recipe ($parts) still intact",
+          "rev. v4.13.1" in rc and "parity holds" in rc and
+          "JSON push" in rc and "DONE (v4.13.1" in rc and
+          "No owner action remains" in rc and
+          "git add outputs\\raw_nobn_eval_seed43.json" not in rc and
           "$parts" in rc)
 
 
-# ── layer 6: the gated JSON layer (activates on the owner push) ──────
+# ── layer 6: the JSON layer (LANDED v4.13.1; sha256-frozen) ───────
 
 def json_layer(sel):
+    # v4.13.1: the artefact is COMMITTED now — a missing file is a
+    # FAILURE, not a SKIP (the pre-landing gate is retired)
     if not os.path.exists(ARTEFACT_S43):
-        print("[SKIP] outputs/raw_nobn_eval_seed43.json not yet "
-              "pushed by the owner (present owner-side per the "
-              "inventory; this layer activates — and the sha256 "
-              "freeze follows, per the established convention — "
-              "the moment it lands)")
+        check("the seed-43 JSON is committed (landed 2026-10-06)",
+              False)
         return
+    raw = open(ARTEFACT_S43, "rb").read()
+    lf = raw.replace(b"\r\n", b"\n")
+    digest = hashlib.sha256(lf).hexdigest()
+    check("the seed-43 JSON sha256 byte-pin (CRLF/LF-stable; the "
+          "landed owner paste)", digest == JSON_SHA256,
+          f"(got {digest[:16]}…)")
+    crlf_len = (len(raw) if raw.count(b"\r\n")
+                else len(raw) + lf.count(b"\n"))
+    check("owner-disk reconciliation: the CRLF form is exactly the "
+          f"inventory's {JSON_BYTES_CRLF:,} bytes",
+          crlf_len == JSON_BYTES_CRLF)
     with open(ARTEFACT_S43, encoding="utf-8") as f:
         d = json.load(f)
+    check("elapsed_s equals the transcript's 2,899 s",
+          abs(float(d.get("elapsed_s", -1)) - JSON_ELAPSED_S) < 1e-9)
+    check("the JSON's runner and purpose register the v4.12 item-3 "
+          "protocol (seed-43 re-init and shard draw)",
+          d.get("runner") == "experiments/run_raw_nobn.py" and
+          "seed 43 re-init and shard draw" in str(d.get("purpose", "")) +
+          str(d.get("fedavg", {}).get("protocol", {}).get(
+              "validation", "")))
     for algo in ("fedavg", "fedprox"):
         blk = d.get(algo)
         if blk is None:
@@ -421,7 +457,7 @@ def main():
           "editions, conclusion, appendix, run card):")
     if sel is not None:
         paper_layer(sel)
-    print("layer 6 — the gated JSON layer (owner push):")
+    print("layer 6 — the landed JSON layer (sha256-frozen):")
     if sel is not None:
         json_layer(sel)
     print(f"RESULT: {N_CHECKS - len(FAILED)} passed, "
