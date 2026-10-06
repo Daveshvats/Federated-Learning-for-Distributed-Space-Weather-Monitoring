@@ -1,9 +1,31 @@
-# RUN CARD v4.12 — the external-review compute items (2) and (3)
+# RUN CARD v4.12 (rev. v4.12.1) — the external-review compute items (2) and (3)
 
 The independent re-review of v4.11 asked for two small compute jobs
 that this sandbox cannot run (no GPU, no dataset cache). Both are
 prepared, guarded, and namespaced so they cannot disturb the frozen
 v4.9.4 artefacts. This card is the exact recipe.
+
+**v4.12.1 errata (2026-10-06, after the first owner-side execution):**
+two latent defects in the item-2 kit, both fixed and now
+battery-guarded (tests/test_region_disjoint.py, 16 checks):
+
+- the region map was read from the SAMPLED audit meta
+  (`provenance/train_meta_slim.csv.gz` — 97,764 rows over partitions
+  1..5, its `pool_row` indexing the slim file itself), so a real run
+  would have aborted at its own coverage gate (97,764 of 255,820 pool
+  rows) even with the raw dir present. Regions now come from the
+  parse metadata's `ar` column — the SAME `p{p}_meta.csv` files that
+  supply the labels, full pool coverage by construction.
+- the raw-dir default is the POSIX path `/tmp/swansf_raw`; on Windows
+  it resolves against the current drive and the first execution died
+  with a bare `FileNotFoundError`. The split now pre-flights all four
+  `p{1..4}_meta.csv` files and exits with a guided message naming
+  `--raw-dir` and the regeneration command.
+
+The item-3 kit (seed 43) needed no code change: the first owner
+execution reached round-1 training on the RTX 4060 and was
+interrupted with Ctrl+C (the traceback ends in `KeyboardInterrupt`,
+not a defect). Just re-run it.
 
 ## Context
 
@@ -22,50 +44,75 @@ v4.9.4 artefacts. This card is the exact recipe.
 
 ## Prerequisites
 
-- The repo at v4.12 (branch `improvements`), working tree clean.
-- The raw benchmark at `/tmp/swansf_raw` (p1..p5_raw.npz + the
-  `p{p}_meta.csv` parse metadata) — the same directory the substrate
-  was built from.
-- The substrate cache `data/cache/rawsubstrate/data.npz` present
-  (it is; the seed-43 run refuses to start without it, by design).
-- GPU preferred (the seed-42 control took 1,698.78 s for both arms
-  on the owner GPU; CPU would work but is much slower).
+1. **The repo at v4.12.1** (branch `improvements`), working tree
+   clean — `git pull` to pick up the errata commit.
+2. **The substrate cache** `data/cache/rawsubstrate/data.npz` —
+   present on the owner box; both runs resume it (the seed-43 run
+   refuses to start without it, by design).
+3. **The raw parse metadata** `p1..p4_meta.csv`, in any directory,
+   passed as `--raw-dir`. These are NOT in the repo (the first
+   execution failed on exactly this). Two cases:
+   - you still have the parsed files somewhere (e.g.
+     `C:\tmp\swansf_raw`) — point `--raw-dir` there;
+   - they are gone — regenerate ONLY the metadata (no npz; the
+     substrate cache provides X, it is never read from raw_dir in
+     these runs) from the public benchmark (Harvard Dataverse,
+     doi:10.7910/DVN/EBCFKM; `partition1..5_instances.tar.gz`):
+
+     ```powershell
+     # once per training partition (minutes each, writes p{p}_meta.csv only)
+     python provenance/swansf_parse_partition.py <extracted>\partition1 <rawdir>\p1 --meta-only
+     python provenance/swansf_parse_partition.py <extracted>\partition2 <rawdir>\p2 --meta-only
+     python provenance/swansf_parse_partition.py <extracted>\partition3 <rawdir>\p3 --meta-only
+     python provenance/swansf_parse_partition.py <extracted>\partition4 <rawdir>\p4 --meta-only
+     ```
+4. **GPU preferred** (the seed-42 control took 1,698.78 s for both
+   arms on the owner GPU; CPU would work but is much slower).
 
 ## The two runs
 
-```bash
+```powershell
 # Item 2 — region-disjoint validation carve, both arms, seed 42.
 # ~1,700 s on the same GPU class as the original control.
-python experiments/run_raw_nobn.py --region-disjoint
+python experiments/run_raw_nobn.py --region-disjoint --raw-dir <rawdir>
 
 # Item 3 — seed-43 replication, both arms, frozen random carve.
-# ~1,700 s likewise.
+# ~1,700 s likewise. (No --raw-dir needed — the frozen carve rides
+# the substrate cache.)
 python experiments/run_raw_nobn.py --seed 43
 ```
 
 Both are round-resumable (state files `nobnrd_<algo>_state.pt` and
-`nobn_s43_<algo>_state.pt` — separate namespaces; the original
+`nobns43_<algo>_state.pt` — separate namespaces; the original
 `nobn_<algo>_state.pt` files are never touched, and the runner
 refuses to resume a checkpoint from a foreign namespace or seed).
+If a run is interrupted, just re-invoke the same command: it resumes
+at the next round.
 
 ## What each run writes
 
 - `outputs/raw_nobn_region_disjoint.json` — same schema as
   `raw_nobn_eval.json`, plus a `validation_split` block (region
-  counts, val prevalence, disjointness statement) and a
-  `protocol.validation` marker.
+  counts, val prevalence, disjointness statement, the v4.12.1
+  `region_source` disclosure) and a `protocol.validation` marker.
 - `outputs/raw_nobn_eval_seed43.json` — same schema, with
   `protocol.seed = 43` and the validation marker noting the reseed.
 
 ## Built-in guards (the run is self-checking)
 
+- The raw parse metadata files are pre-flighted; a missing file is a
+  guided exit naming `--raw-dir` and the regeneration command.
 - The region carve re-derives the frozen random split and verifies it
   by a label round-trip against the cache; any mismatch aborts
   loudly rather than mis-splitting.
-- Region disjointness is asserted, not assumed.
+- Region disjointness is asserted, not assumed; `ar = -1` sentinel
+  rows abort.
 - The whole-region assignment is deterministic (seed-42 region
   permutation); reruns are identical.
-- The provenance meta must cover every pool row, or the run aborts.
+- All of the above are exercised on synthetic fixtures by the battery
+  (tests/test_region_disjoint.py — happy path + determinism, source
+  contract, guided exit, round-trip tamper, ar sentinel; battery
+  403/0 at v4.12.1).
 
 ## How to read the outcomes (decision rules)
 

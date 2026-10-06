@@ -112,7 +112,8 @@ EXPECTED_MODULES = frozenset({
     "tests.test_lag_sweep_artifact", "tests.test_leakage_gate",
     "tests.test_letters_manifest", "tests.test_pipeline_integrity",
     "tests.test_raw_bn_diagnostic", "tests.test_raw_lstm",
-    "tests.test_raw_substrate", "tests.test_scaffold_algebra",
+    "tests.test_raw_substrate", "tests.test_region_disjoint",
+    "tests.test_scaffold_algebra",
     "tests.test_submission_apparatus",
     "tools.build_submission", "tools.make_fig_clients",
     "tools.make_fig_partition", "visualize_results",
@@ -245,8 +246,11 @@ THIRD_PARTY_SCOPE = _third_party_scope()
 
 # Dossier R-FS9-R7 (B8): asserted descriptive counts — drift fails
 # loudly. Update DELIBERATELY when imports change.
-EXPECTED_FROM_IMPORTS = 338  # `from <local module> import NAME` names
-# (338 since v4.12: +2 — experiments/run_raw_nobn.py's run kit grew
+EXPECTED_FROM_IMPORTS = 340  # `from <local module> import NAME` names
+# (340 since v4.12.1: +2 — tests/test_region_disjoint.py's `from
+# experiments.run_raw_nobn import (TRAIN_PARTS,
+# region_disjoint_split)` — the region-disjoint kit-errata guard;
+# 338 since v4.12: +2 — experiments/run_raw_nobn.py's run kit grew
 # its raw-substrate from-import from (build, CACHE) to
 # (build, CACHE, TRAIN_PARTS, load_labels) for the region-disjoint
 # validation carve (the external re-review's item 2);
@@ -261,8 +265,9 @@ EXPECTED_FROM_IMPORTS = 338  # `from <local module> import NAME` names
 # learning/model via _load_torch_stack]; 309 was the v4.8-v4.9.1
 # figure: +10 from run_raw_bn_diagnostic.py and +2 bare-stem
 # from-imports that the C6 stem-map resolution counts)
-EXPECTED_PLAIN_IMPORTS = 43  # plain `import <local module>` statements
-# (43 since v4.9.2: +3 from the two register runners — each runner's
+EXPECTED_PLAIN_IMPORTS = 44  # plain `import <local module>` statements
+# (44 since v4.12.1: +1 — tests/test_region_disjoint.py's `import
+# config as cfg`; 43 since v4.9.2: +3 from the two register runners — each runner's
 # `import config as cfg` plus run_raw_nobn.py's function-local
 # `import model as _model_mod` inside _load_torch_stack; 40 was the
 # v4.8-v4.9.1 figure; external plain imports such as torch.nn are

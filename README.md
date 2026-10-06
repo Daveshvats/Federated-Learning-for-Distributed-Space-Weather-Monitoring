@@ -45,7 +45,7 @@ transport, checkpoint selection, novelty repositioning).
 > federated arm to chance.
 >
 > Verification apparatus: `python tests/run_battery.py` - the
-> single-entry integrity battery, **387 checks torch-less** (requires
+> single-entry integrity battery, **403 checks torch-less** (requires
 > `pdftotext` from poppler-utils; skips are counted honestly -
 > torch-gated checks that print [SKIP] are not passes). Execution
 > environments of record: `docs/ENVIRONMENTS.md`; response letters:
@@ -79,7 +79,7 @@ python data_manifest/generate_manifest.py
 
 # 2. integrity battery (no dataset required — synthetic fixtures;
 #    single entry point, one authoritative count)
-python tests/run_battery.py     # 387 checks torch-less (pdftotext required)
+python tests/run_battery.py     # 403 checks torch-less (pdftotext required)
 
 # 3. place the Cleaned SWAN-SF pkl files under data/cleaned/{train,test}/
 #    https://github.com/samresume/Cleaned-SWANSF-Dataset
@@ -155,7 +155,7 @@ SF9/
 ├── privacy_analysis/           # threat model
 ├── limitations/                # honest limitations
 ├── docs/                       # GIC boundary, lit-search, review-2 response
-├── tests/                      # integrity battery (run_battery.py: 386 checks torch-less; crashed guards fail, skips declared, frozen artefacts byte-stable via .gitattributes) + substrate + LSTM + queue + artefact suites
+├── tests/                      # integrity battery (run_battery.py: 403 checks torch-less; crashed guards fail, skips declared, frozen artefacts byte-stable via .gitattributes) + substrate + LSTM + queue + artefact suites
 ├── logs/                       # execution logs
 ├── paper/                      # manuscript (LaTeX + PDF) + review
 └── outputs/                    # results.json, figures (regenerated)

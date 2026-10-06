@@ -8,6 +8,10 @@ window start/end).
 
 Usage: python3 swansf_parse_partition.py <partition_dir> <out_prefix>
   e.g. swansf_parse_partition.py /tmp/swansf_raw/p3/partition3 /tmp/swansf_raw/p3
+       swansf_parse_partition.py C:/swansf/partition1 C:/swansf/p1 --meta-only
+  (--meta-only: v4.12.1 — write only <out>_meta.csv and skip the npz;
+   the region-disjoint re-run needs only the metadata because the
+   substrate cache already provides X)
 """
 import os, sys, re, csv, time
 import numpy as np
@@ -83,8 +87,13 @@ def parse_one(args):
 
 
 def main():
-    pdir = sys.argv[1].rstrip("/")          # .../partition3
+    pdir = sys.argv[1].rstrip("/").rstrip("\\")   # .../partition3
     out = sys.argv[2]                        # output prefix
+    # v4.12.1: --meta-only writes just <out>_meta.csv (labels + ar +
+    # window metadata), skipping the npz — the owner-side region-
+    # disjoint re-run needs only this (X comes from the substrate
+    # cache), saving ~1.5 GB per partition on regeneration.
+    meta_only = "--meta-only" in sys.argv[3:]
     jobs = []
     for folder, label in (("FL", 1), ("NF", 0)):
         d = os.path.join(pdir, folder)
@@ -97,19 +106,26 @@ def main():
     with ProcessPoolExecutor(max_workers=2) as ex:
         for meta, arr in ex.map(parse_one, jobs, chunksize=200):
             metas.append(meta)
-            arrs.append(arr)
-    X = np.stack(arrs).astype(np.float32)    # (n, 60, 24)
-    print(f"[parse] done in {time.time()-t0:.0f}s -> {X.shape}; "
-          f"NaN frac {np.isnan(X.astype(np.float64)).mean():.4f}")
+            if not meta_only:
+                arrs.append(arr)
 
     # row-count audit
     nrows = np.array([m["nrows"] for m in metas])
     print(f"[parse] rows/file: min={nrows.min()} max={nrows.max()} "
           f"!=60: {(nrows != 60).sum()}")
 
-    np.savez_compressed(out + "_raw.npz", X=X)
     import pandas as pd
     pd.DataFrame(metas).to_csv(out + "_meta.csv", index=False)
+    if meta_only:
+        print(f"[parse] meta-only: {len(metas)} instances in "
+              f"{time.time()-t0:.0f}s -> saved {out}_meta.csv "
+              f"(npz skipped)")
+        return
+
+    X = np.stack(arrs).astype(np.float32)    # (n, 60, 24)
+    print(f"[parse] done in {time.time()-t0:.0f}s -> {X.shape}; "
+          f"NaN frac {np.isnan(X.astype(np.float64)).mean():.4f}")
+    np.savez_compressed(out + "_raw.npz", X=X)
     print(f"[parse] saved {out}_raw.npz + {out}_meta.csv")
 
 

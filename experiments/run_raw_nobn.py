@@ -84,12 +84,34 @@ nobnrd_<algo>_state.pt (never collides with the seed-42 arms).
 the Dirichlet shard draw reseeded, the frozen RANDOM validation carve
 kept identical (the seed-replication semantics of the LSTM arms,
 Section 6.6). Output: outputs/raw_nobn_eval_seed43.json; round state
-in nobn_s43_<algo>_state.pt. Refuses to build a fresh substrate under
+in nobns43_<algo>_state.pt. Refuses to build a fresh substrate under
 a non-default seed (the cache must exist) so the carve stays frozen.
+
+v4.12.1 errata (the first owner-side execution, 2026-10-06, surfaced
+two latent defects the synthetic smoke test could not catch):
+(a) the region map was read from the SAMPLED audit meta
+    provenance/train_meta_slim.csv.gz — 97,764 rows spanning
+    partitions 1..5, its pool_row indexing the slim file's own order —
+    so a real run would have aborted at the coverage gate (97,764 of
+    255,820 pool rows) even with the raw dir present. The region
+    source is now the parse metadata's `ar` column: the SAME
+    p{p}_meta.csv files that supply the labels, full pool coverage by
+    construction (the slim meta stays an audit artefact, never a
+    split input).
+(b) the raw-dir default is a POSIX path (/tmp/swansf_raw); on the
+    owner's Windows box it resolves against the current drive and the
+    failure was a bare FileNotFoundError. The split now pre-flights
+    all four p{1..4}_meta.csv files and exits with a guided message
+    naming --raw-dir and the regeneration command
+    (provenance/swansf_parse_partition.py --meta-only). The seed-43
+    state namespace is nobns43_<algo>_state.pt (this docstring and
+    the run card previously wrote nobn_s43_; the code was always
+    nobns43_). The seed-43 kit needed no code change: its first owner
+    execution reached round-1 training and was interrupted
+    (KeyboardInterrupt by the owner), not failed.
 """
 import argparse
 import csv
-import gzip
 import json
 import os
 import sys
@@ -122,7 +144,12 @@ OUT_DEFAULT = os.path.join("outputs", "raw_nobn_eval.json")
 OUT_REGION_DISJOINT = os.path.join("outputs",
                                    "raw_nobn_region_disjoint.json")
 RAW_DEFAULT = "/tmp/swansf_raw"
-META_PATH = os.path.join("provenance", "train_meta_slim.csv.gz")
+# v4.12.1: no META_PATH any more — the region map comes from the parse
+# metadata (the `ar` column of the same p{p}_meta.csv files that
+# supply the labels), NOT from the sampled audit meta. The slim meta
+# (provenance/train_meta_slim.csv.gz) is an audit artefact: 97,764
+# sampled rows across partitions 1..5, its pool_row indexing its own
+# order — it can never be a full-pool region map (255,820 rows).
 
 # v4.12: namespaces the round state files so the region-disjoint and
 # seed-43 re-runs never collide with (or resume) the seed-42 random-
@@ -507,10 +534,53 @@ def run_nobn_arm(algo, shards, X_val, y_val, X_test, y_test, device,
 
 # ── v4.12 item 2: the within-fold region-disjoint validation carve ──
 # ── (torch-free so the battery can exercise the split directly)  ──
+# ── v4.12.1: the region map comes from the parse metadata (`ar`),  ──
+# ── not the sampled audit meta — see the errata in the docstring.  ──
+
+def _guided_raw_exit(raw_dir, missing):
+    """v4.12.1: a missing raw parse metadata file is a GUIDED exit,
+    not a bare FileNotFoundError (the owner's first execution hit the
+    POSIX default /tmp/swansf_raw on Windows and got a traceback)."""
+    files = ", ".join(os.path.basename(m) for m in missing)
+    sys.exit(
+        f"[rd] region-disjoint mode needs the raw parse metadata "
+        f"(p1..p4_meta.csv); missing: {files}\n"
+        f"       looked in raw_dir = {raw_dir!r} (a POSIX-style path "
+        f"resolves against the current drive on Windows)\n"
+        f"       fix: pass --raw-dir <the directory containing "
+        f"p1..p4_meta.csv>\n"
+        f"       files gone? regenerate from the public benchmark "
+        f"(Harvard Dataverse, doi:10.7910/DVN/EBCFKM):\n"
+        f"         python provenance/swansf_parse_partition.py "
+        f"<partition_dir> <out_prefix> --meta-only\n"
+        f"       (the substrate cache provides X; the npz is not needed "
+        f"— full recipe in docs/RUN_CARD_v4.12.md)")
+
+
+def _load_region_ids(raw_dir, p):
+    """NOAA active-region ids for partition p in pool row order — the
+    `ar` column of the parse metadata. v4.12.1: this is the region
+    source (the same files that supply the labels, so pool coverage
+    is complete by construction; the slim audit meta is NOT a split
+    input)."""
+    meta = os.path.join(raw_dir, f"p{p}_meta.csv")
+    if not os.path.exists(meta):
+        _guided_raw_exit(raw_dir, [meta])
+    ar = []
+    with open(meta) as f:
+        rdr = csv.DictReader(f)
+        if "ar" not in (rdr.fieldnames or []):
+            sys.exit(f"[rd] {meta} has no 'ar' column — the parse "
+                     f"metadata predates the current schema; "
+                     f"regenerate it with provenance/"
+                     f"swansf_parse_partition.py")
+        for row in rdr:
+            ar.append(int(row["ar"]))
+    return np.asarray(ar, dtype=np.int64)
+
 
 def region_disjoint_split(X_train, y_train, X_val, y_val, raw_dir,
-                          meta_path=META_PATH, seed=42,
-                          val_split=None):
+                          seed=42, val_split=None):
     """Rebuild the training POOL, then carve validation at the level of
     WHOLE NOAA active regions.
 
@@ -526,13 +596,24 @@ def region_disjoint_split(X_train, y_train, X_val, y_val, raw_dir,
          stratify) and VERIFIES it by a label round-trip against the
          cached arrays — a wrong reconstruction exits loudly;
       3. scatters the cached X_train/X_val back into pool order;
-      4. maps every pool row to its region (provenance meta);
+      4. maps every pool row to its NOAA active region (the parse
+         metadata's `ar` column — v4.12.1: the same files that
+         supplied the labels, full coverage by construction);
       5. assigns whole regions to validation (deterministic seed-42
          region permutation, target = the random carve's size)
          until no region spans the boundary.
     Returns (X_tr, y_tr, X_va, y_va, split_stats).
     """
     from sklearn.model_selection import train_test_split
+
+    # v4.12.1: pre-flight the four parse metadata files BEFORE any
+    # work — a missing raw dir is a guided exit, never a traceback
+    missing = [os.path.join(raw_dir, f"p{p}_meta.csv")
+               for p in TRAIN_PARTS
+               if not os.path.exists(os.path.join(raw_dir,
+                                                  f"p{p}_meta.csv"))]
+    if missing:
+        _guided_raw_exit(raw_dir, missing)
 
     if val_split is None:
         val_split = cfg.VAL_SPLIT
@@ -565,18 +646,24 @@ def region_disjoint_split(X_train, y_train, X_val, y_val, raw_dir,
     X_pool[train_idx] = X_train
     X_pool[val_idx] = X_val
 
-    # 4. region map (pool_row -> region_id)
-    region_of = np.zeros(n_pool, dtype=np.int64) - 1
-    n_meta = 0
-    with gzip.open(meta_path, "rt") as f:
-        for row in csv.DictReader(f):
-            pr = int(row["pool_row"])
-            if 0 <= pr < n_pool:
-                region_of[pr] = int(row["region_id"])
-                n_meta += 1
-    if n_meta != n_pool or (region_of < 0).any():
-        sys.exit(f"[rd] provenance meta covers {n_meta:,} of {n_pool:,} "
-                 f"pool rows — the meta and the cache disagree; aborting")
+    # 4. region map (pool_row -> NOAA active region), v4.12.1: from the
+    #    SAME parse metadata that supplied the labels — full pool
+    #    coverage by construction (the v4.12 code read the sampled
+    #    audit meta here and would have aborted at 97,764 of 255,820
+    #    pool rows; the slim meta is an audit artefact, not a split
+    #    input)
+    region_of = np.concatenate(
+        [_load_region_ids(raw_dir, p) for p in TRAIN_PARTS])
+    if len(region_of) != n_pool:
+        sys.exit(f"[rd] region rows {len(region_of):,} vs pool rows "
+                 f"{n_pool:,} — the parse metadata and the cache "
+                 f"disagree; aborting rather than mis-splitting")
+    n_bad_ar = int((region_of < 0).sum())
+    if n_bad_ar:
+        sys.exit(f"[rd] {n_bad_ar:,} pool rows carry ar = -1 "
+                 f"(unparsed instance filenames) — those rows cannot "
+                 f"be region-assigned; aborting rather than "
+                 f"mis-splitting")
 
     # 5. deterministic whole-region assignment
     regions = np.unique(region_of)
@@ -603,6 +690,8 @@ def region_disjoint_split(X_train, y_train, X_val, y_val, raw_dir,
 
     split_stats = {
         "mode": "region-disjoint (whole NOAA active regions)",
+        "region_source": "parse metadata `ar` column (p1..p4_meta.csv; "
+                         "v4.12.1 — full pool coverage by construction)",
         "seed_region_permutation": seed,
         "n_regions_total": int(len(regions)),
         "n_regions_val": len(val_regions),

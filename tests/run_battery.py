@@ -62,6 +62,18 @@ origin verification, B6-c — the gc/ctypes name-churn ends; counts
 re-pinned 335/43 deliberately, +26/+3 from the two runners); the
 RUNLOG v4.8 letters_manifest per-file count corrected 2 -> 3 (B6-b,
 the per-file sum now equals the documented 258 pre-commit total)
+v4.12.1 — the first owner-side execution of the v4.12 run kit
+surfaced two latent region-disjoint defects (the region map was read
+from the SAMPLED audit meta and would have aborted at the coverage
+gate; the POSIX raw-dir default failed as a bare FileNotFoundError
+on the owner's Windows box): region_disjoint_split now sources
+regions from the parse metadata `ar` column (the same p{p}_meta.csv
+files that supply the labels — full pool coverage by construction)
+and pre-flights the raw files with a guided exit; guarded by the new
+module tests/test_region_disjoint.py (happy path + determinism,
+source contract, guided exit, round-trip tamper, ar sentinel);
+provenance/swansf_parse_partition.py gained --meta-only for cheap
+regeneration of the parse metadata
 ─────────────────────────────────────────
 Single entry point for the integrity battery. Runs every test module,
 aggregates PASS/FAIL across all of them, prints ONE total, and
@@ -98,7 +110,7 @@ ROOT = os.path.dirname(HERE)
 # Single source of truth for the log's title line. Dossier R-FS9-R3
 # (N2) caught a v4.2-era log whose title still read "(v4.1)" because
 # this string was hardcoded; bump BATTERY_VERSION with every release.
-BATTERY_VERSION = "v4.12"
+BATTERY_VERSION = "v4.12.1"
 
 # Default write path, versioned off BATTERY_VERSION. Dossier R-FS9-R4
 # (P2): the previous default was the un-versioned logs/test_battery.log
@@ -136,6 +148,7 @@ MODULES = [
     "tests/test_raw_substrate.py",
     "tests/test_raw_lstm.py",
     "tests/test_raw_bn_diagnostic.py",
+    "tests/test_region_disjoint.py",
 ]
 
 # unittest-style modules run with -v so each test case emits one line
