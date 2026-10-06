@@ -151,8 +151,12 @@ PINNED_ENTRIES = [
 # reflowed the full edition from 63); submission 12 pp (the trimmed
 # edition IS the submission since v4.12 — 63 while it mirrored the
 # full record, v4.6-v4.11).
+# v4.13: paper 67 pp (the item-3 integration — boundary (d)'s
+# discharge, the replication record paragraph, and the new
+# tab:rawnobnrep reflowed the full edition from 65); submission 12
+# pp (sentence-level replication verdicts, no reflow).
 PINNED_PAGE_COUNTS = {
-    os.path.join("paper", "main.pdf"): 65,
+    os.path.join("paper", "main.pdf"): 67,
     os.path.join("submission", "main.pdf"): 12,
 }
 

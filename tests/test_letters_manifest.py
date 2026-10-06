@@ -156,6 +156,7 @@ LETTER_REGISTRY = {
     "RESPONSE_R-FS9-R10_v4.10.md": True,
     "RESPONSE_R-FS9-R11_v4.11.md": True,
     "RESPONSE_External_v4.12.md": True,
+    "RESPONSE_External_v4.13.md": True,
 }
 
 

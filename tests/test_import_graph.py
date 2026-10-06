@@ -113,6 +113,7 @@ EXPECTED_MODULES = frozenset({
     "tests.test_letters_manifest", "tests.test_pipeline_integrity",
     "tests.test_raw_bn_diagnostic", "tests.test_raw_lstm",
     "tests.test_raw_substrate", "tests.test_region_disjoint",
+    "tests.test_seed43_replication",
     "tests.test_scaffold_algebra",
     "tests.test_submission_apparatus",
     "tools.build_submission", "tools.make_fig_clients",

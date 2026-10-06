@@ -1,0 +1,192 @@
+# logs/run_raw_nobn_seed43_transcript.txt — the owner-side console
+# transcript of the v4.12 external-review item-3 run, pasted verbatim
+# by the owner on 2026-10-06 (PowerShell, RTX 4060 Laptop GPU, repo
+# C:\Users\deves\Documents\sf9 at v4.12.1 = bac4162). Line endings
+# normalised CRLF -> LF on commit; content otherwise verbatim,
+# including the two failed placeholder invocations of the item-2 kit
+# that motivated the v4.13 run-card rewrite (PowerShell reserves the
+# '<' character, so '<path>'-style placeholders cannot be pasted
+# literally). The full-fidelity artefact the run wrote —
+# outputs/raw_nobn_eval_seed43.json, 24,768 bytes — exists on the
+# owner box (dir listing 2026-10-06 2:23 PM) and lands by owner push
+# per the established convention; until it lands, THIS transcript is
+# the artefact of record for the seed-43 numbers, and every paper
+# number it carries is battery-pinned to the parsed lines below.
+# ─────────────────────────────────────────────────────────────────
+(base) (base) PS C:\Users\deves\Documents\sf9> git pull    # gets v4.12.1 (bac4162)
+Already up to date.
+(base) (base) PS C:\Users\deves\Documents\sf9> 
+(base) (base) PS C:\Users\deves\Documents\sf9> # Item 3 — just re-run, no extra data needed, ~28 min:
+(base) (base) PS C:\Users\deves\Documents\sf9> python experiments/run_raw_nobn.py --seed 43
+[nobn] seed override: 42 -> 43 (init + shard draw reseeded; validation carve unchanged; state namespace nobns43_*)
+[substrate] resumed from data.npz cache
+[nobn] substrate: train 214,888 (pos 2.05%) | val 40,932 (pos 2.05%) | test 75,365 (pos 1.31%)
+[Partition] Client A                       | n=  7,887 | flare rate:  15.0%
+[Partition] Client B                       | n= 51,987 | flare rate:   0.9%
+[Partition] Client C                       | n=  8,249 | flare rate:   4.8%
+[Partition] Client D                       | n= 15,699 | flare rate:   3.8%
+[Partition] Client E                       | n= 22,041 | flare rate:   1.4%
+[Partition] Client F                       | n=109,025 | flare rate:   1.4%
+[Partition] coverage: 214,888/214,888 (100.0%) — disjoint by construction
+[nobn] shards rebuilt (Dirichlet alpha=1.0, seed 43): sizes [7887, 51987, 8249, 15699, 22041, 109025]
+
+[nobn] fedavg (no-BN, 50 rounds, frozen protocol) ...
+[Model] Creating SolarMLP (input_dim=144, seed=43)
+[Model] GPU: NVIDIA GeForce RTX 4060 Laptop GPU | allocated: 0.1 MB
+[Model] Parameters: 28,929
+[fedavg-noBN] NoBNSolarMLP | params=28,929 (BN baseline 29,377)
+  Round   5 | val F1: 0.5077 | val ROC: 0.978
+  Round  10 | val F1: 0.5656 | val ROC: 0.983
+  Round  15 | val F1: 0.5940 | val ROC: 0.985
+  Round  20 | val F1: 0.6104 | val ROC: 0.986
+  Round  25 | val F1: 0.6282 | val ROC: 0.987
+  Round  30 | val F1: 0.6401 | val ROC: 0.987
+  Round  35 | val F1: 0.6443 | val ROC: 0.988
+  Round  40 | val F1: 0.6547 | val ROC: 0.988
+  Round  45 | val F1: 0.6596 | val ROC: 0.989
+  Round  50 | val F1: 0.6562 | val ROC: 0.989
+[fedavg-noBN] best_val_f1=0.6596 at round 45
+[Model] Creating SolarMLP (input_dim=144, seed=43)
+[Model] GPU: NVIDIA GeForce RTX 4060 Laptop GPU | allocated: 17.5 MB
+[Model] Parameters: 28,929
+[Model] Creating SolarMLP (input_dim=144, seed=43)
+[Model] GPU: NVIDIA GeForce RTX 4060 Laptop GPU | allocated: 17.5 MB
+[Model] Parameters: 28,929
+[Model] Creating SolarMLP (input_dim=144, seed=43)
+[Model] GPU: NVIDIA GeForce RTX 4060 Laptop GPU | allocated: 17.5 MB
+[Model] Parameters: 28,929
+  [fedavg-noBN] r5: test ROC=0.976 PR=0.476
+[Model] Creating SolarMLP (input_dim=144, seed=43)
+[Model] GPU: NVIDIA GeForce RTX 4060 Laptop GPU | allocated: 17.6 MB
+[Model] Parameters: 28,929
+  [fedavg-noBN] r10: test ROC=0.972 PR=0.457
+[Model] Creating SolarMLP (input_dim=144, seed=43)
+[Model] GPU: NVIDIA GeForce RTX 4060 Laptop GPU | allocated: 17.6 MB
+[Model] Parameters: 28,929
+  [fedavg-noBN] r15: test ROC=0.968 PR=0.423
+[Model] Creating SolarMLP (input_dim=144, seed=43)
+[Model] GPU: NVIDIA GeForce RTX 4060 Laptop GPU | allocated: 17.6 MB
+[Model] Parameters: 28,929
+  [fedavg-noBN] r20: test ROC=0.966 PR=0.386
+[Model] Creating SolarMLP (input_dim=144, seed=43)
+[Model] GPU: NVIDIA GeForce RTX 4060 Laptop GPU | allocated: 17.6 MB
+[Model] Parameters: 28,929
+  [fedavg-noBN] r25: test ROC=0.965 PR=0.378
+[Model] Creating SolarMLP (input_dim=144, seed=43)
+[Model] GPU: NVIDIA GeForce RTX 4060 Laptop GPU | allocated: 17.6 MB
+[Model] Parameters: 28,929
+  [fedavg-noBN] r30: test ROC=0.964 PR=0.365
+[Model] Creating SolarMLP (input_dim=144, seed=43)
+[Model] GPU: NVIDIA GeForce RTX 4060 Laptop GPU | allocated: 17.6 MB
+[Model] Parameters: 28,929
+  [fedavg-noBN] r35: test ROC=0.962 PR=0.362
+[Model] Creating SolarMLP (input_dim=144, seed=43)
+[Model] GPU: NVIDIA GeForce RTX 4060 Laptop GPU | allocated: 17.6 MB
+[Model] Parameters: 28,929
+  [fedavg-noBN] r40: test ROC=0.961 PR=0.351
+[Model] Creating SolarMLP (input_dim=144, seed=43)
+[Model] GPU: NVIDIA GeForce RTX 4060 Laptop GPU | allocated: 17.6 MB
+[Model] Parameters: 28,929
+  [fedavg-noBN] r45: test ROC=0.961 PR=0.349
+[Model] Creating SolarMLP (input_dim=144, seed=43)
+[Model] GPU: NVIDIA GeForce RTX 4060 Laptop GPU | allocated: 17.6 MB
+[Model] Parameters: 28,929
+  [fedavg-noBN] r50: test ROC=0.959 PR=0.339
+
+[nobn] fedprox (no-BN, 50 rounds, frozen protocol) ...
+[Model] Creating SolarMLP (input_dim=144, seed=43)
+[Model] GPU: NVIDIA GeForce RTX 4060 Laptop GPU | allocated: 17.4 MB
+[Model] Parameters: 28,929
+[fedprox-noBN] NoBNSolarMLP | params=28,929 (BN baseline 29,377)
+  Round   5 | val F1: 0.0000 | val ROC: 0.940
+  Round  10 | val F1: 0.0000 | val ROC: 0.955
+  Round  15 | val F1: 0.0000 | val ROC: 0.962
+  Round  20 | val F1: 0.0000 | val ROC: 0.965
+  Round  25 | val F1: 0.1187 | val ROC: 0.967
+  Round  30 | val F1: 0.1907 | val ROC: 0.968
+  Round  35 | val F1: 0.2402 | val ROC: 0.969
+  Round  40 | val F1: 0.1916 | val ROC: 0.969
+  Round  45 | val F1: 0.2451 | val ROC: 0.970
+  Round  50 | val F1: 0.2998 | val ROC: 0.971
+[fedprox-noBN] best_val_f1=0.2998 at round 50
+[Model] Creating SolarMLP (input_dim=144, seed=43)
+[Model] GPU: NVIDIA GeForce RTX 4060 Laptop GPU | allocated: 17.5 MB
+[Model] Parameters: 28,929
+[Model] Creating SolarMLP (input_dim=144, seed=43)
+[Model] GPU: NVIDIA GeForce RTX 4060 Laptop GPU | allocated: 17.5 MB
+[Model] Parameters: 28,929
+[Model] Creating SolarMLP (input_dim=144, seed=43)
+[Model] GPU: NVIDIA GeForce RTX 4060 Laptop GPU | allocated: 17.5 MB
+[Model] Parameters: 28,929
+  [fedprox-noBN] r5: test ROC=0.939 PR=0.201
+[Model] Creating SolarMLP (input_dim=144, seed=43)
+[Model] GPU: NVIDIA GeForce RTX 4060 Laptop GPU | allocated: 17.6 MB
+[Model] Parameters: 28,929
+  [fedprox-noBN] r10: test ROC=0.961 PR=0.309
+[Model] Creating SolarMLP (input_dim=144, seed=43)
+[Model] GPU: NVIDIA GeForce RTX 4060 Laptop GPU | allocated: 17.6 MB
+[Model] Parameters: 28,929
+  [fedprox-noBN] r15: test ROC=0.970 PR=0.320
+[Model] Creating SolarMLP (input_dim=144, seed=43)
+[Model] GPU: NVIDIA GeForce RTX 4060 Laptop GPU | allocated: 17.6 MB
+[Model] Parameters: 28,929
+  [fedprox-noBN] r20: test ROC=0.973 PR=0.315
+[Model] Creating SolarMLP (input_dim=144, seed=43)
+[Model] GPU: NVIDIA GeForce RTX 4060 Laptop GPU | allocated: 17.6 MB
+[Model] Parameters: 28,929
+  [fedprox-noBN] r25: test ROC=0.974 PR=0.315
+[Model] Creating SolarMLP (input_dim=144, seed=43)
+[Model] GPU: NVIDIA GeForce RTX 4060 Laptop GPU | allocated: 17.6 MB
+[Model] Parameters: 28,929
+  [fedprox-noBN] r30: test ROC=0.975 PR=0.310
+[Model] Creating SolarMLP (input_dim=144, seed=43)
+[Model] GPU: NVIDIA GeForce RTX 4060 Laptop GPU | allocated: 17.6 MB
+[Model] Parameters: 28,929
+  [fedprox-noBN] r35: test ROC=0.975 PR=0.312
+[Model] Creating SolarMLP (input_dim=144, seed=43)
+[Model] GPU: NVIDIA GeForce RTX 4060 Laptop GPU | allocated: 17.6 MB
+[Model] Parameters: 28,929
+  [fedprox-noBN] r40: test ROC=0.975 PR=0.312
+[Model] Creating SolarMLP (input_dim=144, seed=43)
+[Model] GPU: NVIDIA GeForce RTX 4060 Laptop GPU | allocated: 17.6 MB
+[Model] Parameters: 28,929
+  [fedprox-noBN] r45: test ROC=0.976 PR=0.314
+[Model] Creating SolarMLP (input_dim=144, seed=43)
+[Model] GPU: NVIDIA GeForce RTX 4060 Laptop GPU | allocated: 17.6 MB
+[Model] Parameters: 28,929
+  [fedprox-noBN] r50: test ROC=0.976 PR=0.321
+
+[nobn] report -> outputs\raw_nobn_eval_seed43.json (2899s total)
+[nobn] fedavg: selected r45 ROC 0.961 PR 0.349
+[nobn] fedprox: selected r50 ROC 0.976 PR 0.321
+[nobn] done.
+(base) (base) PS C:\Users\deves\Documents\sf9> 
+(base) (base) PS C:\Users\deves\Documents\sf9> # Item 2 — needs p1..p4_meta.csv. If you still have the parsed files
+(base) (base) PS C:\Users\deves\Documents\sf9> # somewhere, point --raw-dir there. If gone, regenerate (minutes each,
+(base) (base) PS C:\Users\deves\Documents\sf9> # metadata only) from the Dataverse partitions you downloaded before:
+(base) (base) PS C:\Users\deves\Documents\sf9> python provenance/swansf_parse_partition.py <path>\partition1 <rawdir>\p1 --meta-only
+At line:1 char:45
++ python provenance/swansf_parse_partition.py <path>\partition1 <rawdir ...
++                                             ~
+The '<' operator is reserved for future use.
+At line:1 char:63
++ ... thon provenance/swansf_parse_partition.py <path>\partition1 <rawdir ...
++                                                                 ~
+The '<' operator is reserved for future use.
+    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : RedirectionNotSupported
+ 
+(base) (base) PS C:\Users\deves\Documents\sf9> # ...same for partitions 2-4, then:
+(base) (base) PS C:\Users\deves\Documents\sf9> python experiments/run_raw_nobn.py --region-disjoint --raw-dir <rawdir>
+At line:1 char:64
++ ... thon experiments/run_raw_nobn.py --region-disjoint --raw-dir <rawdir>
++                                                                  ~
+The '<' operator is reserved for future use.
+At line:1 char:73
++ ... experiments/run_raw_nobn.py --region-disjoint --raw-dir <rawdir>
++                                                                  ~
+The '<' operator is reserved for future use.
+    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : RedirectionNotSupported
+ 
+(base) (base) PS C:\Users\deves\Documents\sf9> 

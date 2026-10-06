@@ -1,31 +1,51 @@
-# RUN CARD v4.12 (rev. v4.12.1) — the external-review compute items (2) and (3)
+# RUN CARD (rev. v4.13) — the external-review compute items (2) and (3)
 
 The independent re-review of v4.11 asked for two small compute jobs
 that this sandbox cannot run (no GPU, no dataset cache). Both are
 prepared, guarded, and namespaced so they cannot disturb the frozen
 v4.9.4 artefacts. This card is the exact recipe.
 
-**v4.12.1 errata (2026-10-06, after the first owner-side execution):**
-two latent defects in the item-2 kit, both fixed and now
-battery-guarded (tests/test_region_disjoint.py, 16 checks):
+**v4.13 status (2026-10-06, after the owner's second execution):**
 
-- the region map was read from the SAMPLED audit meta
-  (`provenance/train_meta_slim.csv.gz` — 97,764 rows over partitions
-  1..5, its `pool_row` indexing the slim file itself), so a real run
-  would have aborted at its own coverage gate (97,764 of 255,820 pool
-  rows) even with the raw dir present. Regions now come from the
-  parse metadata's `ar` column — the SAME `p{p}_meta.csv` files that
-  supply the labels, full pool coverage by construction.
-- the raw-dir default is the POSIX path `/tmp/swansf_raw`; on Windows
-  it resolves against the current drive and the first execution died
-  with a bare `FileNotFoundError`. The split now pre-flights all four
-  `p{1..4}_meta.csv` files and exits with a guided message naming
-  `--raw-dir` and the regeneration command.
+- **Item 3 (seed 43) is EXECUTED and integrated at v4.13.** Both
+  arms completed on the owner GPU (2,899 s; transcript committed at
+  `logs/run_raw_nobn_seed43_transcript.txt`). Verdict per the
+  decision rules below: **parity holds** — shipped selections move
+  −0.002/+0.001 ROC-AUC (FedAvg 0.9626→0.961, FedProx
+  0.9755→0.976), every level claim survives, both dynamics
+  signatures reproduce, and the thresholded validation-F1 monitor
+  is the seed-sensitive layer (0.527→0.660 / 0.092→0.300). The
+  paper's boundary (d), the re-run programme, the conclusion, the
+  trimmed edition, and the new Table `tab:rawnobnrep` all carry it.
+  One follow-up remains owner-side, cost ~10 seconds: **push the
+  full-fidelity JSON** (see "Item 3 follow-up" below).
+- **Item 2 (region-disjoint) is BLOCKED on a prerequisite, and the
+  card's own v4.12 instructions were un-pasteable.** Two causes,
+  both now fixed in this revision:
+  1. *PowerShell reserves the `<` character.* The v4.12 card wrote
+     its recipe with `<path>`-style placeholders; pasted literally
+     (as the owner did, transcript lines preserved at the end of
+     the committed seed-43 transcript), every invocation died as
+     `ParserError: The '<' operator is reserved for future use`
+     before Python ever ran. This revision contains **no angle
+     brackets**: every command below is copy-paste-ready, and the
+     one thing you may need to adjust is a single PowerShell
+     variable at the top of the recipe.
+  2. *The raw parse metadata is gone.* The region-disjoint split
+     needs `p1..p4_meta.csv` (labels + NOAA AR column). The
+     substrate build that created your `data.npz` recorded its raw
+     dir as `/tmp/swansf_raw` — a POSIX path, i.e. almost certainly
+     inside WSL, whose `/tmp` is wiped on reboot. The committed
+     owner-box inventory (`logs/owner_dirlisting_2026-10-06.txt`)
+     confirms: no `p*_meta.csv`, no partition directory, and no
+     `.tar.gz` anywhere in the repo tree. The search + regeneration
+     recipe below covers all three cases (files survive somewhere /
+     only the Dataverse downloads survive / nothing survives).
 
-The item-3 kit (seed 43) needed no code change: the first owner
-execution reached round-1 training on the RTX 4060 and was
-interrupted with Ctrl+C (the traceback ends in `KeyboardInterrupt`,
-not a defect). Just re-run it.
+The v4.12.1 errata (region source = the parse metadata `ar` column
+with full pool coverage; pre-flighted `p1..p4_meta.csv` with a
+guided exit instead of a POSIX-default traceback) still stands and
+is battery-guarded by `tests/test_region_disjoint.py`.
 
 ## Context
 
@@ -36,58 +56,100 @@ not a defect). Just re-run it.
   it. Two candidates remain: (a) the random validation carve shares
   active regions with the training shards (leakage), or (b) partition
   5 is the temporally latest fold (drift). The region-disjoint
-  re-run separates them.
-- **Item 3 (one seed).** The no-BN control is seed-42 only. The big
-  swings (+0.088/+0.310) are safe, but the level claims (sequence-arm
-  parity, centralised-MLP parity) sit inside the recorded retrain
-  noise band (0.002–0.023 ROC-AUC), so they need seed 43.
+  re-run separates them. **Note: the seed-43 run sharpened this
+  question** — the divergence reproduces and widens at seed 43
+  (val ROC 0.978 → 0.989 while test falls 0.976 → 0.959), so the
+  item-2 run is now the no-BN control's one open compute item.
+- **Item 3 (one seed).** Resolved at v4.13 (see above).
 
 ## Prerequisites
 
-1. **The repo at v4.12.1** (branch `improvements`), working tree
-   clean — `git pull` to pick up the errata commit.
+1. **The repo at v4.13** (branch `improvements`), working tree
+   clean — `git pull` to pick up this revision.
 2. **The substrate cache** `data/cache/rawsubstrate/data.npz` —
-   present on the owner box; both runs resume it (the seed-43 run
-   refuses to start without it, by design).
-3. **The raw parse metadata** `p1..p4_meta.csv`, in any directory,
-   passed as `--raw-dir`. These are NOT in the repo (the first
-   execution failed on exactly this). Two cases:
-   - you still have the parsed files somewhere (e.g.
-     `C:\tmp\swansf_raw`) — point `--raw-dir` there;
-   - they are gone — regenerate ONLY the metadata (no npz; the
-     substrate cache provides X, it is never read from raw_dir in
-     these runs) from the public benchmark (Harvard Dataverse,
-     doi:10.7910/DVN/EBCFKM; `partition1..5_instances.tar.gz`):
+   present on the owner box (confirmed by the inventory); both runs
+   resume it (the seed-43 run refuses to start without it, by
+   design).
+3. **The raw parse metadata** `p1..p4_meta.csv` — required by item 2
+   only. See the recipe below.
 
-     ```powershell
-     # once per training partition (minutes each, writes p{p}_meta.csv only)
-     python provenance/swansf_parse_partition.py <extracted>\partition1 <rawdir>\p1 --meta-only
-     python provenance/swansf_parse_partition.py <extracted>\partition2 <rawdir>\p2 --meta-only
-     python provenance/swansf_parse_partition.py <extracted>\partition3 <rawdir>\p3 --meta-only
-     python provenance/swansf_parse_partition.py <extracted>\partition4 <rawdir>\p4 --meta-only
-     ```
-4. **GPU preferred** (the seed-42 control took 1,698.78 s for both
-   arms on the owner GPU; CPU would work but is much slower).
+## Item 3 follow-up — push the JSON (10 seconds, do this first)
 
-## The two runs
+The run already wrote `outputs\raw_nobn_eval_seed43.json` (24,768
+bytes — the box inventory confirms it exists). It has NOT been
+committed yet. The v4.13 integration rides the committed console
+transcript (every paper number battery-pinned to its parsed lines);
+this push lands the full-fidelity record, which will be sha256-
+frozen on arrival per the established convention:
 
 ```powershell
-# Item 2 — region-disjoint validation carve, both arms, seed 42.
-# ~1,700 s on the same GPU class as the original control.
-python experiments/run_raw_nobn.py --region-disjoint --raw-dir <rawdir>
-
-# Item 3 — seed-43 replication, both arms, frozen random carve.
-# ~1,700 s likewise. (No --raw-dir needed — the frozen carve rides
-# the substrate cache.)
-python experiments/run_raw_nobn.py --seed 43
+git pull    # picks up v4.13
+git add outputs\raw_nobn_eval_seed43.json
+git commit -m "artefact: raw_nobn_eval_seed43.json (owner-side, external-review item 3)"
+git push
 ```
 
-Both are round-resumable (state files `nobnrd_<algo>_state.pt` and
-`nobns43_<algo>_state.pt` — separate namespaces; the original
-`nobn_<algo>_state.pt` files are never touched, and the runner
-refuses to resume a checkpoint from a foreign namespace or seed).
-If a run is interrupted, just re-invoke the same command: it resumes
-at the next round.
+## Item 2 — the region-disjoint re-run (PowerShell-safe recipe)
+
+### Step 0: find out which case you are in
+
+```powershell
+# (a) search your user profile for surviving parse metadata or
+#     Dataverse downloads (Documents, Downloads, Desktop, ...):
+Get-ChildItem "$env:USERPROFILE" -Recurse -Depth 5 `
+    -Include "p1_meta.csv","p*_raw.npz","partition*.tar.gz" `
+    -ErrorAction SilentlyContinue |
+    Select-Object -First 20 -ExpandProperty FullName
+
+# (b) the substrate build recorded raw_dir = /tmp/swansf_raw (POSIX
+#     -> almost certainly WSL; /tmp is wiped on reboot, but worth a look):
+wsl -- ls /tmp/swansf_raw
+wsl -- bash -lc "find /tmp ~ -maxdepth 4 -name p1_meta.csv 2>/dev/null"
+```
+
+- **Case A — a directory with `p1..p4_meta.csv` survived** (from
+  step 0a or 0b): skip to "The run", passing that directory as
+  `--raw-dir`.
+- **Case B — only the Dataverse partition downloads survived**
+  (folders named `partition1..4`, each containing `FL\` and `NF\`
+  subfolders, or their `.tar.gz` archives): regenerate the metadata
+  (Step 1) — minutes per partition, writes ~6 MB of CSV, no npz.
+- **Case C — nothing survived**: re-download partitions 1–4 from
+  the Harvard Dataverse dataset the repo's provenance record cites
+  (`doi:10.7910/DVN/EBCFKM`, see `provenance/README.md`; the files
+  are `partition1_instances.tar.gz` .. `partition4_instances.tar.gz`),
+  extract them anywhere, then follow Case B.
+
+### Step 1 (Cases B/C only): regenerate the parse metadata
+
+```powershell
+# from the repo root (C:\Users\deves\Documents\sf9).
+# ONE variable to adjust: where you extracted / kept the partitions.
+$parts = "$env:USERPROFILE\Downloads\swansf"
+
+# this writes raw\p1_meta.csv .. raw\p4_meta.csv (flat, inside the
+# repo; the runner resolves --raw-dir relative to the repo root,
+# so no absolute paths are needed anywhere):
+python provenance\swansf_parse_partition.py "$parts\partition1" raw\p1 --meta-only
+python provenance\swansf_parse_partition.py "$parts\partition2" raw\p2 --meta-only
+python provenance\swansf_parse_partition.py "$parts\partition3" raw\p3 --meta-only
+python provenance\swansf_parse_partition.py "$parts\partition4" raw\p4 --meta-only
+```
+
+(If step 0a found a surviving archive, extract it first —
+`Expand-Archive` or 7-Zip — and point `$parts` at the extract.)
+
+### The run
+
+```powershell
+# ~1,700 s on the same GPU class as the original control; both
+# arms; round-resumable (state namespace nobnrd_* never touches the
+# frozen seed-42 checkpoints).
+python experiments\run_raw_nobn.py --region-disjoint --raw-dir raw
+```
+
+(Case A: replace `--raw-dir raw` with the found directory, quoted if
+it contains spaces — e.g. `--raw-dir "C:\tmp\swansf_raw"`.)
 
 ## What each run writes
 
@@ -95,8 +157,8 @@ at the next round.
   `raw_nobn_eval.json`, plus a `validation_split` block (region
   counts, val prevalence, disjointness statement, the v4.12.1
   `region_source` disclosure) and a `protocol.validation` marker.
-- `outputs/raw_nobn_eval_seed43.json` — same schema, with
-  `protocol.seed = 43` and the validation marker noting the reseed.
+- `outputs/raw_nobn_eval_seed43.json` — already written by the
+  executed item-3 run; awaiting the push above.
 
 ## Built-in guards (the run is self-checking)
 
@@ -110,33 +172,37 @@ at the next round.
 - The whole-region assignment is deterministic (seed-42 region
   permutation); reruns are identical.
 - All of the above are exercised on synthetic fixtures by the battery
-  (tests/test_region_disjoint.py — happy path + determinism, source
-  contract, guided exit, round-trip tamper, ar sentinel; battery
-  403/0 at v4.12.1).
+  (tests/test_region_disjoint.py); the seed-43 verdict is pinned by
+  tests/test_seed43_replication.py.
 
 ## How to read the outcomes (decision rules)
 
 - **Item 2, divergence disappears** (val ROC no longer rises while
   test falls; the shipped checkpoint is no longer the weakest test
   round): the random carve was region-leaky — the paper's validation
-  story updates at v4.13, and the shipped numbers likely *improve*
+  story updates at v4.14, and the shipped numbers likely *improve*
   under the honest monitor.
 - **Item 2, divergence persists**: partition-5 recency (temporal
   drift) becomes the leading explanation; the FedAvg declining
   trajectory is real client drift and the row stays a conservative
   lower bound.
-- **Item 3, parity holds within ±0.005 ROC-AUC**: the level claims
-  stand with replication.
-- **Item 3, parity breaks**: the parity wording softens to
-  "single-seed parity" and the divergence is reported.
+- **Item 3 — RESOLVED at v4.13**: parity holds within ±0.005
+  ROC-AUC (measured: −0.002/+0.001); the level claims stand with
+  replication.
 
 ## Reporting back
 
-Paste (or commit and push, if running on the owner box directly):
-1. both JSON files, verbatim;
-2. the stdout tail of each run (the `[nobn]` summary lines).
+After the item-2 run completes:
 
-Integration at v4.13 then follows the established convention: the
-artefacts land byte-faithfully, get sha256-pinned in
-`tests/test_raw_bn_diagnostic.py`, and the paper integrates the
-verdicts (Sections 6.4/9 and the limitations re-run programme).
+```powershell
+git add outputs\raw_nobn_region_disjoint.json
+git commit -m "artefact: raw_nobn_region_disjoint.json (owner-side, external-review item 2)"
+git push
+```
+
+Then paste (or leave in the pushed commit) the stdout tail — the
+`[nobn]` summary lines and the REGION-DISJOINT carve line.
+Integration at v4.14 then follows the established convention: the
+artefact lands byte-faithfully, gets sha256-pinned, and the paper
+integrates the verdict (Sections 6.4/9 and the limitations re-run
+programme).

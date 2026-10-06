@@ -74,6 +74,16 @@ module tests/test_region_disjoint.py (happy path + determinism,
 source contract, guided exit, round-trip tamper, ar sentinel);
 provenance/swansf_parse_partition.py gained --meta-only for cheap
 regeneration of the parse metadata
+v4.13 — the external-review item-3 compute landed owner-side (seed
+43, both no-BN arms, 2,899 s; verdict: parity holds) and the run
+card's placeholder syntax proved un-pasteable in PowerShell (the
+reserved '<' character): the new module
+tests/test_seed43_replication.py pins the owner console transcript
+byte-identically, re-derives every integrated paper number from its
+parsed lines, verifies the parity decision rule against the frozen
+seed-42 artefact, pins both editions' integration text, and gates a
+consistency layer on the full-fidelity JSON for the moment the
+owner push lands
 ─────────────────────────────────────────
 Single entry point for the integrity battery. Runs every test module,
 aggregates PASS/FAIL across all of them, prints ONE total, and
@@ -110,7 +120,7 @@ ROOT = os.path.dirname(HERE)
 # Single source of truth for the log's title line. Dossier R-FS9-R3
 # (N2) caught a v4.2-era log whose title still read "(v4.1)" because
 # this string was hardcoded; bump BATTERY_VERSION with every release.
-BATTERY_VERSION = "v4.12.1"
+BATTERY_VERSION = "v4.13"
 
 # Default write path, versioned off BATTERY_VERSION. Dossier R-FS9-R4
 # (P2): the previous default was the un-versioned logs/test_battery.log
@@ -149,6 +159,7 @@ MODULES = [
     "tests/test_raw_lstm.py",
     "tests/test_raw_bn_diagnostic.py",
     "tests/test_region_disjoint.py",
+    "tests/test_seed43_replication.py",
 ]
 
 # unittest-style modules run with -v so each test case emits one line

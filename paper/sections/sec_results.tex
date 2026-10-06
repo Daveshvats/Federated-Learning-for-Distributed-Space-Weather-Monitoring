@@ -595,7 +595,11 @@ compressed at the 0.35 default threshold, and its calibrated test
 operating point sits at 0.155, test F1 0.400 at recall 0.763), and a
 validation-ROC-selected sensitivity row rides beside it (FedAvg:
 round 40, 0.9635/0.3592; FedProx: round 50, identical to the shipped
-row) --- both rules disclosed, neither test-based. The per-round
+row) --- both rules disclosed, neither test-based. The seed-43
+replication below lands the same rules on rounds 45/50: the rule is
+stable in \emph{kind} while its thresholded monitor values travel
+with the seed --- the fragile layer is again the monitor, not the
+ranking. The per-round
 test trajectories carry the real dynamics: FedAvg's test ROC-AUC
 \emph{declines} from 0.974 (round 5) to 0.963 (round 50) --- every
 round except a $+9\times10^{-6}$ uptick at the final step --- while
@@ -633,13 +637,62 @@ its natural-prevalence, out-of-partition complement, and the two
 results are not readable into each other. (c) FedAvg's declining
 test trajectory means its row is a conservative lower bound on what
 a selection rule with a usable monitor would ship; the sensitivity
-row and the trajectory are the honest record. (d) Both arms are
-single-seed (42): the recovery swings ($+0.088$/$+0.310$ and
-$+0.045$/$+0.196$) dwarf the recorded retrain noise, but the level
-claims --- sequence-arm parity and centralised-MLP parity --- sit
-within it, which is why the seed-43 replication of these arms
-leads the remaining re-run programme
-(Section~\ref{sec:limitations}).
+row and the trajectory are the honest record. (d) The single-seed boundary is
+discharged: both arms were re-executed at seed 43 (model
+initialisation and the Dirichlet shard draw reseeded, the frozen
+random validation carve kept identical --- the replication
+semantics of Section~\ref{sec:res-lstmrep}), and every level claim
+survives (Table~\ref{tab:rawnobnrep}): the shipped selections move
+$-0.002$ and $+0.001$ ROC-AUC (FedAvg 0.963$\to$0.961, FedProx
+0.975$\to$0.976) --- inside the $0.002$--$0.023$ retrain band
+\emph{and} the sequence arms' $\pm$0.005 replication band --- while
+PR-AUC moves $-0.017$/$-0.024$ without overturning an ordering.
+Both dynamics signatures reproduce as well: the FedAvg
+val-up/test-down divergence (validation ROC-AUC 0.978$\to$0.989
+while the test trajectory falls 0.976$\to$0.959) and FedProx's
+compressed early-round monitor (validation F1 exactly 0.0000
+through round 20 before the late climb). What the seed \emph{does}
+move is the thresholded validation-F1 monitor --- best values
+0.527$\to$0.660 (FedAvg) and 0.092$\to$0.300 (FedProx) --- the
+fourth independent confirmation that at 2\% prevalence the
+fixed-threshold monitor is the fragile layer and the rank metrics
+carry the conclusions.
+
+The replication run itself rode the frozen substrate cache and the
+identical random validation carve (the runner refuses a fresh
+substrate build under a non-default seed, so the carve cannot
+drift), executed owner-side in 2{,}899\,s on the same GPU class,
+and rebuilt the seed-43 Dirichlet shard draw identically to the
+sequence arms' own seed-43 batch --- the same six client sizes and
+flare rates, a cross-runner reproducibility fact the battery pins.
+Its artefact of record is the owner console transcript (committed
+at \texttt{logs/run\_raw\_nobn\_seed43\_transcript.txt},
+sha256-pinned; the full-fidelity JSON, present owner-side, lands
+with the owner push and will be frozen on arrival per the
+established convention).
+
+\begin{table}[t]
+\centering
+\caption{Seed-43 replication of the no-BatchNorm raw-substrate arms
+(window-level test metrics of the shipped validation-selected
+checkpoints; protocol, substrate, shards, and evaluation identical
+to Table~\ref{tab:rawnobn}). Seed 43 reseeds model initialisation
+and the Dirichlet shard draw; the frozen random validation carve is
+unchanged.}
+\label{tab:rawnobnrep}
+\small
+\begin{tabular}{@{}l cc cc@{}}
+\toprule
+ & \multicolumn{2}{c}{\textbf{Seed 42}} &
+ \multicolumn{2}{c}{\textbf{Seed 43}} \\
+\cmidrule(r){2-3} \cmidrule(l){4-5}
+\textbf{Arm (no BatchNorm)} & ROC & PR & ROC & PR \\
+\midrule
+FedAvg & 0.963 & 0.366 & 0.961 & 0.349 \\
+FedProx & 0.975 & 0.345 & 0.976 & 0.321 \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \subsection{The BatchNorm-free sequence arms rescue the federated
 arms}

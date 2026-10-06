@@ -1,7 +1,7 @@
 # Journal Submission Edition (the trimmed paper, regenerated from the record)
 
 This directory is the **journal submission manuscript** of the SF9
-paper (current build: **v4.12**). Since v4.12 it is the **trimmed,
+paper (current build: **v4.13**). Since v4.12 it is the **trimmed,
 publishable edition** — the 12-page paper covering exactly what an
 external reviewer needs: provenance and leakage, the leakage-free
 fold, persistence baselines, the two BatchNorm findings, and

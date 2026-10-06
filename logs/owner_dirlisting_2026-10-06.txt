@@ -1,0 +1,721 @@
+# logs/owner_dirlisting_2026-10-06.txt — the owner box's recursive
+# directory listing (PowerShell 'dir -s' from the repo root,
+# C:\Users\deves\Documents\sf9, pasted 2026-10-06), committed as
+# provenance for two facts the v4.13 run card and response letter
+# cite: (1) outputs/raw_nobn_eval_seed43.json (24,768 bytes,
+# 2026-10-06 2:23 PM) EXISTS owner-side — the item-3 artefact of
+# record, awaiting the owner push; (2) NO raw parse metadata
+# (p1..p4_meta.csv), no partition directory, and no .tar.gz exists
+# anywhere in the repo tree — the item-2 kit's prerequisite is
+# absent owner-side, motivating the v4.13 search/regeneration
+# recipe. Line endings normalised CRLF -> LF on commit; content
+# otherwise verbatim.
+# ─────────────────────────────────────────────────────────────────
+(base) (base) PS C:\Users\deves\Documents\sf9> dir -s 
+
+
+    Directory: C:\Users\deves\Documents\sf9
+
+
+Mode                 LastWriteTime         Length Name                                                                                                                                                                                                         
+----                 -------------         ------ ----                                                                                                                                                                                                         
+d-----         10/5/2026   1:18 PM                audit                                                                                                                                                                                                        
+d-----         9/30/2026   9:34 PM                data                                                                                                                                                                                                         
+d-----         10/5/2026   1:18 PM                data_manifest                                                                                                                                                                                                
+d-----         10/6/2026   1:33 PM                docs                                                                                                                                                                                                         
+d-----         10/6/2026   1:33 PM                experiments                                                                                                                                                                                                  
+d-----         10/5/2026   3:25 PM                leakage_audit                                                                                                                                                                                                
+d-----         9/30/2026   8:55 PM                limitations                                                                                                                                                                                                  
+d-----         10/5/2026   6:24 PM                logs                                                                                                                                                                                                         
+d-----         10/1/2026   7:30 PM                logs_old                                                                                                                                                                                                     
+d-----         10/6/2026   2:23 PM                outputs                                                                                                                                                                                                      
+d-----         10/1/2026   7:33 PM                outputs_old                                                                                                                                                                                                  
+d-----         10/5/2026  11:08 PM                outputs_old 2                                                                                                                                                                                                
+d-----         10/6/2026   1:12 PM                paper                                                                                                                                                                                                        
+d-----         10/6/2026   1:12 PM                paper_trimmed                                                                                                                                                                                                
+d-----         9/30/2026   8:55 PM                privacy_analysis                                                                                                                                                                                             
+d-----         10/6/2026   1:33 PM                provenance                                                                                                                                                                                                   
+d-----         10/6/2026   1:12 PM                submission                                                                                                                                                                                                   
+d-----         10/6/2026   1:33 PM                tests                                                                                                                                                                                                        
+d-----         10/6/2026   1:12 PM                tools                                                                                                                                                                                                        
+d-----         10/5/2026   3:25 PM                __pycache__                                                                                                                                                                                                  
+-a----         10/5/2026   4:30 PM            549 .gitattributes                                                                                                                                                                                               
+-a----         10/5/2026   1:18 PM            600 .gitignore                                                                                                                                                                                                   
+-a----         10/6/2026   1:12 PM           3574 ABSTRACT.md                                                                                                                                                                                                  
+-a----         10/5/2026   1:18 PM          15646 centralized_baseline.py                                                                                                                                                                                      
+-a----         9/30/2026   8:55 PM           3909 communication_cost.py                                                                                                                                                                                        
+-a----         10/5/2026   1:18 PM           8709 config.py                                                                                                                                                                                                    
+-a----         10/1/2026  10:30 AM      176357843 data.zip                                                                                                                                                                                                     
+-a----         10/1/2026  10:32 AM          26090 data_preparation.py                                                                                                                                                                                          
+-a----         10/5/2026   1:18 PM           7449 evaluate_clients.py                                                                                                                                                                                          
+-a----         9/30/2026   8:55 PM          14863 evaluation.py                                                                                                                                                                                                
+-a----         10/5/2026   1:18 PM          32296 federated_learning.py                                                                                                                                                                                        
+-a----         9/30/2026   8:49 PM            629 fix_encoding.py                                                                                                                                                                                              
+-a----         10/5/2026   1:18 PM           7300 interpretability.py                                                                                                                                                                                          
+-a----         10/5/2026   1:18 PM          20015 load_cleaned_data.py                                                                                                                                                                                         
+-a----         9/30/2026   8:55 PM          14094 losses.py                                                                                                                                                                                                    
+-a----         10/5/2026   1:18 PM          34768 main.py                                                                                                                                                                                                      
+-a----         10/5/2026   1:18 PM          15930 model.py                                                                                                                                                                                                     
+-a----         10/5/2026   1:18 PM          14509 partition_clients.py                                                                                                                                                                                         
+-a----         10/5/2026   1:18 PM           4573 patch_reference_fields.py                                                                                                                                                                                    
+-a----         10/6/2026   1:33 PM          18816 README.md                                                                                                                                                                                                    
+-a----         9/30/2026   7:44 PM           4408 README.txt                                                                                                                                                                                                   
+-a----         10/5/2026   1:18 PM            888 requirements.txt                                                                                                                                                                                             
+-a----         10/6/2026   1:33 PM          80234 RUNLOG.md                                                                                                                                                                                                    
+-a----         9/30/2026   8:55 PM           4738 secure_aggregation.py                                                                                                                                                                                        
+-a----         10/5/2026   3:26 PM          71537 sf9.zip                                                                                                                                                                                                      
+-a----         9/30/2026   8:55 PM          12452 visualize_results.py                                                                                                                                                                                         
+
+
+    Directory: C:\Users\deves\Documents\sf9\audit
+
+
+Mode                 LastWriteTime         Length Name                                                                                                                                                                                                         
+----                 -------------         ------ ----                                                                                                                                                                                                         
+-a----         9/30/2026   8:55 PM           6689 BUG_REGISTER.md                                                                                                                                                                                              
+-a----         10/5/2026   1:18 PM          22268 CLAIMS.md                                                                                                                                                                                                    
+-a----         9/30/2026   8:55 PM           4417 REVISION_PLAN.md                                                                                                                                                                                             
+
+
+    Directory: C:\Users\deves\Documents\sf9\data
+
+
+Mode                 LastWriteTime         Length Name                                                                                                                                                                                                         
+----                 -------------         ------ ----                                                                                                                                                                                                         
+d-----         9/30/2026   9:34 PM                cache                                                                                                                                                                                                        
+
+
+    Directory: C:\Users\deves\Documents\sf9\data\cache
+
+
+Mode                 LastWriteTime         Length Name                                                                                                                                                                                                         
+----                 -------------         ------ ----                                                                                                                                                                                                         
+d-----         10/6/2026   2:23 PM                rawsubstrate                                                                                                                                                                                                 
+
+
+    Directory: C:\Users\deves\Documents\sf9\data\cache\rawsubstrate
+
+
+Mode                 LastWriteTime         Length Name                                                                                                                                                                                                         
+----                 -------------         ------ ----                                                                                                                                                                                                         
+d-----         9/30/2026   9:34 PM                _aux                                                                                                                                                                                                         
+-a----         10/5/2026   1:33 PM        1418351 baselines.pt                                                                                                                                                                                                 
+-a----         9/30/2026   9:40 PM         880689 central_lstm.pt                                                                                                                                                                                              
+-a----         10/1/2026  12:10 PM         880711 central_seed43.pt                                                                                                                                                                                            
+-a----         10/5/2026   1:31 PM       76679279 data.npz                                                                                                                                                                                                     
+-a----         10/5/2026   1:54 PM         326551 fedavg.pt                                                                                                                                                                                                    
+-a----         9/30/2026  10:49 PM        3529257 fedavg_lstm.pt                                                                                                                                                                                               
+-a----         10/1/2026   1:13 PM        3531265 fedavg_seed43.pt                                                                                                                                                                                             
+-a----         10/1/2026   5:25 PM        3528629 fedavg_smote.pt                                                                                                                                                                                              
+-a----         10/5/2026   2:32 PM         326133 fedprox.pt                                                                                                                                                                                                   
+-a----         10/1/2026  12:09 AM        3541301 fedprox_lstm.pt                                                                                                                                                                                              
+-a----         10/1/2026   2:35 PM        3541069 fedprox_seed43.pt                                                                                                                                                                                            
+-a----         10/1/2026   7:13 PM        3540801 fedprox_smote.pt                                                                                                                                                                                             
+-a----         10/6/2026   1:53 PM        2051321 nobns43_fedavg_state.pt                                                                                                                                                                                      
+-a----         10/6/2026   2:23 PM        2054280 nobns43_fedprox_state.pt                                                                                                                                                                                     
+-a----         10/5/2026   9:29 PM        2043660 nobn_fedavg_state.pt                                                                                                                                                                                         
+-a----         10/5/2026  11:08 PM        2056091 nobn_fedprox_state.pt                                                                                                                                                                                        
+-a----         9/30/2026   5:25 PM      217051328 processed_p5_3d.npy                                                                                                                                                                                          
+-a----         10/5/2026   3:25 PM        1354827 scaffold.pt                                                                                                                                                                                                  
+-a----         10/1/2026  12:05 PM        9704693 scaffold_scaffold.pt                                                                                                                                                                                         
+-a----         10/1/2026   4:00 PM        9702069 scaffold_seed43.pt                                                                                                                                                                                           
+-a----         10/5/2026   3:25 PM        1539115 test_probs.npz                                                                                                                                                                                               
+-a----         10/1/2026  12:10 AM         796117 test_probs_lstm.npz                                                                                                                                                                                          
+-a----         10/1/2026  12:05 PM         263732 test_probs_scaffold.npz                                                                                                                                                                                      
+-a----         10/1/2026   4:01 PM        1077683 test_probs_seed43.npz                                                                                                                                                                                        
+-a----         10/1/2026   7:13 PM         543904 test_probs_smote.npz                                                                                                                                                                                         
+-a----         9/30/2026   7:24 PM      618877568 X_train_3d.npy                                                                                                                                                                                               
+-a----         9/30/2026   7:24 PM      117884288 X_val_3d.npy                                                                                                                                                                                                 
+-a----         9/30/2026   7:24 PM        1325494 y3d.npz                                                                                                                                                                                                      
+
+
+    Directory: C:\Users\deves\Documents\sf9\data\cache\rawsubstrate\_aux
+
+
+Mode                 LastWriteTime         Length Name                                                                                                                                                                                                         
+----                 -------------         ------ ----                                                                                                                                                                                                         
+d-----         9/30/2026   9:34 PM                integrated_flare_data                                                                                                                                                                                        
+-a----         9/30/2026   7:44 PM       14146792 match_test_p5.csv                                                                                                                                                                                            
+-a----         9/30/2026   7:44 PM       62607706 test_meta_pooled.csv                                                                                                                                                                                         
+
+
+    Directory: C:\Users\deves\Documents\sf9\data\cache\rawsubstrate\_aux\integrated_flare_data
+
+
+Mode                 LastWriteTime         Length Name                                                                                                                                                                                                         
+----                 -------------         ------ ----                                                                                                                                                                                                         
+-a----         9/30/2026   7:44 PM        5221350 goes_flares_integrated.csv                                                                                                                                                                                   
+
+
+    Directory: C:\Users\deves\Documents\sf9\data_manifest
+
+
+Mode                 LastWriteTime         Length Name                                                                                                                                                                                                         
+----                 -------------         ------ ----                                                                                                                                                                                                         
+-a----         9/30/2026   8:55 PM           7760 generate_manifest.py                                                                                                                                                                                         
+-a----         9/30/2026   8:55 PM          12911 manifest.json                                                                                                                                                                                                
+-a----         10/5/2026   1:18 PM           5795 verify_manifest.py                                                                                                                                                                                           
+
+
+    Directory: C:\Users\deves\Documents\sf9\docs
+
+
+Mode                 LastWriteTime         Length Name                                                                                                                                                                                                         
+----                 -------------         ------ ----                                                                                                                                                                                                         
+d-----         10/5/2026   1:18 PM                lit_search                                                                                                                                                                                                   
+d-----         10/6/2026   1:12 PM                response_letters                                                                                                                                                                                             
+-a----         10/6/2026   1:33 PM          11089 ENVIRONMENTS.md                                                                                                                                                                                              
+-a----         9/30/2026   8:55 PM           3335 GIC_BOUNDARY.md                                                                                                                                                                                              
+-a----         10/5/2026   1:18 PM           7193 INTERPRETATION_FREEZE.md                                                                                                                                                                                     
+-a----         10/5/2026   1:18 PM          40830 REVIEW2_RESPONSE.md                                                                                                                                                                                          
+-a----         10/6/2026   1:33 PM           7055 RUN_CARD_v4.12.md                                                                                                                                                                                            
+
+
+    Directory: C:\Users\deves\Documents\sf9\docs\lit_search
+
+
+Mode                 LastWriteTime         Length Name                                                                                                                                                                                                         
+----                 -------------         ------ ----                                                                                                                                                                                                         
+-a----         10/5/2026   1:18 PM           4456 q1_fl_solar_flare.json                                                                                                                                                                                       
+-a----         10/5/2026   1:18 PM           4014 q2_fl_space_weather.json                                                                                                                                                                                     
+-a----         10/5/2026   1:18 PM           3527 q3_fl_swansf.json                                                                                                                                                                                            
+-a----         10/5/2026   1:18 PM           1934 q4_fl_cross_silo_geo.json                                                                                                                                                                                    
+
+
+    Directory: C:\Users\deves\Documents\sf9\docs\response_letters
+
+
+Mode                 LastWriteTime         Length Name                                                                                                                                                                                                         
+----                 -------------         ------ ----                                                                                                                                                                                                         
+-a----         10/5/2026   1:18 PM           3588 README.md                                                                                                                                                                                                    
+-a----         10/6/2026   1:12 PM          12636 RESPONSE_External_v4.12.md                                                                                                                                                                                   
+-a----         10/6/2026   1:12 PM          12651 RESPONSE_R-FS9-R10_v4.10.md                                                                                                                                                                                  
+-a----         10/5/2026   9:06 PM          14752 RESPONSE_R-FS9-R10_v4.9.2.md                                                                                                                                                                                 
+-a----         10/5/2026  10:40 PM          12159 RESPONSE_R-FS9-R10_v4.9.3.md                                                                                                                                                                                 
+-a----         10/6/2026   1:12 PM          12088 RESPONSE_R-FS9-R10_v4.9.4.md                                                                                                                                                                                 
+-a----         10/6/2026   1:12 PM          14265 RESPONSE_R-FS9-R11_v4.11.md                                                                                                                                                                                  
+-a----         10/5/2026   1:18 PM          17896 RESPONSE_R-FS9-R1_v4.1_ERRATA.md                                                                                                                                                                             
+-a----         10/5/2026   1:18 PM           9929 RESPONSE_R-FS9-R2_v4.2.md                                                                                                                                                                                    
+-a----         10/5/2026   1:18 PM           8016 RESPONSE_R-FS9-R3_v4.3.md                                                                                                                                                                                    
+-a----         10/5/2026   1:18 PM          13741 RESPONSE_R-FS9-R5_v4.5.md                                                                                                                                                                                    
+-a----         10/5/2026   1:18 PM          18893 RESPONSE_R-FS9-R6_v4.6.md                                                                                                                                                                                    
+-a----         10/5/2026   1:18 PM          16160 RESPONSE_R-FS9-R7_v4.7.md                                                                                                                                                                                    
+-a----         10/5/2026   1:18 PM          14141 RESPONSE_v4.8_ERRATA.md                                                                                                                                                                                      
+
+
+    Directory: C:\Users\deves\Documents\sf9\experiments
+
+
+Mode                 LastWriteTime         Length Name                                                                                                                                                                                                         
+----                 -------------         ------ ----                                                                                                                                                                                                         
+d-----         10/5/2026   3:51 PM                __pycache__                                                                                                                                                                                                  
+-a----         9/30/2026   8:55 PM           6207 analyze_smote_validity.py                                                                                                                                                                                    
+-a----         9/30/2026   8:55 PM          27122 raw_substrate.py                                                                                                                                                                                             
+-a----         9/30/2026   8:55 PM           9407 run_ablations.py                                                                                                                                                                                             
+-a----         9/30/2026   8:55 PM           6556 run_alpha_promotion.py                                                                                                                                                                                       
+-a----         10/5/2026  10:40 PM          31513 run_arm_b_central_sanity.py                                                                                                                                                                                  
+-a----         10/5/2026   1:18 PM          22984 run_bn_diagnostic.py                                                                                                                                                                                         
+-a----         10/5/2026   1:18 PM          10799 run_budget_matched.py                                                                                                                                                                                        
+-a----         9/30/2026   8:55 PM          11835 run_calibration_comparison.py                                                                                                                                                                                
+-a----         10/5/2026   1:18 PM           6384 run_client_holdout.py                                                                                                                                                                                        
+-a----         9/30/2026   8:55 PM          10531 run_event_level.py                                                                                                                                                                                           
+-a----         10/1/2026  10:32 AM           8848 run_event_level_lstm.py                                                                                                                                                                                      
+-a----         9/30/2026   8:55 PM           6406 run_event_level_raw.py                                                                                                                                                                                       
+-a----         10/5/2026   1:18 PM          35740 run_federated_lstm.py                                                                                                                                                                                        
+-a----         10/5/2026   1:18 PM          11498 run_gpu_queue.py                                                                                                                                                                                             
+-a----         9/30/2026   8:55 PM           4233 run_interpretability.py                                                                                                                                                                                      
+-a----         10/5/2026   1:18 PM          10451 run_lag_definition_sweep.py                                                                                                                                                                                  
+-a----         9/30/2026   8:55 PM           9262 run_multiseed.py                                                                                                                                                                                             
+-a----         10/5/2026   1:18 PM          13474 run_nobn_control.py                                                                                                                                                                                          
+-a----         10/5/2026   1:18 PM          12505 run_partition_disjoint.py                                                                                                                                                                                    
+-a----         10/5/2026   1:18 PM          30315 run_raw_bn_diagnostic.py                                                                                                                                                                                     
+-a----         10/6/2026   1:33 PM          42401 run_raw_nobn.py                                                                                                                                                                                              
+-a----         10/5/2026   1:18 PM          12228 run_raw_substrate.py                                                                                                                                                                                         
+-a----         10/5/2026   1:18 PM          30793 run_standard_metrics.py                                                                                                                                                                                      
+-a----         9/30/2026   8:55 PM           8495 run_sweep.py                                                                                                                                                                                                 
+-a----         9/30/2026   8:55 PM              0 __init__.py                                                                                                                                                                                                  
+
+
+    Directory: C:\Users\deves\Documents\sf9\experiments\__pycache__
+
+
+Mode                 LastWriteTime         Length Name                                                                                                                                                                                                         
+----                 -------------         ------ ----                                                                                                                                                                                                         
+-a----         9/30/2026   9:35 PM          39829 raw_substrate.cpython-313.pyc                                                                                                                                                                                
+-a----         9/30/2026   8:55 PM          12943 run_ablations.cpython-312.pyc                                                                                                                                                                                
+-a----         10/1/2026  12:10 AM          13835 run_event_level.cpython-313.pyc                                                                                                                                                                              
+-a----         10/5/2026   3:51 PM          45078 run_federated_lstm.cpython-313.pyc                                                                                                                                                                           
+-a----         10/5/2026   3:51 PM          16991 run_gpu_queue.cpython-313.pyc                                                                                                                                                                                
+-a----         9/30/2026   8:55 PM          14103 run_multiseed.cpython-312.pyc                                                                                                                                                                                
+-a----         10/5/2026   3:51 PM          14246 run_multiseed.cpython-313.pyc                                                                                                                                                                                
+-a----         9/30/2026   8:55 PM          12149 run_sweep.cpython-312.pyc                                                                                                                                                                                    
+-a----         9/30/2026   9:35 PM            149 __init__.cpython-313.pyc                                                                                                                                                                                     
+
+
+    Directory: C:\Users\deves\Documents\sf9\leakage_audit
+
+
+Mode                 LastWriteTime         Length Name                                                                                                                                                                                                         
+----                 -------------         ------ ----                                                                                                                                                                                                         
+d-----         10/5/2026   3:25 PM                __pycache__                                                                                                                                                                                                  
+-a----         9/30/2026   8:55 PM          10961 audit_leakage.py                                                                                                                                                                                             
+-a----         9/30/2026   8:55 PM              0 __init__.py                                                                                                                                                                                                  
+
+
+    Directory: C:\Users\deves\Documents\sf9\leakage_audit\__pycache__
+
+
+Mode                 LastWriteTime         Length Name                                                                                                                                                                                                         
+----                 -------------         ------ ----                                                                                                                                                                                                         
+-a----         10/5/2026   3:25 PM          14798 audit_leakage.cpython-313.pyc                                                                                                                                                                                
+-a----         10/5/2026   3:25 PM            151 __init__.cpython-313.pyc                                                                                                                                                                                     
+
+
+    Directory: C:\Users\deves\Documents\sf9\limitations
+
+
+Mode                 LastWriteTime         Length Name                                                                                                                                                                                                         
+----                 -------------         ------ ----                                                                                                                                                                                                         
+-a----         9/30/2026   8:55 PM           3787 LIMITATIONS.md                                                                                                                                                                                               
+
+
+    Directory: C:\Users\deves\Documents\sf9\logs
+
+
+Mode                 LastWriteTime         Length Name                                                                                                                                                                                                         
+----                 -------------         ------ ----                                                                                                                                                                                                         
+-a----         10/5/2026   4:30 PM          48790 ablations.log                                                                                                                                                                                                
+-a----         10/5/2026   4:30 PM           7406 calibration_real.log                                                                                                                                                                                         
+-a----         10/5/2026   4:30 PM            226 calibration_real2.log                                                                                                                                                                                        
+-a----         10/5/2026   4:30 PM           5056 client_holdout.log                                                                                                                                                                                           
+-a----         10/5/2026   1:18 PM            245 data_manifest.log                                                                                                                                                                                            
+-a----         10/5/2026   4:30 PM            642 leakage_audit_demo.json                                                                                                                                                                                      
+-a----         10/5/2026   4:30 PM            762 leakage_audit_demo.log                                                                                                                                                                                       
+-a----         10/5/2026   4:30 PM          15417 multiseed.log                                                                                                                                                                                                
+-a----         10/5/2026   4:30 PM          17718 pipeline_run.log                                                                                                                                                                                             
+-a----         10/5/2026   1:18 PM           2329 queue_scaffold.log                                                                                                                                                                                           
+-a----         10/5/2026   1:18 PM           7359 queue_seed43.log                                                                                                                                                                                             
+-a----         10/5/2026   1:18 PM          59387 queue_smote.log                                                                                                                                                                                              
+-a----         10/5/2026   4:30 PM          15795 repro_run.log                                                                                                                                                                                                
+-a----         10/5/2026   4:30 PM          13895 sweep.log                                                                                                                                                                                                    
+-a----         10/5/2026   1:18 PM            807 test_battery.log                                                                                                                                                                                             
+-a----         10/5/2026   1:18 PM            904 test_battery_v4.2.log                                                                                                                                                                                        
+-a----         10/5/2026   1:18 PM            966 test_battery_v4.3.log                                                                                                                                                                                        
+-a----         10/5/2026   3:52 PM           4824 test_battery_v4.8.log                                                                                                                                                                                        
+-a----         10/5/2026   3:25 PM          11508 test_battery_v4.8_old.log                                                                                                                                                                                    
+-a----         10/5/2026   6:24 PM           1299 test_battery_v4.9.1.log                                                                                                                                                                                      
+-a----         10/5/2026   5:54 PM           1681 test_battery_v4.9.log                                                                                                                                                                                        
+-a----         10/5/2026   4:31 PM           3753 test_battery_v4.9.pre-v4.9.1-FAIL.log                                                                                                                                                                        
+-a----         10/5/2026   4:30 PM           4084 test_fl_smoke.log                                                                                                                                                                                            
+-a----         10/5/2026   4:30 PM           4872 test_pipeline_integrity.log                                                                                                                                                                                  
+-a----         10/5/2026   1:18 PM           1960 verify_manifest.log                                                                                                                                                                                          
+
+
+    Directory: C:\Users\deves\Documents\sf9\logs_old
+
+
+Mode                 LastWriteTime         Length Name                                                                                                                                                                                                         
+----                 -------------         ------ ----                                                                                                                                                                                                         
+-a----         9/30/2026   8:55 PM          49583 ablations.log                                                                                                                                                                                                
+-a----         9/30/2026   8:55 PM           7532 calibration_real.log                                                                                                                                                                                         
+-a----         9/30/2026   8:55 PM            230 calibration_real2.log                                                                                                                                                                                        
+-a----         9/30/2026   8:55 PM           5139 client_holdout.log                                                                                                                                                                                           
+-a----         9/30/2026   8:55 PM            186 data_manifest.log                                                                                                                                                                                            
+-a----         9/30/2026   8:55 PM            671 leakage_audit_demo.json                                                                                                                                                                                      
+-a----         9/30/2026   8:55 PM            795 leakage_audit_demo.log                                                                                                                                                                                       
+-a----         10/1/2026   7:30 PM          26459 logs.zip                                                                                                                                                                                                     
+-a----         9/30/2026   8:55 PM          15685 multiseed.log                                                                                                                                                                                                
+-a----         9/30/2026   8:55 PM          18072 pipeline_run.log                                                                                                                                                                                             
+-a----         10/1/2026  12:05 PM           2329 queue_scaffold.log                                                                                                                                                                                           
+-a----         10/1/2026   4:01 PM           7359 queue_seed43.log                                                                                                                                                                                             
+-a----         10/1/2026   7:14 PM          59387 queue_smote.log                                                                                                                                                                                              
+-a----         9/30/2026   8:55 PM          16100 repro_run.log                                                                                                                                                                                                
+-a----         9/30/2026   8:55 PM          14145 sweep.log                                                                                                                                                                                                    
+-a----         9/30/2026   8:55 PM           4170 test_fl_smoke.log                                                                                                                                                                                            
+-a----         9/30/2026   8:55 PM           4988 test_pipeline_integrity.log                                                                                                                                                                                  
+
+
+    Directory: C:\Users\deves\Documents\sf9\outputs
+
+
+Mode                 LastWriteTime         Length Name                                                                                                                                                                                                         
+----                 -------------         ------ ----                                                                                                                                                                                                         
+-a----         10/6/2026   1:12 PM           8041 arm_b_central_sanity.json                                                                                                                                                                                    
+-a----         10/6/2026   1:12 PM          24250 raw_nobn_eval.json                                                                                                                                                                                           
+-a----         10/6/2026   2:23 PM          24768 raw_nobn_eval_seed43.json                                                                                                                                                                                    
+
+
+    Directory: C:\Users\deves\Documents\sf9\outputs_old
+
+
+Mode                 LastWriteTime         Length Name                                                                                                                                                                                                         
+----                 -------------         ------ ----                                                                                                                                                                                                         
+d-----         9/30/2026   8:55 PM                ablation_state                                                                                                                                                                                               
+-a----         9/30/2026   8:55 PM          17790 ablation_results.json                                                                                                                                                                                        
+-a----         9/30/2026   8:55 PM           4103 alpha5_promotion.json                                                                                                                                                                                        
+-a----         9/30/2026   8:55 PM           4577 budget_matched.json                                                                                                                                                                                          
+-a----         9/30/2026   8:55 PM          24732 calibration_comparison.json                                                                                                                                                                                  
+-a----         9/30/2026   8:55 PM          20251 client_holdout_eval.json                                                                                                                                                                                     
+-a----         9/30/2026   8:55 PM          87750 Comparison_Table.png                                                                                                                                                                                         
+-a----         9/30/2026   8:55 PM          89942 Confusion_Matrices.png                                                                                                                                                                                       
+-a----         9/30/2026   8:55 PM           6366 dataset_structure_audit.json                                                                                                                                                                                 
+-a----         9/30/2026   8:55 PM           7673 event_level_p5.json                                                                                                                                                                                          
+-a----         10/1/2026  10:32 AM           7037 event_level_raw_lstm_p5.json                                                                                                                                                                                 
+-a----         9/30/2026   8:55 PM          13090 event_level_raw_p5.json                                                                                                                                                                                      
+-a----         10/1/2026  12:05 PM           2074 event_level_raw_scaffold.json                                                                                                                                                                                
+-a----         10/1/2026   4:01 PM           8904 event_level_raw_seed43.json                                                                                                                                                                                  
+-a----         10/1/2026   7:13 PM           4936 event_level_raw_smote.json                                                                                                                                                                                   
+-a----         9/30/2026   8:55 PM         100593 fig_ablation.png                                                                                                                                                                                             
+-a----         9/30/2026   8:55 PM          80051 fig_clients.png                                                                                                                                                                                              
+-a----         9/30/2026   8:55 PM          86163 fig_multiseed.png                                                                                                                                                                                            
+-a----         9/30/2026   8:55 PM          73858 FL_Convergence.png                                                                                                                                                                                           
+-a----         9/30/2026   8:55 PM           9613 interpretability.json                                                                                                                                                                                        
+-a----         9/30/2026   8:55 PM           9838 multiseed_results.json                                                                                                                                                                                       
+-a----         10/1/2026   7:33 PM          18061 outputs.zip                                                                                                                                                                                                  
+-a----         9/30/2026   8:55 PM          10339 partition_disjoint_eval.json                                                                                                                                                                                 
+-a----         10/1/2026  10:32 AM           7222 raw_lstm_eval.json                                                                                                                                                                                           
+-a----         10/1/2026  12:05 PM           3381 raw_lstm_scaffold.json                                                                                                                                                                                       
+-a----         10/1/2026   4:01 PM           9947 raw_lstm_seed43.json                                                                                                                                                                                         
+-a----         10/1/2026   7:13 PM           5656 raw_lstm_smote.json                                                                                                                                                                                          
+-a----         10/1/2026  10:32 AM          14850 raw_substrate_eval.json                                                                                                                                                                                      
+-a----         9/30/2026   8:55 PM           7396 raw_substrate_verification.json                                                                                                                                                                              
+-a----         9/30/2026   8:55 PM          44883 results.json                                                                                                                                                                                                 
+-a----         9/30/2026   8:55 PM         127315 ROC_Curves.png                                                                                                                                                                                               
+-a----         9/30/2026   8:55 PM           3351 run_manifest.json                                                                                                                                                                                            
+-a----         9/30/2026   8:55 PM          94295 SHAP_Feature_Importance.png                                                                                                                                                                                  
+-a----         9/30/2026   8:55 PM            598 smote_validity.json                                                                                                                                                                                          
+-a----         9/30/2026   8:55 PM           3485 sweep_results.json                                                                                                                                                                                           
+
+
+    Directory: C:\Users\deves\Documents\sf9\outputs_old\ablation_state
+
+
+Mode                 LastWriteTime         Length Name                                                                                                                                                                                                         
+----                 -------------         ------ ----                                                                                                                                                                                                         
+-a----         9/30/2026   8:55 PM         504171 fedavg_bce_dafl_none_r20_s42.pt                                                                                                                                                                              
+-a----         9/30/2026   8:55 PM         504201 fedavg_bce_dafl_smote_r20_s42.pt                                                                                                                                                                             
+-a----         9/30/2026   8:55 PM         504329 fedavg_bce_plain_none_r20_s42.pt                                                                                                                                                                             
+-a----         9/30/2026   8:55 PM         504167 fedavg_bce_plain_smote_r20_s42.pt                                                                                                                                                                            
+-a----         9/30/2026   8:55 PM         504415 fedavg_fed_focal_dafl_none_r20_s42.pt                                                                                                                                                                        
+-a----         9/30/2026   8:55 PM         504445 fedavg_fed_focal_dafl_smote_r20_s42.pt                                                                                                                                                                       
+-a----         9/30/2026   8:55 PM         504573 fedavg_fed_focal_plain_none_r20_s42.pt                                                                                                                                                                       
+-a----         9/30/2026   8:55 PM         504603 fedavg_fed_focal_plain_smote_r20_s42.pt                                                                                                                                                                      
+-a----         9/30/2026   8:55 PM         504697 fedavg_weighted_bce_dafl_none_r20_s42.pt                                                                                                                                                                     
+-a----         9/30/2026   8:55 PM         504727 fedavg_weighted_bce_dafl_smote_r20_s42.pt                                                                                                                                                                    
+-a----         9/30/2026   8:55 PM         504535 fedavg_weighted_bce_plain_none_r20_s42.pt                                                                                                                                                                    
+-a----         9/30/2026   8:55 PM         504565 fedavg_weighted_bce_plain_smote_r20_s42.pt                                                                                                                                                                   
+-a----         9/30/2026   8:55 PM         502985 fedprox_bce_dafl_none_r20_s42.pt                                                                                                                                                                             
+-a----         9/30/2026   8:55 PM         503271 fedprox_bce_dafl_smote_r20_s42.pt                                                                                                                                                                            
+-a----         9/30/2026   8:55 PM         502951 fedprox_bce_plain_none_r20_s42.pt                                                                                                                                                                            
+-a----         9/30/2026   8:55 PM         502853 fedprox_bce_plain_smote_r20_s42.pt                                                                                                                                                                           
+-a----         9/30/2026   8:55 PM         503421 fedprox_fed_focal_dafl_none_r20_s42.pt                                                                                                                                                                       
+-a----         9/30/2026   8:55 PM         503451 fedprox_fed_focal_dafl_smote_r20_s42.pt                                                                                                                                                                      
+-a----         9/30/2026   8:55 PM         503835 fedprox_fed_focal_plain_none_r20_s42.pt                                                                                                                                                                      
+-a----         9/30/2026   8:55 PM         503609 fedprox_fed_focal_plain_smote_r20_s42.pt                                                                                                                                                                     
+-a----         9/30/2026   8:55 PM         503575 fedprox_weighted_bce_dafl_none_r20_s42.pt                                                                                                                                                                    
+-a----         9/30/2026   8:55 PM         503605 fedprox_weighted_bce_dafl_smote_r20_s42.pt                                                                                                                                                                   
+-a----         9/30/2026   8:55 PM         503285 fedprox_weighted_bce_plain_none_r20_s42.pt                                                                                                                                                                   
+-a----         9/30/2026   8:55 PM         503507 fedprox_weighted_bce_plain_smote_r20_s42.pt                                                                                                                                                                  
+
+
+    Directory: C:\Users\deves\Documents\sf9\outputs_old 2
+
+
+Mode                 LastWriteTime         Length Name                                                                                                                                                                                                         
+----                 -------------         ------ ----                                                                                                                                                                                                         
+d-----         10/5/2026   4:30 PM                ablation_state                                                                                                                                                                                               
+-a----         10/5/2026   4:30 PM          17256 ablation_results.json                                                                                                                                                                                        
+-a----         10/5/2026   4:30 PM           3984 alpha5_promotion.json                                                                                                                                                                                        
+-a----         10/5/2026  10:40 PM           8229 arm_b_central_sanity.json                                                                                                                                                                                    
+-a----         10/5/2026   1:18 PM          22773 bn_diagnostic.json                                                                                                                                                                                           
+-a----         10/5/2026   4:30 PM           4447 budget_matched.json                                                                                                                                                                                          
+-a----         10/5/2026   4:30 PM          24101 calibration_comparison.json                                                                                                                                                                                  
+-a----         10/5/2026   4:30 PM          19833 client_holdout_eval.json                                                                                                                                                                                     
+-a----         10/5/2026   4:30 PM          87750 Comparison_Table.png                                                                                                                                                                                         
+-a----         10/5/2026   4:30 PM          89942 Confusion_Matrices.png                                                                                                                                                                                       
+-a----         10/5/2026   1:18 PM           7605 dataset_structure_audit.json                                                                                                                                                                                 
+-a----         10/5/2026   4:30 PM           7463 event_level_p5.json                                                                                                                                                                                          
+-a----         10/5/2026   4:30 PM           6840 event_level_raw_lstm_p5.json                                                                                                                                                                                 
+-a----         10/5/2026   4:30 PM          12716 event_level_raw_p5.json                                                                                                                                                                                      
+-a----         10/5/2026   1:18 PM           2074 event_level_raw_scaffold.json                                                                                                                                                                                
+-a----         10/5/2026   1:18 PM           8904 event_level_raw_seed43.json                                                                                                                                                                                  
+-a----         10/5/2026   1:18 PM           4936 event_level_raw_smote.json                                                                                                                                                                                   
+-a----         10/5/2026   4:30 PM         100593 fig_ablation.png                                                                                                                                                                                             
+-a----         10/5/2026   4:30 PM          86163 fig_multiseed.png                                                                                                                                                                                            
+-a----         10/5/2026   4:30 PM          73858 FL_Convergence.png                                                                                                                                                                                           
+-a----         10/5/2026   4:54 PM           9264 interpretability.json                                                                                                                                                                                        
+-a----         10/5/2026   1:18 PM           7350 lag_definition_sweep.json                                                                                                                                                                                    
+-a----         10/5/2026   4:30 PM           9521 multiseed_results.json                                                                                                                                                                                       
+-a----         10/5/2026   1:18 PM          19743 nobn_control.json                                                                                                                                                                                            
+-a----         10/5/2026   1:18 PM          10689 partition_disjoint_eval.json                                                                                                                                                                                 
+-a----         10/5/2026   4:30 PM          43835 raw_bn_diagnostic.json                                                                                                                                                                                       
+-a----         10/5/2026   3:25 PM          45161 raw_bn_diagnostic_owner_local.json                                                                                                                                                                           
+-a----         10/5/2026   3:48 PM           7222 raw_lstm_eval.json                                                                                                                                                                                           
+-a----         10/5/2026   1:18 PM           3381 raw_lstm_scaffold.json                                                                                                                                                                                       
+-a----         10/5/2026   1:18 PM           9947 raw_lstm_seed43.json                                                                                                                                                                                         
+-a----         10/5/2026   1:18 PM           5656 raw_lstm_smote.json                                                                                                                                                                                          
+-a----         10/5/2026  11:08 PM          24979 raw_nobn_eval.json                                                                                                                                                                                           
+-a----         10/5/2026   1:18 PM          15629 raw_substrate_eval.json                                                                                                                                                                                      
+-a----         10/5/2026   4:30 PM          13793 raw_substrate_rerun.json                                                                                                                                                                                     
+-a----         10/5/2026   4:30 PM           7167 raw_substrate_verification.json                                                                                                                                                                              
+-a----         10/5/2026   1:18 PM          44883 results.json                                                                                                                                                                                                 
+-a----         10/5/2026   4:30 PM         127315 ROC_Curves.png                                                                                                                                                                                               
+-a----         10/5/2026   4:30 PM           3184 run_manifest.json                                                                                                                                                                                            
+-a----         10/5/2026   4:30 PM          94295 SHAP_Feature_Importance.png                                                                                                                                                                                  
+-a----         10/5/2026   4:30 PM            592 smote_validity.json                                                                                                                                                                                          
+-a----         10/5/2026   1:18 PM          77095 standard_metrics.json                                                                                                                                                                                        
+-a----         10/5/2026   4:30 PM           3365 sweep_results.json                                                                                                                                                                                           
+-a----         10/5/2026   3:25 PM          14185 tmp_raw_rerun.json                                                                                                                                                                                           
+
+
+    Directory: C:\Users\deves\Documents\sf9\outputs_old 2\ablation_state
+
+
+Mode                 LastWriteTime         Length Name                                                                                                                                                                                                         
+----                 -------------         ------ ----                                                                                                                                                                                                         
+-a----         10/5/2026   4:30 PM         504171 fedavg_bce_dafl_none_r20_s42.pt                                                                                                                                                                              
+-a----         10/5/2026   4:30 PM         504201 fedavg_bce_dafl_smote_r20_s42.pt                                                                                                                                                                             
+-a----         10/5/2026   4:30 PM         504329 fedavg_bce_plain_none_r20_s42.pt                                                                                                                                                                             
+-a----         10/5/2026   4:30 PM         504167 fedavg_bce_plain_smote_r20_s42.pt                                                                                                                                                                            
+-a----         10/5/2026   4:30 PM         504415 fedavg_fed_focal_dafl_none_r20_s42.pt                                                                                                                                                                        
+-a----         10/5/2026   4:30 PM         504445 fedavg_fed_focal_dafl_smote_r20_s42.pt                                                                                                                                                                       
+-a----         10/5/2026   4:30 PM         504573 fedavg_fed_focal_plain_none_r20_s42.pt                                                                                                                                                                       
+-a----         10/5/2026   4:30 PM         504603 fedavg_fed_focal_plain_smote_r20_s42.pt                                                                                                                                                                      
+-a----         10/5/2026   4:30 PM         504697 fedavg_weighted_bce_dafl_none_r20_s42.pt                                                                                                                                                                     
+-a----         10/5/2026   4:30 PM         504727 fedavg_weighted_bce_dafl_smote_r20_s42.pt                                                                                                                                                                    
+-a----         10/5/2026   4:30 PM         504535 fedavg_weighted_bce_plain_none_r20_s42.pt                                                                                                                                                                    
+-a----         10/5/2026   4:30 PM         504565 fedavg_weighted_bce_plain_smote_r20_s42.pt                                                                                                                                                                   
+-a----         10/5/2026   4:30 PM         502985 fedprox_bce_dafl_none_r20_s42.pt                                                                                                                                                                             
+-a----         10/5/2026   4:30 PM         503271 fedprox_bce_dafl_smote_r20_s42.pt                                                                                                                                                                            
+-a----         10/5/2026   4:30 PM         502951 fedprox_bce_plain_none_r20_s42.pt                                                                                                                                                                            
+-a----         10/5/2026   4:30 PM         502853 fedprox_bce_plain_smote_r20_s42.pt                                                                                                                                                                           
+-a----         10/5/2026   4:30 PM         503421 fedprox_fed_focal_dafl_none_r20_s42.pt                                                                                                                                                                       
+-a----         10/5/2026   4:30 PM         503451 fedprox_fed_focal_dafl_smote_r20_s42.pt                                                                                                                                                                      
+-a----         10/5/2026   4:30 PM         503835 fedprox_fed_focal_plain_none_r20_s42.pt                                                                                                                                                                      
+-a----         10/5/2026   4:30 PM         503609 fedprox_fed_focal_plain_smote_r20_s42.pt                                                                                                                                                                     
+-a----         10/5/2026   4:30 PM         503575 fedprox_weighted_bce_dafl_none_r20_s42.pt                                                                                                                                                                    
+-a----         10/5/2026   4:30 PM         503605 fedprox_weighted_bce_dafl_smote_r20_s42.pt                                                                                                                                                                   
+-a----         10/5/2026   4:30 PM         503285 fedprox_weighted_bce_plain_none_r20_s42.pt                                                                                                                                                                   
+-a----         10/5/2026   4:30 PM         503507 fedprox_weighted_bce_plain_smote_r20_s42.pt                                                                                                                                                                  
+
+
+    Directory: C:\Users\deves\Documents\sf9\paper
+
+
+Mode                 LastWriteTime         Length Name                                                                                                                                                                                                         
+----                 -------------         ------ ----                                                                                                                                                                                                         
+d-----         10/5/2026   1:18 PM                figures                                                                                                                                                                                                      
+d-----         10/6/2026   1:12 PM                sections                                                                                                                                                                                                     
+-a----         10/6/2026   1:12 PM        1342028 main.pdf                                                                                                                                                                                                     
+-a----         10/6/2026   1:12 PM           8998 main.tex                                                                                                                                                                                                     
+-a----         10/6/2026   1:12 PM           3545 README.md                                                                                                                                                                                                    
+-a----         10/5/2026   1:18 PM          15475 refs.bib                                                                                                                                                                                                     
+-a----         9/30/2026   8:55 PM          10190 review.tex                                                                                                                                                                                                   
+
+
+    Directory: C:\Users\deves\Documents\sf9\paper\figures
+
+
+Mode                 LastWriteTime         Length Name                                                                                                                                                                                                         
+----                 -------------         ------ ----                                                                                                                                                                                                         
+-a----         9/30/2026   8:55 PM         100593 fig_ablation.png                                                                                                                                                                                             
+-a----         9/30/2026   8:55 PM         284074 fig_architecture.png                                                                                                                                                                                         
+-a----         10/5/2026   1:18 PM         125010 fig_clients.png                                                                                                                                                                                              
+-a----         9/30/2026   8:55 PM          86163 fig_multiseed.png                                                                                                                                                                                            
+-a----         10/5/2026   1:18 PM         119662 fig_partition.png                                                                                                                                                                                            
+-a----         9/30/2026   8:55 PM          73858 FL_Convergence.png                                                                                                                                                                                           
+-a----         9/30/2026   8:55 PM         127315 ROC_Curves.png                                                                                                                                                                                               
+-a----         9/30/2026   8:55 PM          94295 SHAP_Feature_Importance.png                                                                                                                                                                                  
+
+
+    Directory: C:\Users\deves\Documents\sf9\paper\sections
+
+
+Mode                 LastWriteTime         Length Name                                                                                                                                                                                                         
+----                 -------------         ------ ----                                                                                                                                                                                                         
+-a----         10/6/2026   1:12 PM          39838 sec_appendix.tex                                                                                                                                                                                             
+-a----         10/6/2026   1:12 PM          11241 sec_conclusion.tex                                                                                                                                                                                           
+-a----         10/6/2026   1:12 PM          11683 sec_discussion.tex                                                                                                                                                                                           
+-a----         10/5/2026   1:18 PM          25618 sec_experiments.tex                                                                                                                                                                                          
+-a----         10/6/2026   1:12 PM          13843 sec_intro.tex                                                                                                                                                                                                
+-a----         10/6/2026   1:12 PM          16120 sec_limitations.tex                                                                                                                                                                                          
+-a----         10/5/2026   1:18 PM          25386 sec_method.tex                                                                                                                                                                                               
+-a----         10/5/2026   1:18 PM           6096 sec_problem.tex                                                                                                                                                                                              
+-a----         10/5/2026   1:18 PM          10646 sec_related.tex                                                                                                                                                                                              
+-a----         10/6/2026   1:12 PM          89921 sec_results.tex                                                                                                                                                                                              
+
+
+    Directory: C:\Users\deves\Documents\sf9\paper_trimmed
+
+
+Mode                 LastWriteTime         Length Name                                                                                                                                                                                                         
+----                 -------------         ------ ----                                                                                                                                                                                                         
+d-----         10/6/2026   1:12 PM                figures                                                                                                                                                                                                      
+d-----         10/6/2026   1:12 PM                sections                                                                                                                                                                                                     
+-a----         10/6/2026   1:12 PM           5699 main.tex                                                                                                                                                                                                     
+-a----         10/6/2026   1:12 PM          11584 refs.bib                                                                                                                                                                                                     
+
+
+    Directory: C:\Users\deves\Documents\sf9\paper_trimmed\figures
+
+
+Mode                 LastWriteTime         Length Name                                                                                                                                                                                                         
+----                 -------------         ------ ----                                                                                                                                                                                                         
+-a----         10/6/2026   1:12 PM         119662 fig_partition.png                                                                                                                                                                                            
+
+
+    Directory: C:\Users\deves\Documents\sf9\paper_trimmed\sections
+
+
+Mode                 LastWriteTime         Length Name                                                                                                                                                                                                         
+----                 -------------         ------ ----                                                                                                                                                                                                         
+-a----         10/6/2026   1:12 PM           3559 sec_calibration.tex                                                                                                                                                                                          
+-a----         10/6/2026   1:12 PM           4628 sec_data.tex                                                                                                                                                                                                 
+-a----         10/6/2026   1:12 PM           3474 sec_discussion.tex                                                                                                                                                                                           
+-a----         10/6/2026   1:12 PM           6162 sec_intro.tex                                                                                                                                                                                                
+-a----         10/6/2026   1:12 PM           3272 sec_method.tex                                                                                                                                                                                               
+-a----         10/6/2026   1:12 PM           2524 sec_related.tex                                                                                                                                                                                              
+-a----         10/6/2026   1:12 PM          14761 sec_results.tex                                                                                                                                                                                              
+
+
+    Directory: C:\Users\deves\Documents\sf9\privacy_analysis
+
+
+Mode                 LastWriteTime         Length Name                                                                                                                                                                                                         
+----                 -------------         ------ ----                                                                                                                                                                                                         
+-a----         9/30/2026   8:55 PM           4633 THREAT_MODEL.md                                                                                                                                                                                              
+
+
+    Directory: C:\Users\deves\Documents\sf9\provenance
+
+
+Mode                 LastWriteTime         Length Name                                                                                                                                                                                                         
+----                 -------------         ------ ----                                                                                                                                                                                                         
+-a----         9/30/2026   8:55 PM           2519 README.md                                                                                                                                                                                                    
+-a----         10/5/2026   1:18 PM           3216 rebuild_audit_totals.py                                                                                                                                                                                      
+-a----         9/30/2026   8:55 PM          32706 region_overlap.json                                                                                                                                                                                          
+-a----         10/5/2026   1:18 PM           4723 swansf_aggregate_meta.py                                                                                                                                                                                     
+-a----         10/5/2026   1:18 PM          11859 swansf_audit_artifact.py                                                                                                                                                                                     
+-a----         10/5/2026   1:18 PM           5318 swansf_event_level.py                                                                                                                                                                                        
+-a----         10/5/2026   1:18 PM           5789 swansf_match_v4.py                                                                                                                                                                                           
+-a----         10/6/2026   1:33 PM           5379 swansf_parse_partition.py                                                                                                                                                                                    
+-a----         10/5/2026   1:18 PM           3280 swansf_verify_leakage.py                                                                                                                                                                                     
+-a----         9/30/2026   8:55 PM        6346830 test_meta_slim.csv.gz                                                                                                                                                                                        
+-a----         9/30/2026   8:55 PM        1596841 train_meta_slim.csv.gz                                                                                                                                                                                       
+
+
+    Directory: C:\Users\deves\Documents\sf9\submission
+
+
+Mode                 LastWriteTime         Length Name                                                                                                                                                                                                         
+----                 -------------         ------ ----                                                                                                                                                                                                         
+d-----         10/6/2026   1:12 PM                src                                                                                                                                                                                                          
+-a----         10/6/2026   1:12 PM         226786 main.pdf                                                                                                                                                                                                     
+-a----         10/6/2026   1:12 PM           3258 README.md                                                                                                                                                                                                    
+
+
+    Directory: C:\Users\deves\Documents\sf9\submission\src
+
+
+Mode                 LastWriteTime         Length Name                                                                                                                                                                                                         
+----                 -------------         ------ ----                                                                                                                                                                                                         
+d-----         10/6/2026   1:12 PM                figures                                                                                                                                                                                                      
+d-----         10/6/2026   1:12 PM                sections                                                                                                                                                                                                     
+-a----         10/6/2026   1:12 PM           5699 main.tex                                                                                                                                                                                                     
+-a----         10/6/2026   1:12 PM          11584 refs.bib                                                                                                                                                                                                     
+
+
+    Directory: C:\Users\deves\Documents\sf9\submission\src\figures
+
+
+Mode                 LastWriteTime         Length Name                                                                                                                                                                                                         
+----                 -------------         ------ ----                                                                                                                                                                                                         
+-a----         10/5/2026   1:18 PM         119662 fig_partition.png                                                                                                                                                                                            
+
+
+    Directory: C:\Users\deves\Documents\sf9\submission\src\sections
+
+
+Mode                 LastWriteTime         Length Name                                                                                                                                                                                                         
+----                 -------------         ------ ----                                                                                                                                                                                                         
+-a----         10/6/2026   1:12 PM           3559 sec_calibration.tex                                                                                                                                                                                          
+-a----         10/6/2026   1:12 PM           4628 sec_data.tex                                                                                                                                                                                                 
+-a----         10/6/2026   1:12 PM           3474 sec_discussion.tex                                                                                                                                                                                           
+-a----         10/6/2026   1:12 PM           6162 sec_intro.tex                                                                                                                                                                                                
+-a----         10/6/2026   1:12 PM           3272 sec_method.tex                                                                                                                                                                                               
+-a----         10/6/2026   1:12 PM           2524 sec_related.tex                                                                                                                                                                                              
+-a----         10/6/2026   1:12 PM          14761 sec_results.tex                                                                                                                                                                                              
+
+
+    Directory: C:\Users\deves\Documents\sf9\tests
+
+
+Mode                 LastWriteTime         Length Name                                                                                                                                                                                                         
+----                 -------------         ------ ----                                                                                                                                                                                                         
+d-----         10/5/2026   5:05 PM                __pycache__                                                                                                                                                                                                  
+-a----         10/6/2026   1:33 PM          15792 run_battery.py                                                                                                                                                                                               
+-a----         10/5/2026   1:18 PM           4821 test_audit_artifact.py                                                                                                                                                                                       
+-a----         10/5/2026   1:18 PM           4380 test_central_criterion.py                                                                                                                                                                                    
+-a----         10/1/2026  10:32 AM           9219 test_event_level_lstm.py                                                                                                                                                                                     
+-a----         10/5/2026   4:30 PM           7447 test_fl_smoke.py                                                                                                                                                                                             
+-a----         10/1/2026  10:32 AM          10253 test_gpu_queue.py                                                                                                                                                                                            
+-a----         10/5/2026   1:18 PM           7883 test_gpu_queue_artefacts.py                                                                                                                                                                                  
+-a----         10/6/2026   1:33 PM          28199 test_import_graph.py                                                                                                                                                                                         
+-a----         10/5/2026   4:30 PM          11138 test_interpretability_artifact.py                                                                                                                                                                            
+-a----         10/5/2026   1:18 PM           5295 test_lag_sweep_artifact.py                                                                                                                                                                                   
+-a----         10/5/2026   1:18 PM           5324 test_leakage_gate.py                                                                                                                                                                                         
+-a----         10/6/2026   1:12 PM          13505 test_letters_manifest.py                                                                                                                                                                                     
+-a----         10/5/2026   1:18 PM          28866 test_pipeline_integrity.py                                                                                                                                                                                   
+-a----         10/6/2026   1:12 PM          46644 test_raw_bn_diagnostic.py                                                                                                                                                                                    
+-a----         10/5/2026   6:24 PM          14086 test_raw_lstm.py                                                                                                                                                                                             
+-a----         9/30/2026   8:55 PM           7114 test_raw_substrate.py                                                                                                                                                                                        
+-a----         10/6/2026   1:33 PM          10696 test_region_disjoint.py                                                                                                                                                                                      
+-a----         10/5/2026   1:18 PM          10299 test_scaffold_algebra.py                                                                                                                                                                                     
+-a----         10/6/2026   1:12 PM          24979 test_submission_apparatus.py                                                                                                                                                                                 
+-a----         9/30/2026   8:55 PM              0 __init__.py                                                                                                                                                                                                  
+
+
+    Directory: C:\Users\deves\Documents\sf9\tests\__pycache__
+
+
+Mode                 LastWriteTime         Length Name                                                                                                                                                                                                         
+----                 -------------         ------ ----                                                                                                                                                                                                         
+-a----         10/5/2026   3:25 PM          13100 test_gpu_queue_artefacts.cpython-313.pyc                                                                                                                                                                     
+-a----         10/5/2026   3:25 PM           7097 test_leakage_gate.cpython-313.pyc                                                                                                                                                                            
+-a----         10/5/2026   5:05 PM          18504 test_raw_lstm.cpython-313.pyc                                                                                                                                                                                
+-a----         10/5/2026   3:25 PM            143 __init__.cpython-313.pyc                                                                                                                                                                                     
+
+
+    Directory: C:\Users\deves\Documents\sf9\tools
+
+
+Mode                 LastWriteTime         Length Name                                                                                                                                                                                                         
+----                 -------------         ------ ----                                                                                                                                                                                                         
+-a----         10/6/2026   1:12 PM           7541 build_submission.py                                                                                                                                                                                          
+-a----         10/5/2026   1:18 PM           3899 make_fig_clients.py                                                                                                                                                                                          
+-a----         10/5/2026   1:18 PM           4250 make_fig_partition.py                                                                                                                                                                                        
+
+
+    Directory: C:\Users\deves\Documents\sf9\__pycache__
+
+
+Mode                 LastWriteTime         Length Name                                                                                                                                                                                                         
+----                 -------------         ------ ----                                                                                                                                                                                                         
+-a----         10/5/2026   1:31 PM          16033 centralized_baseline.cpython-313.pyc                                                                                                                                                                         
+-a----         10/5/2026   3:25 PM           4604 communication_cost.cpython-313.pyc                                                                                                                                                                           
+-a----         10/5/2026   1:19 PM           3691 config.cpython-313.pyc                                                                                                                                                                                       
+-a----         10/1/2026   4:01 PM          30195 data_preparation.cpython-313.pyc                                                                                                                                                                             
+-a----         10/5/2026   3:25 PM           8691 evaluate_clients.cpython-313.pyc                                                                                                                                                                             
+-a----         9/30/2026   9:35 PM          18467 evaluation.cpython-313.pyc                                                                                                                                                                                   
+-a----         10/5/2026   1:31 PM          35844 federated_learning.cpython-313.pyc                                                                                                                                                                           
+-a----         9/30/2026   8:55 PM           8030 interpretability.cpython-312.pyc                                                                                                                                                                             
+-a----         10/5/2026   3:25 PM           9376 interpretability.cpython-313.pyc                                                                                                                                                                             
+-a----         10/5/2026   1:31 PM          21108 load_cleaned_data.cpython-313.pyc                                                                                                                                                                            
+-a----         9/30/2026   8:55 PM          13080 losses.cpython-312.pyc                                                                                                                                                                                       
+-a----         9/30/2026   9:35 PM          12806 losses.cpython-313.pyc                                                                                                                                                                                       
+-a----         10/5/2026   1:31 PM          18668 model.cpython-313.pyc                                                                                                                                                                                        
+-a----         10/5/2026   1:19 PM          15068 partition_clients.cpython-313.pyc                                                                                                                                                                            
+-a----         10/5/2026   3:25 PM           6449 secure_aggregation.cpython-313.pyc                                                                                                                                                                           
+
+
+(base) (base) PS C:\Users\deves\Documents\sf9> 

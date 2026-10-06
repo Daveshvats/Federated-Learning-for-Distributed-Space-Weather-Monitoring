@@ -207,7 +207,10 @@ and natural-prevalence balancing questions queued in earlier
 revisions are now executed (Section~\ref{sec:res-lstmrep}: every
 arm's ROC within $\pm$0.005 at seed 43; per-client SMOTE is a
 clean negative---FedAvg unchanged, FedProx $-0.116$ PR-AUC---so
-the rescue is architectural rather than class-balance-driven).
+the rescue is architectural rather than class-balance-driven; and
+the no-BatchNorm control's own replication followed at v4.13, both
+arms within 0.002 ROC-AUC of their seed-42 selections with every
+level claim surviving, Section~\ref{sec:res-rawnobn}).
 
 \paragraph{Executed and queued re-run programme.}
 For auditability we collect the re-run experiments in one place.
@@ -248,14 +251,21 @@ third owner-GPU batch executed the Round-13 register's two decisive
 controls (the arm-B centralised sanity check, seconds, and the
 no-BatchNorm raw-substrate federation, 1{,}699\,s; artefacts
 committed and battery-pinned, Sections~\ref{sec:res-rawbn}
-and~\ref{sec:res-rawnobn}).
+and~\ref{sec:res-rawnobn}), and the fourth owner-GPU batch executed
+the external re-review's item 3 --- the seed-43 replication of the
+no-BatchNorm arms (2{,}899\,s, both arms; verdict: parity holds,
+every level claim surviving within 0.002 ROC-AUC, the thresholded
+validation-F1 monitor being the seed-sensitive layer; the owner
+console transcript is committed and battery-pinned, the
+full-fidelity JSON awaiting the owner push,
+Section~\ref{sec:res-rawnobn}).
 What remains queued: the reference-faithful (vanilla) SCAFFOLD
 re-run (B2); the within-fold region-disjoint validation re-run of
 both no-BatchNorm raw arms (the divergence diagnosis of
 Section~\ref{sec:res-rawnobn} --- both candidate mechanisms testable
 in one run of the same order as the original control,
-$\sim$1.7\,ks); the seed-43 replication of the no-BN MLP arms; and
-fold-replication breadth --- the remaining
+$\sim$1.7\,ks, blocked only on regenerating the raw parse metadata
+per the run card); and fold-replication breadth --- the remaining
 temporally-preceding folds for the leakage-free and raw-substrate
 runs, and the sequence arms' cleaned-fold pairing.
 Items previously labelled operational preconditions have

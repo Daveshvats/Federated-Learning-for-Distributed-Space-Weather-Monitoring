@@ -72,8 +72,10 @@ control completes the re-attribution: removing the MLP's three
 BatchNorm layers and changing nothing else restores FedAvg to
 0.963/0.366 and FedProx to 0.975/0.345, level with the sequence
 arms' ranking and with FedProx matching the centralised MLP on
-ROC-AUC within recorded retrain nondeterminism
-(Section~\ref{sec:res-rawnobn})---so the balanced-substrate
+ROC-AUC within recorded retrain nondeterminism --- a level match
+the seed-43 replication confirms (both arms within 0.002 ROC-AUC
+of their seed-42 selections,
+Section~\ref{sec:res-rawnobn})---so the balanced-substrate
 standing is a property of BatchNorm under federation, not of
 federation per se and not of the flattened-feature representation as
 such, and no federated arm exceeds the best

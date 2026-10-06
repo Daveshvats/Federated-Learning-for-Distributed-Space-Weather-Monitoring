@@ -241,10 +241,15 @@ not by the flattened-feature encoder, and not by federation per se.
 Two boundaries keep the claim honest: (a) PR-AUC, not ROC-AUC, is
 where work remains (no-BN FedProx's 0.345 sits below the centralised
 MLP's 0.445 and the sequence arm's 0.404) --- what these arms
-license is the attribution, not a new state-of-the-art row; (b) both
-arms are single-seed, and the recovery swings dwarf the recorded
-retrain noise while the level claims sit within it, so the
-second-seed replication is first among the remaining compute items
+license is the attribution, not a new state-of-the-art row; (b) the
+level claims now carry a second seed: re-executed at seed 43
+(initialisation and shard draw reseeded, validation carve
+unchanged), the shipped selections move by at most 0.002 ROC-AUC
+(FedAvg 0.963$\to$0.961, FedProx 0.975$\to$0.976) and at most
+0.024 PR-AUC without overturning an ordering, while the thresholded
+validation-$F_1$ monitor is the seed-sensitive layer (best values
+0.53$\to$0.66 and 0.09$\to$0.30) --- at 2\% prevalence the rank
+metrics, not the monitor, carry the conclusions
 (Section~\ref{sec:discussion}).
 
 \begin{table}[t]
