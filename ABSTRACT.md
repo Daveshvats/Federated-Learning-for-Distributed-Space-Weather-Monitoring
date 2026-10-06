@@ -39,7 +39,7 @@ pooled-statistics transport fix would not rescue federation there,
 while evaluation-time batch statistics leave the deficit standing; and
 a no-BatchNorm re-training, changing nothing else, restores the
 federated MLP to the sequence arms' ROC-AUC ranking (FedAvg 0.963/0.366,
-FedProx 0.975/0.345, the latter above the centralised MLP on ROC-AUC;
+FedProx 0.975/0.345, the latter matching the centralised MLP on ROC-AUC within recorded retrain nondeterminism;
 FedProx-LSTM, which also carries no BatchNorm, reaches ROC-AUC 0.970
 and PR-AUC 0.404). Calibration, not detection, is the deployability
 boundary: no validation-fit decision layer survives the prevalence

@@ -58,29 +58,30 @@ SCAFFOLD, executed here for the first time on a real
 substrate, fails at 0.768/0.057, while the same implementation's
 LSTM instance recovers to 0.970/0.294 --- both cells measuring the
 sign-inverted, cold-start variant disclosed in
-Section~\ref{sec:method}, not the reference algorithm). The
+Section~\ref{sec:method}, not the reference algorithm, and
+consolidated with all other SCAFFOLD cells in
+Appendix~\ref{sec:app-scaffold}). The
 architecture qualifies the
 ending: the identical frozen protocol with the SolarLSTM, executed
 on the owner GPU, restores the federated arms substantially
 (FedAvg-LSTM 0.958/0.305 where the FedAvg MLP fell to 0.875/0.056;
 FedProx-LSTM 0.970/0.404, above its own pooled comparator
 0.962/0.314 and XGBoost's raw PR-AUC, though still below logistic
-regression 0.978/0.448, and at event level the substrate's highest
-detection rate, SCAFFOLD-LSTM's 55/65 at 0.4 false-alarm windows per
-day, bought at a higher alarm budget)---and the architecture-only
+regression 0.978/0.448)---and the architecture-only
 control completes the re-attribution: removing the MLP's three
 BatchNorm layers and changing nothing else restores FedAvg to
-0.963/0.366 and FedProx to 0.975/0.345, at or above the sequence
-arms' ranking and with FedProx above the centralised MLP on ROC-AUC
+0.963/0.366 and FedProx to 0.975/0.345, level with the sequence
+arms' ranking and with FedProx matching the centralised MLP on
+ROC-AUC within recorded retrain nondeterminism
 (Section~\ref{sec:res-rawnobn})---so the balanced-substrate
 standing is a property of BatchNorm under federation, not of
 federation per se and not of the flattened-feature representation as
 such, and no federated arm exceeds the best
 centralised baseline on any substrate's window-level ranking (the
-SCAFFOLD-LSTM event-level detection rate is the one priced
-exception, achieved at roughly twice the centralised arms'
-false-alarm burden, and itself an implementation-case measurement
-of the five departures disclosed in Section~\ref{sec:method}).
+single nominal event-level crossing, SCAFFOLD-LSTM's detection
+rate, is an implementation-case measurement of the five disclosed
+departures, consolidated and priced in
+Appendix~\ref{sec:app-scaffold}).
 \textbf{Demonstrated in-partition (protocol diagnostics, disclosed
 overlap)}: the shipped evaluation path separates the FL
 algorithms---FedProx with $\mu{=}0.01$ is above FedAvg on PR-AUC on
@@ -129,7 +130,8 @@ the seed-43 replication, and the natural-prevalence balancing
 ablation queued in earlier revisions have since been executed
 (Section~\ref{sec:res-lstmrep}: the four-arm federation matrix is
 complete, every arm's ROC-AUC replicates within $\pm$0.005, and
-per-client SMOTE is a clean negative).
+per-client SMOTE is a clean negative; the SCAFFOLD cells are
+consolidated in Appendix~\ref{sec:app-scaffold}).
 An independent re-execution from the public dataset artefacts ---
 byte-verified against the frozen SHA-256 manifest by a committed,
 executable verification script (20/20 files; Section~\ref{sec:repro})
@@ -158,7 +160,8 @@ MLP's ranking --- the best sequence arm (FedProx-LSTM, 0.970/0.404)
 comes within 0.008 ROC-AUC and 0.044
 PR-AUC of the best centralised baseline, and the no-BatchNorm
 FedProx MLP (0.975/0.345, Section~\ref{sec:res-rawnobn}) within
-0.003/0.103, above the centralised MLP's ROC-AUC. No federated arm
+0.003/0.103 of it, level with the centralised MLP's ROC-AUC. No
+federated arm
 exceeds the best centralised baseline on any substrate, so the case
 for federating
 this problem rests on methodology (controlled heterogeneity studies,

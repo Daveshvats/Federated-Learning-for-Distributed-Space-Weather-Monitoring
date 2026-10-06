@@ -532,6 +532,37 @@ now fails the battery), and a source-comparison guard enforces the
 arm-B machinery's byte-identity; submission regenerated (stamp
 v4.11); the letters registry carries this revision's letter; battery
 version v4.11. \\
+v4.12 & External-review response (the independent re-review of the
+v4.11 state; five findings, all accepted): (1) the no-BN FedProx
+parity claim re-worded from ``above the centralised MLP'' to
+``matching \ldots{} within recorded retrain nondeterminism'' at
+every site (abstract, contribution 3, Section~\ref{sec:res-rawnobn},
+conclusion, limitations --- the $-0.004$ residual sits inside the
+$0.002$--$0.023$ ROC-AUC gate-delta band of
+Table~\ref{tab:rawbndiag}, so the single-seed reading is parity,
+not precedence); (2) the validation-story passage's prevalence
+explanation withdrawn (ROC-AUC is prevalence-invariant, so the
+2.05\%/1.31\% difference cannot explain the val-up/test-down
+divergence) and replaced with the two testable candidate mechanisms
+(a region-sharing validation carve; the temporal position of
+partition 5), with the within-fold region-disjoint validation re-run
+committed to the programme; (3) the single-seed boundary added to
+Section~\ref{sec:res-rawnobn} and the seed-43 replication of the
+no-BN arms committed; (4) all SCAFFOLD cells consolidated into the
+new Appendix~\ref{sec:app-scaffold} --- out of the main tables and
+the conclusion, every value preserved, the sign-inversion and
+cold-start disclosures retained, the vanilla re-run still pending
+(B2); (5) packaging: the submission edition is now the trimmed
+12--15-page paper (\texttt{paper\_trimmed/}, the re-reviewer's
+ship-list structure: provenance and leakage, the leakage-free fold,
+persistence baselines, the two BatchNorm findings, calibration
+failure), the full edition retained as the extended record, and the
+README's internal-verdict advertising removed & Apparatus: page pins
+re-pinned for both editions (B7 convention, disclosed recompile);
+\texttt{tools/build\_submission.py} retargeted to
+\texttt{paper\_trimmed/}; the owner-side run card for items (2)/(3)
+committed at \texttt{docs/RUN\_CARD\_v4.12.md}; the letters registry
+carries this revision's letter; battery version v4.12. \\
 \end{longtable}
 \endgroup
 
@@ -558,3 +589,77 @@ found them---which is the argument for freezing the evaluation
 contract in code, as the released framework now does. The published
 artefacts, figures, and this paper's numbers all post-date these
 fixes.
+
+\section{SCAFFOLD Arms: Consolidated Implementation-Case Results}
+\label{sec:app-scaffold}
+
+Every SCAFFOLD cell in this paper measures an implementation that
+departs from the reference algorithm in five disclosed ways
+(Section~\ref{sec:method}): the client control-variate update is
+\emph{sign-inverted} relative to Eq.~11 of the reference, the arm
+cold-starts at half the global learning rate, and three further
+plumbing departures are enumerated in the method section. The
+reference-faithful (``vanilla'') re-run is listed in the re-run
+programme (Section~\ref{sec:limitations}, item B2) and has not
+executed as of this revision. The v4.12 external review ruled that
+no conclusion of the paper should rest on the variant's numbers, so
+all SCAFFOLD cells were consolidated here --- out of the main tables
+and the conclusion --- with every executed value preserved
+(Table~\ref{tab:scaffold}).
+
+\begin{table}[t]
+\centering
+\caption{All SCAFFOLD cells executed in this study, consolidated
+(implementation case: the sign-inverted, cold-start variant of the
+five disclosed departures, Section~\ref{sec:method} --- not the
+reference algorithm; the cleaned-fold column is empty because the
+arm was never run on that substrate). Window-level cells are test
+ROC-AUC / PR-AUC at the stated seed; the BN-diagnostic row applies
+the three treatments of Table~\ref{tab:rawbndiag} (A/B/C) to the
+replication weights; event-level cells are detected events of 65 at
+false-alarm windows per day.}
+\label{tab:scaffold}
+\small
+\begin{tabular}{@{}l l l@{}}
+\toprule
+\textbf{Cell} & \textbf{Window-level} & \textbf{Event-level} \\
+\midrule
+MLP, raw, seed 42 & 0.768 / 0.057 (Brier 0.137, R@2\%FPR 0.175) &
+54/65 (83.1\%) at 6.4/day; lead 23.25\,h \\
+MLP, raw, BN diagnostic & A 0.763/0.053; B 0.500/0.013; C
+0.757/0.069 (gate $\Delta$ $-0.005$) & --- \\
+LSTM, raw, seed 42 & 0.970 / 0.294 (Brier 0.0120, ECE 0.035,
+R@2\%FPR 0.521) & 55/65 (84.6\%) at 0.4/day; lead 23.2\,h \\
+LSTM, raw, seed 43 & 0.968 / 0.368 & 50/65 at a comparable
+false-alarm rate \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Read together, the cells say one thing: the implementation's MLP
+instance is the hardest raw-substrate failure of the study
+(window-level 0.768/0.057; event detection 54/65 at roughly
+$20\times$ the centralised arms' false-alarm burden), while its
+LSTM instance --- identical protocol, sequential encoder --- lands
+at 0.970/0.294, a $+0.202$/$+0.238$ swing against its own MLP
+counterpart (the largest single architecture swing on the
+substrate), statistically tied with FedProx-LSTM at seed 42 and
+narrowly ahead of it at seed 43 (0.968 vs 0.965). At event level
+the LSTM cell supplies the substrate's nominal highest detection
+(55/65, 84.6\%, at 0.41 false-alarm windows per day, 23.2\,h
+median lead), nominally above the centralised detection frontier
+(logistic regression 78.5\%, centralised MLP 80.0\%, both at
+0.2--0.3 per day) --- an operating-point purchase bought with
+$1.5$--$2\times$ those arms' alarm budget, with the window-level
+ranking still below logistic regression by 0.008/0.154 and the
+worst sequence-encoder calibration (ECE 0.035). Two further cells:
+the frozen $F_2$ threshold is the one sequence-arm exception that
+transfers (validation 0.530 to test 0.528 at a recall-heavy
+operating point, test recall 0.737), and the arm's seed-43
+event-level detection moves 55$\to$50 of 65. The BN diagnostic
+behaves as the other arms do --- arm A 0.763, arm B collapsed to
+0.500 (the pooled-recalibration destruction), arm C 0.757 --- so
+the variant neither escapes nor explains the
+BatchNorm-under-federation attribution; it adds a highest-variance
+instance to it. None of these cells supports a
+reference-algorithm claim; the vanilla re-run would.

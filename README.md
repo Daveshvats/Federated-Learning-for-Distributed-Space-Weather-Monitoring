@@ -10,76 +10,49 @@ transport, checkpoint selection, novelty repositioning).
 > produced before v3.0 used a flawed protocol (see `audit/BUG_REGISTER.md`)
 > and must be regenerated with the code on this branch.
 >
-> **v3.9 (evaluation-protocol audit)**: the shipped FL implementation
-> never transports BatchNorm running statistics, and the saturated
-> validation monitor selected a collapse-round FedAvg checkpoint — the
-> published FedAvg-vs-FedProx gap is substantially an evaluation-path
-> artefact (same weights: 0.575 shipped vs 0.951 correctly normalised;
-> no-BN control: both algorithms stable and near-identical).
-> Interpretation frozen in `docs/INTERPRETATION_FREEZE.md` before the
-> rewrite; artefacts `outputs/bn_diagnostic.json` +
-> `outputs/nobn_control.json`; manuscript retitled
-> *Federated Solar-Flare Prediction on SWAN-SF: A Provenance, Leakage,
-> and Evaluation-Protocol Audit* (abstract 781→257 words; Fu et al. 2023
-> cited, first-to-federate claims retired; Fig. 2 regenerated from the
-> realised partition; zhao2018 bib corrected).
+> **Two editions (v4.12)**: `paper/` is the full/extended edition of
+> record (65 pp - the complete experiment apparatus, the LSTM/SMOTE/
+> client studies, the SCAFFOLD consolidation appendix, and the
+> configuration version-history table); `submission/` is the trimmed,
+> publishable 12-page paper covering provenance and leakage, the
+> leakage-free fold, persistence baselines, the two BatchNorm
+> findings, and calibration failure (generated from `paper_trimmed/`
+> by `tools/build_submission.py`, never hand-edited; the battery
+> verifies it). Every printed number regenerates from a committed
+> artefact in `outputs/`, and the dataset cache is frozen under a
+> 20-file SHA-256 manifest verified by a committed script.
 >
-> **v3.1–v3.8 (review-2 response + executed re-run programme)**: see
-> `docs/REVIEW2_RESPONSE.md` for the complete mapping. Headline frozen
-> seed-42 numbers are unchanged throughout; the revisions ship protocol
-> code (78/78 checks — the count of that era), executed re-runs, the
-> provenance/leakage-free evaluation, the raw-substrate and LSTM arms,
-> SCAFFOLD, seed replication, and the SMOTE ablation.
+> **Scientific headline**: the provenance audit (instance-level,
+> normalization-invariant matching against the raw benchmark) finds
+> the cleaned export's same-partition train/test pairing shares
+> instances - every flaring test window (6,234) also appears in
+> training, 85.7-90% of training positives are synthetic - so the
+> study re-evaluates on the benchmark's intended temporally-preceding
+> fold, where all arms generalise and the federated-vs-centralised
+> gap disappears. Persistence baselines set the deployability floor
+> (label inertia TSS 0.967 unbeaten; only XGBoost 0.848 and logistic
+> regression 0.489 clear 24-hour-lagged persistence 0.418 at TSS).
+> Two apparent federated failures are BatchNorm artefacts: the
+> in-partition FedAvg collapse (0.575) is a composite evaluation
+> artefact (the shipped FL implementation never transports BatchNorm
+> running statistics - same weights: 0.575 shipped vs 0.951 correctly
+> normalised; no-BN control: both algorithms stable), and removing
+> BatchNorm alone restores the federated MLP on the raw substrate to
+> the centralised model's ROC-AUC within recorded retrain
+> nondeterminism. Calibration is the deployability boundary: no
+> validation-fit decision layer survives the 26x prevalence shift,
+> and instrument-validated pooled recalibration collapses every
+> federated arm to chance.
 >
-> **v4.x (R-FS9 referee cycle)**: eight rounds, v3.9 reject-as-framed
-> -> v4.5 accept-sustained -> v4.6 submission-manuscript audit
-> (Dossier R-FS9-R6, major revision on the submission package,
-> discharged — the journal submission is now generated from the
-> record at `submission/`) -> v4.7 accept-conditional on one clerical
-> repair (Dossier R-FS9-R7, 7.4/10: the v4.5 bibliography errata's
-> inline comments had silently truncated two entries in both PDFs —
-> repaired, and the rendered bibliography is now battery-guarded, with
-> the panel's six guard-hardening recommendations executed; the R8
-> closure dossier sustained the accept at 7.9/10), then two
-> post-closure errata revisions: v4.8 (the R8 residual register folded
-> in + the E1-E3 content conditions) and v4.9 (the E1 raw-substrate BN
-> diagnostic EXECUTED owner-side — the v4.8 BN-conditional qualifier
-> resolved against the BN explanation, the replication MISMATCH
-> disclosed and battery-pinned, and the frozen artefacts made
-> byte-stable on every platform via `.gitattributes`), and the
-> Round-13 third-party adjudication's register (Dossier R-FS9-R10):
-> repo-only errata v4.9.1-v4.9.4 (instruments shipped, owner
-> executed, artefacts landed) and the paper-side integration **v4.10**
-> (A1's `arm_b_validated` verdict integrated — Table 8's B column
-> re-framed as the validated proxy for the transport fix; A3's
-> no-BatchNorm raw federation integrated — the raw-substrate MLP
-> collapse re-attributed to BatchNorm-under-federation, contribution 5
-> rewritten; the abstract's closure clause scoped, the metric label
-> corrected, the persistence sentence reordered, the manifest sentence
-> separated; the submission regenerated from the record), and the
-> Round-14 verification **v4.11** (Dossier R-FS9-R11: verdict
-> accept-sustained 8.4/10, the Round-13 condition discharged and
-> verified at the strongest branch — A1 `arm_b_validated`, A3 the
-> BatchNorm attribution, 33/35 new-paper numbers exact, battery 373/0
-> at HEAD; the pre-submission punch list executed: the journal
-> edition's stale version stamp single-sourced from
-> `BATTERY_VERSION`, both decisive artefacts sha-pinned with the
-> Table 9 region content-pinned, and the wording errata swept).
-> The manuscript of record is `paper/main.pdf`, compiled from
-> `paper/main.tex` (v4.11). The journal submission edition is
-> `submission/main.pdf`, generated from the record by
-> `tools/build_submission.py` (never hand-edited; the battery verifies
-> it). Verification
-> apparatus: `python tests/run_battery.py` — the single-entry integrity
-> battery, **386 checks torch-less** (canonical 219/219 v4.1 torch-equipped record at
-> `logs/test_battery.log`; skips are counted honestly — torch-gated
-> checks that print [SKIP] are not passes); it requires `pdftotext`
-> (poppler-utils) for the rendered-bibliography guard, writes a
-> versioned, gitignored log and refuses to overwrite an existing log
-> (`--force-log` overrides), so a fresh clone's first documented run
-> succeeds. Execution environments of record:
-> `docs/ENVIRONMENTS.md`; response letters to every dossier:
-> `docs/response_letters/`; the review-cycle ledger: `RUNLOG.md`.
+> Verification apparatus: `python tests/run_battery.py` - the
+> single-entry integrity battery, **386 checks torch-less** (requires
+> `pdftotext` from poppler-utils; skips are counted honestly -
+> torch-gated checks that print [SKIP] are not passes). Execution
+> environments of record: `docs/ENVIRONMENTS.md`; response letters:
+> `docs/response_letters/`; the revision ledger: `RUNLOG.md`; the
+> owner-side re-run kit for the two open compute items
+> (region-disjoint validation re-run, seed-43 replication):
+> `docs/RUN_CARD_v4.12.md`.
 
 ## What this repo demonstrates
 

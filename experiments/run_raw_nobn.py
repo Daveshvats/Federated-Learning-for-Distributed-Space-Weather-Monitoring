@@ -68,8 +68,28 @@ and the cached substrate.
 Usage:
     python experiments/run_raw_nobn.py            (both arms)
     python experiments/run_raw_nobn.py --only fedavg
+
+v4.12 external-review items 2/3 (the owner-side run kit):
+    python experiments/run_raw_nobn.py --region-disjoint
+        Both arms re-run with a WITHIN-FOLD REGION-DISJOINT validation
+carve (item 2): whole NOAA active regions move to validation, so no
+region appears on both sides of the train/validation boundary — the
+leakage class the provenance audit documents benchmark-wide, and the
+leading candidate for the val-up/test-down ROC divergence that
+prevalence cannot explain. Output:
+outputs/raw_nobn_region_disjoint.json; round state in
+nobnrd_<algo>_state.pt (never collides with the seed-42 arms).
+    python experiments/run_raw_nobn.py --seed 43
+        Both arms re-run at seed 43 (item 3): model initialisation and
+the Dirichlet shard draw reseeded, the frozen RANDOM validation carve
+kept identical (the seed-replication semantics of the LSTM arms,
+Section 6.6). Output: outputs/raw_nobn_eval_seed43.json; round state
+in nobn_s43_<algo>_state.pt. Refuses to build a fresh substrate under
+a non-default seed (the cache must exist) so the carve stays frozen.
 """
 import argparse
+import csv
+import gzip
 import json
 import os
 import sys
@@ -93,12 +113,22 @@ from evaluation import (                                    # noqa: E402
     make_calibrator, find_optimal_threshold_fbeta,
     compute_all_metrics, select_fpr_thresholds_on_validation,
     frozen_operating_point_metrics)
-from experiments.raw_substrate import build, CACHE          # noqa: E402
+from experiments.raw_substrate import (                     # noqa: E402
+    build, CACHE, TRAIN_PARTS, load_labels)
 
 FPR_TARGETS = (0.005, 0.01, 0.02, 0.05)
 ALGOS = ("fedavg", "fedprox")
 OUT_DEFAULT = os.path.join("outputs", "raw_nobn_eval.json")
+OUT_REGION_DISJOINT = os.path.join("outputs",
+                                   "raw_nobn_region_disjoint.json")
 RAW_DEFAULT = "/tmp/swansf_raw"
+META_PATH = os.path.join("provenance", "train_meta_slim.csv.gz")
+
+# v4.12: namespaces the round state files so the region-disjoint and
+# seed-43 re-runs never collide with (or resume) the seed-42 random-
+# carve arms' checkpoints; the empty string is the historical v4.9.4
+# namespace.
+STATE_TAG = ""
 
 # torch-dependent machinery, injected into module globals by
 # _load_torch_stack() from main() INSIDE the torch gate (the names
@@ -245,7 +275,8 @@ def select_round_by_val_roc(history):
 
 def run_nobn_arm(algo, shards, X_val, y_val, X_test, y_test, device,
                  input_dim):
-    STATE_PATH = os.path.join(CACHE, f"nobn_{algo}_state.pt")
+    STATE_PATH = os.path.join(
+        CACHE, f"nobn{STATE_TAG}_{algo}_state.pt")
 
     torch.manual_seed(cfg.SEED)
     np.random.seed(cfg.SEED)
@@ -271,10 +302,15 @@ def run_nobn_arm(algo, shards, X_val, y_val, X_test, y_test, device,
     if os.path.exists(STATE_PATH):
         try:
             st = torch.load(STATE_PATH, weights_only=False)
-            if st.get("arch") != "nobn":
-                sys.exit(f"[{algo}-noBN] {STATE_PATH} is not a no-BN "
-                         f"state file (arch={st.get('arch')!r}) — "
-                         f"refusing to resume a foreign checkpoint.")
+            if st.get("arch") != "nobn" or \
+                    st.get("state_tag", "") != STATE_TAG or \
+                    st.get("seed") != cfg.SEED:
+                sys.exit(f"[{algo}-noBN] {STATE_PATH} does not belong "
+                         f"to this run's namespace (arch={st.get('arch')!r}, "
+                         f"tag={st.get('state_tag')!r}, "
+                         f"seed={st.get('seed')!r} vs "
+                         f"({STATE_TAG!r}, {cfg.SEED})) — refusing to "
+                         f"resume a foreign checkpoint.")
             global_model.load_state_dict(st["model_state"])
             history = st["history"]
             best_val_f1 = st["best_val_f1"]
@@ -298,6 +334,7 @@ def run_nobn_arm(algo, shards, X_val, y_val, X_test, y_test, device,
         torch.save({
             "arch": "nobn",
             "algorithm": algo,
+            "state_tag": STATE_TAG,
             "mu": cfg.MU if algo == "fedprox" else 0.0,
             "seed": cfg.SEED,
             "n_rounds": cfg.N_ROUNDS,
@@ -438,9 +475,17 @@ def run_nobn_arm(algo, shards, X_val, y_val, X_test, y_test, device,
                      "mu": cfg.MU if algo == "fedprox" else 0.0,
                      "alpha": 1.0, "clients": cfg.N_CLIENTS,
                      "calibration": cfg.CALIBRATION_METHOD,
+                     "validation": ("region-disjoint (whole NOAA "
+                                     "active regions; v4.12 item 2)"
+                                     if STATE_TAG == "rd" else
+                                     ("random stratified carve, frozen "
+                                      "seed-42 recipe"
+                                      + (f", seed {cfg.SEED} re-init "
+                                         "and shard draw (v4.12 item 3)"
+                                         if STATE_TAG else ""))),
                      "note": ("frozen raw protocol, architecture-only "
                               "intervention; state file "
-                              f"nobn_{algo}_state.pt carries "
+                              f"nobn{STATE_TAG}_{algo}_state.pt carries "
                               "arch='nobn'")},
         "history": history,
         "best_val_f1": round(float(best_val_f1), 6),
@@ -458,6 +503,120 @@ def run_nobn_arm(algo, shards, X_val, y_val, X_test, y_test, device,
             f"hygiene, born with these arms)"),
         "test_trajectory": traj,
     }
+
+
+# ── v4.12 item 2: the within-fold region-disjoint validation carve ──
+# ── (torch-free so the battery can exercise the split directly)  ──
+
+def region_disjoint_split(X_train, y_train, X_val, y_val, raw_dir,
+                          meta_path=META_PATH, seed=42,
+                          val_split=None):
+    """Rebuild the training POOL, then carve validation at the level of
+    WHOLE NOAA active regions.
+
+    The shipped random carve (raw_substrate.py: train_test_split,
+    stratified by label) can share active regions between training
+    and validation — the leakage class the provenance audit
+    documents benchmark-wide, and the leading candidate for the
+    FedAvg no-BN val-up/test-down ROC divergence (a rank metric that
+    prevalence cannot move). This function:
+      1. rebuilds y_pool in POOL order (P1..P4 row order) from the
+         raw parse metadata (cheap CSV reads);
+      2. re-derives the frozen random carve (same seed / test_size /
+         stratify) and VERIFIES it by a label round-trip against the
+         cached arrays — a wrong reconstruction exits loudly;
+      3. scatters the cached X_train/X_val back into pool order;
+      4. maps every pool row to its region (provenance meta);
+      5. assigns whole regions to validation (deterministic seed-42
+         region permutation, target = the random carve's size)
+         until no region spans the boundary.
+    Returns (X_tr, y_tr, X_va, y_va, split_stats).
+    """
+    from sklearn.model_selection import train_test_split
+
+    if val_split is None:
+        val_split = cfg.VAL_SPLIT
+    n_pool = int(len(y_train) + len(y_val))
+
+    # 1. pool-order labels from the raw parse metadata
+    y_pool = np.concatenate(
+        [np.asarray(load_labels(raw_dir, p)) for p in TRAIN_PARTS])
+    if len(y_pool) != n_pool:
+        sys.exit(f"[rd] pool size mismatch: meta labels {len(y_pool):,} "
+                 f"vs cached train+val {n_pool:,} — the cache and the "
+                 f"raw dir disagree; aborting rather than mis-splitting")
+
+    # 2. re-derive the frozen random carve + verify by round-trip
+    val_idx = train_test_split(
+        np.arange(n_pool), test_size=val_split,
+        random_state=seed, stratify=y_pool)[1]
+    val_set = set(val_idx.tolist())
+    train_idx = np.array([i for i in range(n_pool)
+                          if i not in val_set])
+    if not (np.array_equal(y_pool[train_idx], y_train)
+            and np.array_equal(y_pool[val_idx], y_val)):
+        sys.exit("[rd] carve round-trip FAILED: the re-derived random "
+                 "split does not reproduce the cached y_train/y_val — "
+                 "your cache was built under a different carve; aborting "
+                 "rather than mis-splitting")
+
+    # 3. scatter the cached arrays back into pool order
+    X_pool = np.empty((n_pool, X_train.shape[1]), dtype=np.float32)
+    X_pool[train_idx] = X_train
+    X_pool[val_idx] = X_val
+
+    # 4. region map (pool_row -> region_id)
+    region_of = np.zeros(n_pool, dtype=np.int64) - 1
+    n_meta = 0
+    with gzip.open(meta_path, "rt") as f:
+        for row in csv.DictReader(f):
+            pr = int(row["pool_row"])
+            if 0 <= pr < n_pool:
+                region_of[pr] = int(row["region_id"])
+                n_meta += 1
+    if n_meta != n_pool or (region_of < 0).any():
+        sys.exit(f"[rd] provenance meta covers {n_meta:,} of {n_pool:,} "
+                 f"pool rows — the meta and the cache disagree; aborting")
+
+    # 5. deterministic whole-region assignment
+    regions = np.unique(region_of)
+    rows_by_region = {int(r): np.where(region_of == r)[0]
+                      for r in regions}
+    target = len(val_idx)
+    rng = np.random.default_rng(seed)
+    order = rng.permutation(len(regions))
+    val_regions, n_val = [], 0
+    for oi in order:
+        rid = int(regions[oi])
+        if n_val >= target:
+            break
+        val_regions.append(rid)
+        n_val += len(rows_by_region[rid])
+    val_mask = np.isin(region_of, np.asarray(val_regions,
+                                              dtype=np.int64))
+    train_mask = ~val_mask
+
+    # 6. hard disjointness guarantee
+    assert set(region_of[val_mask].tolist()).isdisjoint(
+        set(region_of[train_mask].tolist())), \
+        "region-disjoint split violated its own invariant"
+
+    split_stats = {
+        "mode": "region-disjoint (whole NOAA active regions)",
+        "seed_region_permutation": seed,
+        "n_regions_total": int(len(regions)),
+        "n_regions_val": len(val_regions),
+        "val_regions_sample": sorted(val_regions)[:20],
+        "train_rows": int(train_mask.sum()),
+        "val_rows": int(val_mask.sum()),
+        "val_target_rows_random_carve": target,
+        "train_pos": float(y_pool[train_mask].mean()),
+        "val_pos": float(y_pool[val_mask].mean()),
+        "random_carve_val_pos": float(y_val.mean()),
+        "disjointness": "verified: no region id on both sides",
+    }
+    return (X_pool[train_mask], y_pool[train_mask],
+            X_pool[val_mask], y_pool[val_mask], split_stats)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -495,11 +654,22 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--raw-dir", default=RAW_DEFAULT,
                     help="raw benchmark dir (substrate build cache miss)")
-    ap.add_argument("--output", default=OUT_DEFAULT)
+    ap.add_argument("--output", default=None,
+                    help="output json (default: raw_nobn_eval.json / "
+                         "raw_nobn_region_disjoint.json / "
+                         "raw_nobn_eval_seed<N>.json by mode)")
     ap.add_argument("--only", choices=ALGOS, default=None,
                     help="run a single arm (default: both)")
+    ap.add_argument("--region-disjoint", action="store_true",
+                    help="v4.12 item 2: region-disjoint validation "
+                         "carve (whole NOAA active regions)")
+    ap.add_argument("--seed", type=int, default=None,
+                    help="v4.12 item 3: reseed model init + Dirichlet "
+                         "shard draw (the frozen random carve is kept "
+                         "identical; requires the substrate cache)")
     args = ap.parse_args()
 
+    global STATE_TAG
     t0 = time.time()
     if torch is None:
         sys.exit("[nobn] torch is required (federated training); the "
@@ -509,6 +679,32 @@ def main():
     cfg.USE_LSTM = False
     cfg.USE_SCAFFOLD = True
 
+    if args.seed is not None and args.seed != cfg.SEED:
+        # the seed replication must ride the SAME frozen carve, so
+        # the substrate cache must already exist — refuse to build a
+        # new substrate under a non-default seed
+        if not os.path.exists(os.path.join(CACHE, "data.npz")):
+            sys.exit(f"[nobn] --seed {args.seed} requires the frozen "
+                     f"substrate cache (data/cache/rawsubstrate/"
+                     f"data.npz) — build it at seed {cfg.SEED} first")
+        STATE_TAG = f"s{args.seed}"
+        print(f"[nobn] seed override: {cfg.SEED} -> {args.seed} "
+              f"(init + shard draw reseeded; validation carve "
+              f"unchanged; state namespace nobn{STATE_TAG}_*)",
+              flush=True)
+        cfg.SEED = args.seed
+    elif args.region_disjoint:
+        STATE_TAG = "rd"
+
+    if args.output is None:
+        if STATE_TAG == "rd":
+            args.output = OUT_REGION_DISJOINT
+        elif STATE_TAG:
+            args.output = os.path.join(
+                "outputs", f"raw_nobn_eval_seed{cfg.SEED}.json")
+        else:
+            args.output = OUT_DEFAULT
+
     _load_torch_stack()
 
     # ── 1. substrate + shards (identical recipe, from cache) ───────────
@@ -516,6 +712,23 @@ def main():
     X_train, y_train = d["X_train"], d["y_train"]
     X_val, y_val = d["X_val"], d["y_val"]
     X_test, y_test = d["X_test"], d["y_test"]
+
+    split_stats = None
+    if args.region_disjoint:
+        X_train, y_train, X_val, y_val, split_stats = \
+            region_disjoint_split(
+                d["X_train"], d["y_train"], d["X_val"], d["y_val"],
+                raw_dir=args.raw_dir, seed=42)
+        print(f"[nobn] REGION-DISJOINT carve: "
+              f"{split_stats['n_regions_val']} of "
+              f"{split_stats['n_regions_total']} regions -> val "
+              f"({split_stats['val_rows']:,} rows, "
+              f"pos {split_stats['val_pos']:.2%}; random carve was "
+              f"{split_stats['val_target_rows_random_carve']:,} rows "
+              f"at {split_stats['random_carve_val_pos']:.2%}); "
+              f"train {split_stats['train_rows']:,} rows "
+              f"(pos {split_stats['train_pos']:.2%})", flush=True)
+
     print(f"[nobn] substrate: train {len(y_train):,} "
           f"(pos {y_train.mean():.2%}) | val {len(y_val):,} "
           f"(pos {y_val.mean():.2%}) | test {len(y_test):,} "
@@ -546,6 +759,8 @@ def main():
     for algo, rep in reports.items():
         merged[algo] = rep
     merged["reference_columns"] = _reference_block()
+    if split_stats is not None:
+        merged["validation_split"] = split_stats
     merged["purpose"] = (
         "R-FS9-R10 master change register item A3: no-BatchNorm MLP "
         "federation (FedAvg and FedProx) on the raw substrate — the "
@@ -556,7 +771,13 @@ def main():
         "direct comparability with the BN raw arms. The "
         "reference_columns block is read from the committed artefacts "
         "at run time — the attribution question is answerable from "
-        "this artefact alone.")
+        "this artefact alone."
+        + (" v4.12 item 2: region-disjoint validation carve — the "
+           "divergence diagnosis of Section 6.4 (val ROC rising "
+           "while test ROC falls cannot be a prevalence effect; the "
+           "two candidate mechanisms, a region-sharing carve and "
+           "partition-5 recency, are separated by this run)."
+           if split_stats is not None else ""))
     merged["elapsed_s"] = time.time() - t0
     _atomic_json(merged, args.output)
     print(f"\n[nobn] report -> {args.output} "

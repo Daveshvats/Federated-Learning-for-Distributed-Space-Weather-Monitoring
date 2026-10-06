@@ -3,48 +3,42 @@
 tests/test_submission_apparatus.py — R-FS9-R6 register item 4: the
 submission manuscript is regenerated from the record and CANNOT drift.
 
-Background (Dossier R-FS9-R6, findings R8-6/R8-7/R8-8/R8-9/R8-10):
-the hand-prepared 48-page journal manuscript regressed to the
-v3.9-era state — eleven defective bibliography entries (two dead
-identifiers, one wrong-paper DOI), the entire skill-score floor
-apparatus absent, both v4.5 SCAFFOLD disclosures missing, six
-prior-art citations dropped, the retired GIC-framing citations back,
-and two untraceable constants. Fourth documented instance of the
-hand-prepared-artefact drift species.
-
-v4.6 answer: the submission is GENERATED (tools/build_submission.py)
-from the repository of record — sections, figures and refs.bib are
-verbatim copies; deviations are declared transformations; this test
-regenerates the source tree and byte-compares it with the committed
-submission/src, so drift is impossible without the battery failing.
+v4.12 (the external re-review's packaging item): the submission is
+now the TRIMMED edition (paper_trimmed/ — the ship-list structure,
+12 pp, no process language), regenerated verbatim by
+tools/build_submission.py; the full 65-page edition remains the
+extended record at paper/ (page-pinned here as before). The
+regeneration byte-compare, the refs never-retype rule, the floor
+apparatus, the prior-art citations, and the rendered-bibliography
+pins all remain; the SCAFFOLD disclosure checks now run against
+the FULL edition's sources (the disclosures' record — the trimmed
+edition carries SCAFFOLD only as the limitations qualifier), and
+the rendered-bibliography pins are per-edition (the trimmed
+refs.bib is the cited-keys subset: 20 entries).
 
 Checks:
   1. regeneration byte-compare: tools/build_submission.py
      --source-only into a temp dir == committed submission/src;
-  2. refs.bib is a byte-identical copy of paper/refs.bib and every
+  2. refs.bib is a byte-identical copy of paper_trimmed/refs.bib
+     (itself the cited-keys subset of paper/refs.bib) and every
      \\cite key resolves (the never-retype rule, executable);
   3. floor apparatus present (TSS, HSS, inertia, persistence, the
-     arms-clearing statement, Brier skill);
-  4. both SCAFFOLD disclosures present (five-departure enumeration,
-     sign inversion, cold start, optimiser constants, prevalence
-     asymmetry) + budget-table scheduler cell corrected;
+     arms-clearing statement, Brier skill) + the v4.12 parity
+     wording on the abstract pair;
+  4. SCAFFOLD disclosures present in the FULL edition's sources
+     (five-departure enumeration, sign inversion, cold start,
+     optimiser constants, prevalence asymmetry) and the trimmed
+     edition's limitations qualifier carries the status honestly;
   5. the six prior-art citations are cited; no GIC-framing keys
      (bolduc/baker are not even in refs.bib);
   6. no untraceable constants (74-hour CPU estimate, 4.4e-4), the
-     5e-3 fp16 bound present, abstract pair carries metric names;
-  7. RENDERED bibliography pinned (Dossier R-FS9-R7, register item 1 —
-     B1 + B7): pdftotext extracts the compiled pages of BOTH the
-     paper of record and the submission; the entry count must equal
-     the refs.bib entry count, every rendered entry must carry a
-     year (a truncated entry — the B1 species, a bare author list —
-     carries none), the page count is pinned, and each of a pinned
-     list of load-bearing entries ([7] Georgoulis, [22] Hassani, the
-     six prior-art entries, and the Fu/Leka/Karimireddy anchors) must
-     contain its title's first words and its year. Source
-     byte-identity alone guaranteed fidelity to the record INCLUDING
-     the record's own rendering defect — the rendered output is now
-     checked directly. pdftotext (poppler-utils) is a battery
-     dependency since v4.7; its absence fails this check loudly.
+     5e-3 fp16 bound present;
+  7. RENDERED bibliography pinned (Dossier R-FS9-R7, register item 1
+     — B1 + B7): pdftotext extracts the compiled pages of BOTH the
+     paper of record and the submission; per edition the entry count
+     must equal that edition's refs.bib count, every rendered entry
+     must carry a year, the page count is pinned, and each pinned
+     entry must contain its title's first words and its year.
 
 Run:  python tests/test_submission_apparatus.py  (or via the battery)
 """
@@ -61,6 +55,7 @@ sys.path.insert(0, ROOT)
 SUB_SRC = os.path.join(ROOT, "submission", "src")
 GEN = os.path.join(ROOT, "tools", "build_submission.py")
 PAPER = os.path.join(ROOT, "paper")
+TRIMMED = os.path.join(ROOT, "paper_trimmed")
 
 SIX_KEYS = ["li2021fedbn", "wang2023bn", "guerraoui2024bn",
             "bnscaffold2024", "angryk2019", "ahmadzadeh2021"]
@@ -151,16 +146,15 @@ PINNED_ENTRIES = [
 # for the compiled artefact is rendered content: page count + key
 # strings. Deliberately bump these when the documents legitimately
 # reflow (a disclosed recompile), never silently.
+# v4.12: paper 65 pp (the v4.12 review-response edits — the SCAFFOLD
+# consolidation appendix + the rewritten validation-story passage —
+# reflowed the full edition from 63); submission 12 pp (the trimmed
+# edition IS the submission since v4.12 — 63 while it mirrored the
+# full record, v4.6-v4.11).
 PINNED_PAGE_COUNTS = {
-    os.path.join("paper", "main.pdf"): 63,
-    os.path.join("submission", "main.pdf"): 63,
+    os.path.join("paper", "main.pdf"): 65,
+    os.path.join("submission", "main.pdf"): 12,
 }
-# (63 since v4.11: the R-FS9-R11 pre-submission errata — the event-
-# level table's new FedAvg arm-C companion row, the three companioned
-# "zero of 65" sites, the sign-normalised gap list, and the appendix
-# v4.11 row reflowed the document by one page — a disclosed
-# recompile, the pin bumped deliberately per the B7 convention;
-# 62 at v4.10, 59 at v4.9, 56 at v4.8, 55 at v4.5-v4.7)
 
 
 def read(path):
@@ -174,6 +168,18 @@ def all_sources_text():
     for fn in sorted(os.listdir(secdir)):
         if fn.endswith(".tex"):
             parts.append(read(os.path.join(secdir, fn)))
+    return "\n".join(parts)
+
+
+def paper_sources_text():
+    """The FULL edition's sources (paper/) — the record for the
+    disclosures the trimmed submission carries only in qualified
+    summary form."""
+    parts = [read(os.path.join(PAPER, "main.tex"))]
+    secdir = os.path.join(PAPER, "sections")
+    for fn in sorted(os.listdir(secdir)):
+        if fn.endswith(".tex"):
+            parts.append(read(os.path.join(PAPER, "sections", fn)))
     return "\n".join(parts)
 
 
@@ -237,11 +243,18 @@ def check_regeneration():
 def check_refs():
     ok = True
     bib = read(os.path.join(SUB_SRC, "refs.bib"))
-    record_bib = read(os.path.join(PAPER, "refs.bib"))
+    record_bib = read(os.path.join(TRIMMED, "refs.bib"))
     if bib != record_bib:
         print("[FAIL] submission refs.bib is NOT byte-identical to "
-              "paper/refs.bib — the never-retype rule is broken")
+              "paper_trimmed/refs.bib — the never-retype rule is broken")
         ok = False
+    full_bib = read(os.path.join(PAPER, "refs.bib"))
+    # the trimmed bib must be a subset of the full record's entries
+    for m in re.finditer(r"@\w+\{([^,\s]+),", bib):
+        if f"{{{m.group(1)}," not in full_bib:
+            print(f"[FAIL] trimmed-bib entry {m.group(1)} is not in "
+                  "paper/refs.bib — the subset contract is broken")
+            ok = False
     if "bolduc" in bib.lower() or "baker" in bib.lower():
         print("[FAIL] GIC-framing citations (bolduc/baker) present in "
               "the submission bibliography")
@@ -259,8 +272,9 @@ def check_refs():
         ok = False
     if not ok:
         return False
-    print(f"[PASS] refs.bib byte-identical to the record ({len(bib_keys)} "
-          f"entries); all {len(keys)} cited keys resolve; no GIC keys")
+    print(f"[PASS] refs.bib byte-identical to paper_trimmed/refs.bib "
+          f"({len(bib_keys)} entries, all present in paper/refs.bib); "
+          f"all {len(keys)} cited keys resolve; no GIC keys")
     return True
 
 
@@ -272,9 +286,10 @@ def check_floor_apparatus():
         "inertia": "inertia",
         "persistence floor": "persistence",
         "Brier skill": "Brier skill",
-        "arms-clearing statement": "alone clear 24-hour-lagged "
+        "arms-clearing statement": "clear 24-hour-lagged "
                                    "persistence",
-        "abstract metric names": "ROC-AUC 0.970 and PR-AUC 0.404",
+        "abstract parity wording (v4.12)":
+            "matching the centralised MLP",
     }
     missing = [label for label, m in markers.items() if m not in src]
     if missing:
@@ -282,14 +297,20 @@ def check_floor_apparatus():
             print(f"[FAIL] floor-apparatus marker missing: {label}")
         return False
     print("[PASS] floor apparatus present: TSS/HSS/inertia/persistence "
-          "floors, Brier skill, the v4.2-corrected arms-clearing "
-          "statement, and metric names on the abstract pair "
-          "(v4.10: the corrected PR-AUC label, register A4/F1)")
+          "floors, Brier skill, the arms-clearing statement, and the "
+          "v4.12 parity wording on the abstract pair (matching the "
+          "centralised MLP within recorded retrain "
+          "nondeterminism)")
     return True
 
 
 def check_scaffold_disclosures():
-    src = all_sources_text()
+    # v4.12: the full five-departure disclosures live in the FULL
+    # edition (paper/) — the trimmed submission carries SCAFFOLD only
+    # as the limitations qualifier, which must state the status
+    # honestly (sign-inverted departure + not the reference algorithm
+    # + implementation-case).
+    src = paper_sources_text()
     markers = {
         "five-departure enumeration": "Five implementation details depart",
         "sign inversion": "sign-inverted",
@@ -305,13 +326,24 @@ def check_scaffold_disclosures():
     }
     missing = [label for label, m in markers.items()
                if re.sub(r"\s+", " ", m) not in re.sub(r"\s+", " ", src)]
+    sub = all_sources_text()
+    sub_markers = {
+        "trimmed: sign inversion named": "sign-inverted",
+        "trimmed: not the reference algorithm":
+            "departs from the reference algorithm",
+        "trimmed: implementation-case qualifier": "implementation-case",
+    }
+    missing += [f"({label})" for label, m in sub_markers.items()
+                if re.sub(r"\s+", " ", m) not in re.sub(r"\s+", " ", sub)]
     if missing:
         for label in missing:
             print(f"[FAIL] SCAFFOLD-disclosure marker missing: {label}")
         return False
-    print("[PASS] both SCAFFOLD disclosures + five-departure "
-          "enumeration + corrected scheduler cell + central-side "
-          "prevalence disclosure all present")
+    print("[PASS] full edition carries both SCAFFOLD disclosures + "
+          "five-departure enumeration + corrected scheduler cell + "
+          "central-side prevalence disclosure; the trimmed edition's "
+          "limitations qualifier states the implementation status "
+          "honestly")
     return True
 
 
@@ -404,22 +436,50 @@ def _bibliography_entries(text):
 
 def check_rendered_bibliography():
     """Dossier R-FS9-R7, register item 1 (B1 + B7): pin the RENDERED
-    bibliography of both compiled PDFs. Source byte-identity alone
-    faithfully inherited the record's own rendering defect through
-    two guarded compiles; the rendered output is now checked
-    directly, so a bib entry that stops rendering fails the battery."""
+    bibliography of both compiled PDFs. v4.12: the pins are
+    PER-EDITION — the full edition pins its complete refs.bib; the
+    trimmed submission pins its cited-keys subset (the pins whose
+    entries the trimmed refs.bib carries), so the full-pin contract
+    holds for both editions independently."""
     if shutil.which("pdftotext") is None:
         print("[FAIL] pdftotext (poppler-utils) is not available — it "
               "is a battery dependency since v4.7 (Dossier R-FS9-R7 "
               "B1): the rendered-bibliography check cannot run; "
               "install poppler-utils")
         return False
-    bib_src = read(os.path.join(SUB_SRC, "refs.bib"))
-    expected = len(re.findall(r"@\w+\{", bib_src))
+
+    def _norm_src(s):
+        return re.sub(r"[^a-z0-9]", "", s.lower())
+
+    # v4.12: match pins to bib KEYS via the full record's per-entry
+    # text, by TITLE fragment (unique across the bibliography — the
+    # citation-order anchors like "tian li" appear in neither the raw
+    # entry nor the same order there), then keep the pins whose key
+    # the trimmed refs.bib actually carries.
+    full_bib_text = read(os.path.join(PAPER, "refs.bib"))
+    full_entries = {}
+    for chunk in re.split(r"(?=@\w+\{)", full_bib_text):
+        m = re.match(r"@(\w+)\{([^,\s]+),", chunk)
+        if m:
+            full_entries[m.group(2)] = chunk
+    sub_keys = set(re.findall(r"@\w+\{([^,\s]+),",
+                              read(os.path.join(SUB_SRC, "refs.bib"))))
+    sub_pins = []
+    for p in PINNED_ENTRIES:
+        matched = [k for k, txt in full_entries.items()
+                   if _norm_src(p[2]) in _norm_src(txt)]
+        if len(matched) == 1 and matched[0] in sub_keys:
+            sub_pins.append(p)
+    expected_sub = len(sub_keys)
+
     ok = True
     per_label_ok = {}
-    for label, rel in (("paper of record", os.path.join("paper", "main.pdf")),
-                       ("submission", os.path.join("submission", "main.pdf"))):
+    for label, rel, bib_path, pins in (
+            ("paper of record", os.path.join("paper", "main.pdf"),
+             os.path.join(PAPER, "refs.bib"), PINNED_ENTRIES),
+            ("submission", os.path.join("submission", "main.pdf"),
+             os.path.join(SUB_SRC, "refs.bib"), sub_pins)):
+        expected = len(re.findall(r"@\w+\{", read(bib_path)))
         pdf = os.path.join(ROOT, rel)
         rc, text = _pdf_text(pdf)
         if rc != 0 or not text:
@@ -440,8 +500,8 @@ def check_rendered_bibliography():
             continue
         if len(entries) != expected:
             print(f"[FAIL] {label}: {len(entries)} entries render, "
-                  f"refs.bib carries {expected} — entries were lost or "
-                  f"gained at render time")
+                  f"its refs.bib carries {expected} — entries were lost "
+                  f"or gained at render time")
             ok = False
             continue
         for i, e in enumerate(entries, 1):
@@ -450,7 +510,7 @@ def check_rendered_bibliography():
                       f"truncated (the B1 species)? "
                       f"{e[:80].strip()!r}")
                 ok = False
-        for why, anchor, title_frag, year in PINNED_ENTRIES:
+        for why, anchor, title_frag, year in pins:
             hits = [e for e in entries
                     if _norm(anchor) in _norm(e)
                     and _norm(title_frag) in _norm(e)
@@ -461,32 +521,26 @@ def check_rendered_bibliography():
                       f"(anchor {anchor!r}, title {title_frag!r}, "
                       f"year {year})")
                 ok = False
-        # R-FS9-R8 (C3/T1): the pin list is the COMPLETE bibliography —
-        # its length is asserted against the refs.bib entry count, so
-        # every entry's title/venue tail is guarded and a future entry
-        # cannot be added without a deliberate pin.
-        if len(PINNED_ENTRIES) != expected:
-            print(f"[FAIL] {label}: PINNED_ENTRIES carries "
-                  f"{len(PINNED_ENTRIES)} pins but refs.bib has "
+        # the full-pin contract, per edition: the pin list is the
+        # COMPLETE bibliography of that edition
+        if len(pins) != expected:
+            print(f"[FAIL] {label}: pin list carries "
+                  f"{len(pins)} pins but its refs.bib has "
                   f"{expected} entries — the full-pin contract (R8 "
                   f"C3) is broken; add the missing pin deliberately")
             ok = False
         if ok:
             per_label_ok[label] = (expected, pages)
     # R-FS9-R8 (T1): ONE consolidated [PASS] line for the whole check
-    # (the v4.7 form printed one per PDF while the RESULT count treated
-    # the check as one — the [PASS]-line count and the module's RESULT
-    # line now agree).
     if ok and per_label_ok:
         parts = ", ".join(f"{k}: {v[0]} entries / {v[1]} pp"
                           for k, v in per_label_ok.items())
         print(f"[PASS] rendered bibliography ({parts}): every entry "
-              f"carries a year, page counts pinned, and all "
-              f"{len(PINNED_ENTRIES)} entries of refs.bib are pinned "
-              f"by anchor + title fragment + year (the R8 C3 full-pin "
-              f"contract) — the B1 truncation species is guarded at "
-              f"render time for the whole bibliography, not just the "
-              f"load-bearing subset")
+              f"carries a year, page counts pinned, and every entry "
+              f"of each edition's refs.bib is pinned by anchor + "
+              f"title fragment + year (the R8 C3 full-pin contract, "
+              f"per edition) — the B1 truncation species is guarded "
+              f"at render time for both editions")
     return ok
 
 

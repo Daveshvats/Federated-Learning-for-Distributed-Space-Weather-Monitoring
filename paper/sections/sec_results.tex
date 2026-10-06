@@ -268,13 +268,13 @@ were inflating its minority-class precision, not teaching it.
 \emph{Federated arms are substrate-fragile}: FedProx degrades from
 0.976/0.308 to 0.930/0.149; plain FedAvg's PR-AUC collapses from
 0.370 to 0.056 (its calibrated posteriors never cross the
-validation-frozen threshold: test recall 0.000); and SCAFFOLD---the
-one re-run item that had never been executed on any real
-substrate---fails outright at 0.768/0.057 with Brier 0.137 (every
-SCAFFOLD cell in this section measures the implementation's five
-disclosed departures from the reference algorithm,
-Section~\ref{sec:method}, and is read below as implementation-case
-evidence). The
+validation-frozen threshold: test recall 0.000); and the
+SCAFFOLD arm---the one re-run item that had never been executed on
+any real substrate---fails outright at 0.768/0.057 with Brier
+0.137, its every cell an implementation case (five disclosed
+departures from the reference algorithm, Section~\ref{sec:method})
+consolidated out of the main tables in
+Appendix~\ref{sec:app-scaffold}. The
 federated-versus-centralised ordering of the leakage-free fold was
 still a property of the balanced training substrate; on the raw
 unbalanced benchmark the focal-loss clients cannot learn the 2\%
@@ -309,7 +309,9 @@ natural 2.05\% prevalence, FPCKNN/LSBZM reproduced in-pipeline with
 train-only parameters; single-pass test on raw partition 5, natural
 1.31\% prevalence; identical frozen protocol). The leakage-free
 cleaned-substrate fold is reproduced for comparison; SCAFFOLD was
-not run on the cleaned fold.}
+not run on the cleaned fold, and its raw-substrate row is
+consolidated with all other SCAFFOLD cells in
+Appendix~\ref{sec:app-scaffold} (implementation case).}
 \label{tab:rawsubstr}
 \small
 \begin{tabular}{@{}l c c c c c c@{}}
@@ -324,7 +326,6 @@ XGBoost (centralised) & 0.971 & 0.457 & 0.974 & 0.329 & 0.018 & 0.587 \\
 Centralised MLP & 0.973 & 0.382 & 0.971 & 0.445 & 0.010 & 0.596 \\
 FedAvg MLP & 0.906 & 0.370 & 0.875 & 0.056 & 0.013 & 0.063 \\
 FedProx MLP & 0.976 & 0.308 & 0.930 & 0.149 & 0.032 & 0.343 \\
-SCAFFOLD MLP & --- & --- & 0.768 & 0.057 & 0.137 & 0.175 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -334,9 +335,9 @@ The event-level evaluation on the same substrate
 65 true M/X-class events are matched to their GOES peaks exactly as
 in the cleaned fold, but plain FedAvg now detects \emph{zero} of
 them, FedProx detects 48 (73.8\%) at 1.3 false-alarm windows per
-day, and SCAFFOLD's 83.1\% detection rate is bought at 6.4
-false-alarm windows per day---roughly $20\times$ the centralised
-arms' burden. The centralised arms detect 61.5--80\% of events at
+day (the SCAFFOLD event-level cells, implementation-case, are
+consolidated in Appendix~\ref{sec:app-scaffold}). The
+centralised arms detect 61.5--80\% of events at
 0.2--0.3 false-alarm windows per day with 18--23\,h median lead
 times. The sequence arms appended below the rule
 (Section~\ref{sec:res-lstm}) restore partial federated detection
@@ -352,11 +353,10 @@ events, validation-frozen $F_2$ thresholds, 1-hour alert cooldown;
 99.86\% of test windows matched to the audit's event keys). The
 sequence arms (below the rule) are evaluated by the standalone
 torch-free CPU runner over the owner-GPU run's stored per-window
-test probabilities and the same audit metadata; the SCAFFOLD-LSTM row
-was evaluated in-runner by the same event-level machinery during
-the second GPU batch. Median leads are rounded to 0.1\,h except the
-SCAFFOLD-MLP cell, whose stored median (1{,}395\,min) is exactly
-23.25\,h and is shown at full precision (T2 erratum, v4.8); the
+test probabilities and the same audit metadata. The SCAFFOLD rows
+(MLP and LSTM) are consolidated in Appendix~\ref{sec:app-scaffold}
+(implementation case), together with the one full-precision median
+lead (the SCAFFOLD-MLP cell, 23.25\,h, T2 erratum v4.8); the
 FedAvg arm-C row (batch-statistics evaluation,
 Section~\ref{sec:res-rawbn}) is the companion cell to its shipped
 zero-detection row.}
@@ -373,12 +373,10 @@ Centralised MLP & 52/65 (80.0\%) & 0.3 & 0.4 & 20.5 \\
 FedAvg MLP & 0/65 (0.0\%) & 0.0 & 0.0 & --- \\
 FedAvg MLP (arm C, batch statistics) & 38/65 (58.5\%) & 0.28 & 0.35 & 19.8 \\
 FedProx MLP & 48/65 (73.8\%) & 1.3 & 1.4 & 23.0 \\
-SCAFFOLD MLP & 54/65 (83.1\%) & 6.4 & 6.6 & 23.25 \\
 \midrule
 Centralised LSTM & 41/65 (63.1\%) & 0.3 & 0.4 & 19.3 \\
 FedAvg LSTM & 35/65 (53.8\%) & 0.2 & 0.2 & 17.4 \\
 FedProx LSTM & 49/65 (75.4\%) & 0.4 & 0.5 & 23.2 \\
-SCAFFOLD LSTM & 55/65 (84.6\%) & 0.4 & 0.5 & 23.2 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -409,7 +407,8 @@ baselines reproduce the published rows to $\le 2.3\times10^{-3}$
 ROC-AUC (logistic regression $+1.7\times10^{-4}$, XGBoost
 $+1.5\times10^{-3}$, centralised MLP $-2.3\times10^{-3}$), which
 isolates the federated arms' gate deltas --- ROC-AUC $+0.023$
-(FedAvg), $-0.002$ (FedProx), $-0.005$ (SCAFFOLD) --- as retrain
+(FedAvg), $-0.002$ (FedProx), $-0.005$ (SCAFFOLD,
+Appendix~\ref{sec:app-scaffold}) --- as retrain
 nondeterminism concentrated in the highest-variance arm. The gate
 recorded MISMATCH on all three arms (tolerance $10^{-4}$) and exited
 non-zero as designed; the record is frozen with that verdict.
@@ -424,10 +423,9 @@ exact per-client statistics pooled by the law of total variance
 (training shards only); C: evaluation-time batch statistics. Gate
 $\Delta$ is arm A's ROC-AUC delta against the published rows of
 Table~\ref{tab:rawsubstr} (the disclosed MISMATCH; FedAvg carries
-the replication's retrain variance). The SCAFFOLD row measures the
-implementation's sign-inverted, cold-start variant (the five
-departures of Section~\ref{sec:method}) --- an implementation case,
-not the reference algorithm.}
+the replication's retrain variance). The SCAFFOLD diagnostic row is
+consolidated in Appendix~\ref{sec:app-scaffold} (implementation
+case, not the reference algorithm).}
 \label{tab:rawbndiag}
 \small
 \begin{tabular}{@{}l c c c c@{}}
@@ -437,7 +435,6 @@ not the reference algorithm.}
 \midrule
 FedAvg   & 0.898 / 0.070 & 0.501 / 0.015 & 0.915 / 0.227 & $+0.023$ \\
 FedProx  & 0.928 / 0.149 & 0.500 / 0.013 & 0.920 / 0.251 & $-0.002$ \\
-SCAFFOLD & 0.763 / 0.053 & 0.500 / 0.013 & 0.757 / 0.069 & $-0.005$ \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -446,14 +443,17 @@ Table~\ref{tab:rawbndiag} yields the reading, and it is the opposite
 of the in-partition pattern of Section~\ref{sec:res-bn}. First,
 \emph{the raw-substrate MLP deficit is not a manufactured collapse}:
 arm A --- the very path the in-partition diagnostic indicts --- holds
-0.763--0.928 ROC-AUC on every arm here, where the in-partition
+0.898--0.928 ROC-AUC on both arms here (0.763 on the SCAFFOLD arm,
+Appendix~\ref{sec:app-scaffold}), where the in-partition
 collapse scored 0.575, and no treatment approaches the centralised
 reference (0.969 on the same replication): the residual deficit,
 roughly 0.04--0.21 ROC-AUC depending on arm and treatment, is a
 property of the flattened-feature arms under federation, not of the
 buffer-transport protocol. Second, \emph{pooled recalibration is
-actively destructive here}: arm B collapses every arm to chance
-(0.500--0.501), whereas in-partition the same oracle \emph{recovered}
+actively destructive here}: arm B collapses both arms to chance
+(0.500--0.501; the SCAFFOLD cell consolidates in
+Appendix~\ref{sec:app-scaffold}), whereas in-partition the same
+oracle \emph{recovered}
 FedAvg from 0.575 to 0.893 --- pooling exact per-client statistics
 across 6 heterogeneous raw-prevalence clients inflates variance past
 the point where any single pooled normalisation ranks the test
@@ -566,11 +566,15 @@ $+0.310$ PR-AUC ($6.5\times$); FedProx gains $+0.045$ and $+0.196$
 ($2.3\times$). In gap terms: FedAvg's ROC-AUC gap to the centralised
 MLP closes from 0.096 to 0.008 (91\%) and its PR-AUC gap from 0.389
 to 0.079 (80\%); FedProx's ROC-AUC gap closes \emph{past} zero
-($-0.004$ residual, the federated arm above its centralised
-counterpart) and its PR-AUC gap from 0.296 to 0.100 (66\%). Both
-no-BN arms sit at or above their sequence counterparts on ROC-AUC
-(0.963 vs 0.958; 0.975 vs 0.970), and no-BN FedProx exceeds the
-\emph{centralised} MLP on ROC-AUC (0.975 vs 0.971). The federated
+($-0.004$ residual) and its PR-AUC gap from 0.296 to 0.100 (66\%).
+Both no-BN arms sit level with their sequence counterparts on
+ROC-AUC (0.963 vs 0.958; 0.975 vs 0.970), and no-BN FedProx
+\emph{matches} the \emph{centralised} MLP on ROC-AUC (0.975 vs
+0.971): the $-0.004$ residual sits inside the retrain
+nondeterminism the replication record documents for exactly these
+arms (gate deltas $-0.002$ to $+0.023$ ROC-AUC,
+Table~\ref{tab:rawbndiag}), so the single-seed reading is parity
+within noise, not federated precedence. The federated
 collapse of the BN raw MLP arms is therefore dominated by
 BatchNorm-under-federation --- not by the flattened-feature encoder,
 not by the evaluation path (Section~\ref{sec:res-rawbn}), and not by
@@ -578,8 +582,9 @@ federation per se. The sequence arms' rescue of
 Section~\ref{sec:res-lstm} is real but is one instance of the
 BatchNorm-free rescue, of which this control is the direct proof;
 SCAFFOLD's raw-substrate failure (0.768/0.057) is the one federated
-collapse this control has not been run against, so its reading stays
-implementation-case-qualified as before.
+collapse this control has not been run against; its
+implementation-case rows stay consolidated in
+Appendix~\ref{sec:app-scaffold}.
 
 Checkpoint-selection hygiene is born with these arms and disclosed
 in full, because the degenerate-monitor pathology of the BN arms
@@ -594,13 +599,27 @@ row) --- both rules disclosed, neither test-based. The per-round
 test trajectories carry the real dynamics: FedAvg's test ROC-AUC
 \emph{declines} from 0.974 (round 5) to 0.963 (round 50) --- every
 round except a $+9\times10^{-6}$ uptick at the final step --- while
-its validation F1 still improves --- client drift
-unmitigated, with the validation prevalence (2.05\%) optimised
-against the test prevalence (1.31\%), so the shipped rule selects
-the weakest test-ROC monitored round of its own trajectory; FedProx
-climbs monotonically from 0.931 to 0.975, the proximal term's
-stabilisation becoming visible precisely once BatchNorm is removed
---- a dynamics signature the BN arms' confound had hidden.
+its validation ROC-AUC and F1 still improve (0.974 to 0.977;
+0.345 to 0.527) --- client drift unmitigated, so the shipped rule
+selects the weakest test-ROC monitored round of its own
+trajectory. A prevalence difference cannot explain this
+divergence: ROC-AUC is a rank statistic, invariant to class
+prevalence, so the validation carve's 2.05\% against the test
+fold's 1.31\% moves thresholded quantities, not the ranking --- the
+divergence must live in the splits. Two candidate mechanisms
+remain, both testable with the committed region-disjoint split
+generator: the random validation carve shares active regions with
+the training shards (the same leakage class the provenance audit
+of Section~\ref{sec:provenance} documents benchmark-wide, which
+would inflate validation while test declines), and partition 5 is
+the temporally latest fold, so late-round specialisation to
+partitions 1--4 can register as validation gain and test loss at
+once. The within-fold region-disjoint validation re-run of both
+arms is therefore first in the remaining re-run programme
+(Section~\ref{sec:limitations}); FedProx climbs monotonically from
+0.931 to 0.975, the proximal term's stabilisation becoming visible
+precisely once BatchNorm is removed --- a dynamics signature the BN
+arms' confound had hidden.
 
 Three boundaries keep the claim honest. (a) PR-AUC, not ROC-AUC, is
 where work remains: no-BN FedProx's 0.345 sits below the
@@ -614,7 +633,13 @@ its natural-prevalence, out-of-partition complement, and the two
 results are not readable into each other. (c) FedAvg's declining
 test trajectory means its row is a conservative lower bound on what
 a selection rule with a usable monitor would ship; the sensitivity
-row and the trajectory are the honest record.
+row and the trajectory are the honest record. (d) Both arms are
+single-seed (42): the recovery swings ($+0.088$/$+0.310$ and
+$+0.045$/$+0.196$) dwarf the recorded retrain noise, but the level
+claims --- sequence-arm parity and centralised-MLP parity --- sit
+within it, which is why the seed-43 replication of these arms
+leads the remaining re-run programme
+(Section~\ref{sec:limitations}).
 
 \subsection{The BatchNorm-free sequence arms rescue the federated
 arms}
@@ -640,14 +665,16 @@ identical seed-42 Dirichlet shards, so the only degrees of freedom
 are the encoder and the device. The SolarLSTM (219,265 parameters,
 consuming the raw $60\times24$ series directly) is trained under the
 same Fed-Focal loss, prior-shift calibration, and validation-frozen
-threshold machinery as every other arm. The one arm still unexecuted
-in the second owner-GPU batch---SCAFFOLD-LSTM, whose MLP instance is the hardest failure
-on this substrate---was subsequently run in a second owner-GPU batch
-together with the seed-43 replication and the SMOTE ablation
-reported below, under the client-side fixed-step SGD that the
+threshold machinery as every other arm. The fourth arm of the
+matrix---SCAFFOLD-LSTM, whose MLP instance is the hardest failure
+on this substrate---was run in a second owner-GPU batch together
+with the seed-43 replication and the SMOTE ablation reported
+below, under the client-side fixed-step SGD that the
 control-variate arithmetic requires (the AdamW invalidation of
 Section~\ref{sec:discussion} is avoided by construction in the
-federated implementation).
+federated implementation); its cells are implementation-case
+measurements and are consolidated in
+Appendix~\ref{sec:app-scaffold}.
 
 Table~\ref{tab:lstmraw} reports the outcome alongside each arm's
 frozen MLP counterpart, and the asymmetry of
@@ -663,12 +690,14 @@ encoding as such: with the encoder held fixed, the no-BN FedAvg MLP
 swings $+0.088$/$+0.310$).
 FedProx-LSTM reaches 0.970/0.404: above its own pooled centralised
 comparator ($+0.008$ ROC, $+0.090$ PR) and above XGBoost's raw
-PR-AUC (0.329). SCAFFOLD-LSTM lands at 0.970/0.294 against its MLP
-counterpart's 0.768/0.057---the largest single architecture swing on
-this substrate ($+0.202$ ROC-AUC, $+0.238$ PR-AUC): the hardest
-failure of the BatchNorm-carrying matrix is fully recovered by the
-BatchNorm-free sequence encoder under the identical protocol, completing the
-four-arm federation matrix on this benchmark. The two contrasts isolate what happened. Between
+PR-AUC (0.329). SCAFFOLD-LSTM---the hardest failure of the
+BatchNorm-carrying matrix, fully recovered by the BatchNorm-free
+sequence encoder under the identical protocol ($+0.202$ ROC-AUC,
+$+0.238$ PR-AUC against its MLP counterpart, the largest single
+architecture swing on this substrate)---completes the four-arm
+federation matrix on this benchmark; its cells are implementation
+case measurements, consolidated in
+Appendix~\ref{sec:app-scaffold}. The two contrasts isolate what happened. Between
 federated arms of identical budget and aggregation, the
 BatchNorm-free encoder removes the natural-prevalence collapse the
 BatchNorm MLP suffers --- a property the no-BN MLP control shares,
@@ -689,18 +718,20 @@ exceeds the best centralised baseline on either rank metric
 frozen-$F_\beta$ thresholds transfer badly for three of the four
 arms: validation $F_2$ values of 0.727/0.765/0.593 degrade to test
 values of 0.405/0.309/0.499 under the $1.6\times$ validation-to-test
-prevalence shift, while SCAFFOLD-LSTM is the exception---its
-validation $F_2$ of 0.530 lands at 0.528 on test at a recall-heavy
-operating point (test recall 0.737)---and the frozen-FPR operating
+prevalence shift (the one transfer exception, SCAFFOLD-LSTM, is
+consolidated in Appendix~\ref{sec:app-scaffold}), and the
+frozen-FPR operating
 points still realise their targets within band, reproducing
 (including the same conservative drift at the 0.5\% target) the
 behaviour already documented for the MLP arms. Calibration remains
-the deployability boundary: all three federated sequence arms beat
+the deployability boundary: both reference-implementation federated
+sequence arms beat
 the raw-substrate climatology floor of 0.013 (FedAvg 0.0112,
-FedProx 0.0106, SCAFFOLD 0.0120, against every federated MLP arm at
+FedProx 0.0106, against every federated MLP arm at
 or above it, 0.013--0.137), but FedProx-LSTM's ECE of 0.020 is four
-times the central LSTM's 0.005, SCAFFOLD-LSTM carries the worst
-sequence-encoder calibration (0.035), and the centralised MLP's
+times the central LSTM's 0.005 (SCAFFOLD-LSTM's Brier 0.0120 and
+its 0.035 ECE, the worst sequence-encoder calibration, consolidate
+in Appendix~\ref{sec:app-scaffold}), and the centralised MLP's
 Brier of 0.010 remains the best of all ten arms executed on this
 substrate. Finally, the FedProx-over-FedAvg stabilisation now
 appears on every substrate--encoder combination executed
@@ -724,23 +755,20 @@ FedProx-MLP's raw detection while cutting its false-alarm burden
 $3.5\times$ (1.3), with a 23.2\,h median first-alert lead to flare
 peak---the joint-longest on this substrate, and (like every arm's
 lead at this label geometry) a label-boundary quantity rather than a
-usable warning time (Table~\ref{tab:eventlevel}). SCAFFOLD-LSTM---measuring,
-like every SCAFFOLD cell, the sign-inverted, cold-start variant of
+usable warning time (Table~\ref{tab:eventlevel}). The one
+event-level cell that nominally crosses the centralised detection
+frontier---SCAFFOLD-LSTM's 55/65 (84.6\%) at 0.41 false-alarm
+windows per day---measures the sign-inverted, cold-start variant of
 the five-departure list in Section~\ref{sec:method}, not the
-reference algorithm---evaluated in-runner by the same machinery,
-supplies the sharpest
-event-level datum of the batch: 55/65 (84.6\%) detection at 0.41
-false-alarm windows per day and a 23.2\,h median lead---its MLP
-twin's 83.1\% detection rate at one-fifteenth its false-alarm
-burden, and nominally above the centralised detection frontier
-(logistic regression 78.5\%, centralised MLP 80.0\%, both at
-0.2--0.3 per day). The crossing is an operating-point purchase
-rather than a ranking win---it is bought with $1.5$--$2\times$ the
-centralised arms' alarm budget, the window-level ranking still
-sits below logistic regression by 0.008/0.154, and the arm carries
-the worst sequence-encoder calibration (ECE 0.035)---so the
-data-locality conclusion of Section~\ref{sec:res-raw} survives at
-event level with this one priced exception.
+reference algorithm, and is consolidated with its pricing in
+Appendix~\ref{sec:app-scaffold}: the crossing is an
+operating-point purchase bought with $1.5$--$2\times$ the
+centralised arms' alarm budget, the window-level ranking sits
+below logistic regression by 0.008/0.154, and the arm carries the
+worst sequence-encoder calibration (ECE 0.035). Among the
+reference-implementation arms, the data-locality conclusion of
+Section~\ref{sec:res-raw} survives at event level without
+exception.
 
 \begin{table}[t]
 \centering
@@ -751,7 +779,9 @@ repeated from Table~\ref{tab:rawsubstr} for the
 architecture-versus-federation contrast. Brier and ECE on the
 calibrated test probabilities at natural 1.31\% prevalence. The
 seed-43 replication and per-client SMOTE ablation of the same arms
-are reported in Table~\ref{tab:lstmrep}.}
+are reported in Table~\ref{tab:lstmrep}; the SCAFFOLD row is
+consolidated in Appendix~\ref{sec:app-scaffold} (implementation
+case).}
 \label{tab:lstmraw}
 \small
 \begin{tabular}{@{}l cc cc c c c@{}}
@@ -764,7 +794,6 @@ are reported in Table~\ref{tab:lstmrep}.}
 Centralised & 0.962 & 0.314 & 0.971 & 0.445 & 0.0111 & 0.005 & 0.481 \\
 FedAvg & 0.958 & 0.305 & 0.875 & 0.056 & 0.0112 & 0.007 & 0.431 \\
 FedProx & 0.970 & 0.404 & 0.930 & 0.149 & 0.0106 & 0.020 & 0.525 \\
-SCAFFOLD & 0.970 & 0.294 & 0.768 & 0.057 & 0.0120 & 0.035 & 0.521 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -778,23 +807,21 @@ device, and the replication caveat that followed them is discharged
 by the second owner-GPU batch: all four arms re-executed at seed 43
 (model initialisation and the Dirichlet shard draw reseeded, the
 frozen validation carve kept identical). The ranking structure
-replicates (Table~\ref{tab:lstmrep}, middle columns)---the seed-42
-FedProx/SCAFFOLD statistical tie (0.970 each) resolving into
-SCAFFOLD's narrow lead at seed 43.
+replicates (Table~\ref{tab:lstmrep}, middle columns).
 ROC-AUC moves by at most 0.005 on any arm (FedAvg
-0.958$\to$0.961, FedProx 0.970$\to$0.965, SCAFFOLD
-0.970$\to$0.968, central 0.962$\to$0.962)---inside the device and
+0.958$\to$0.961, FedProx 0.970$\to$0.965, central
+0.962$\to$0.962; the SCAFFOLD replication cells consolidate in
+Appendix~\ref{sec:app-scaffold})---inside the device and
 kernel jitter band predicted in Section~\ref{sec:repro}---and
 every qualitative finding survives: no arm collapses, FedProx
-stays above FedAvg on both rank metrics, SCAFFOLD stays
-competitive, and no federated arm approaches the centralised
+stays above FedAvg on both rank metrics, and no federated arm
+approaches the centralised
 ranking frontier. PR-AUC, as expected at 1.3\% prevalence, moves
-more (FedAvg 0.305$\to$0.271, central 0.314$\to$0.357, SCAFFOLD
-0.294$\to$0.368, FedProx 0.404$\to$0.381) without overturning any
+more (FedAvg 0.305$\to$0.271, central 0.314$\to$0.357, FedProx
+0.404$\to$0.381) without overturning any
 load-bearing ordering. Event-level detection moves within a
 seven-point band at comparable false-alarm rates (FedAvg
-35$\to$36, central 41$\to$43, FedProx 49$\to$45, SCAFFOLD
-55$\to$50 of 65). The BatchNorm-free sequence-arm rescue is not an artefact
+35$\to$36, central 41$\to$43, FedProx 49$\to$45 of 65). The BatchNorm-free sequence-arm rescue is not an artefact
 of one seed.
 
 \begin{table}[t]
@@ -806,7 +833,8 @@ Table~\ref{tab:lstmraw}). Seed 43 reseeds model initialisation and
 the Dirichlet shard draw; the frozen validation carve is unchanged.
 SMOTE oversamples each client's minority class to a 0.25
 minority-to-majority ratio (seed 42, flattening the $60\times24$
-series and reshaping).}
+series and reshaping); the SCAFFOLD replication cells are
+consolidated in Appendix~\ref{sec:app-scaffold}.}
 \label{tab:lstmrep}
 \small
 \begin{tabular}{@{}l cc cc cc@{}}
@@ -820,7 +848,6 @@ series and reshaping).}
 Centralised & 0.962 & 0.314 & 0.962 & 0.357 & --- & --- \\
 FedAvg & 0.958 & 0.305 & 0.961 & 0.271 & 0.961 & 0.307 \\
 FedProx & 0.970 & 0.404 & 0.965 & 0.381 & 0.946 & 0.288 \\
-SCAFFOLD & 0.970 & 0.294 & 0.968 & 0.368 & --- & --- \\
 \bottomrule
 \end{tabular}
 \end{table}

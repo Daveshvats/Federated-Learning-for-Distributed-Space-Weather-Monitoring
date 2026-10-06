@@ -1,0 +1,62 @@
+\section{Calibration: the deployability boundary}\label{sec:calibration}
+
+\paragraph{The prior shift is first-class.}
+The validation prevalence (48.9\%) and the test prevalence
+(1.9--1.31\%) differ by a factor of 26 because the cleaned benchmark
+ships pre-balanced training partitions and natural-prevalence test
+partitions. The frozen protocol forbids using test labels ---
+including test prevalence --- for any selection, so the prior-shift
+calibrator is fit with the validation prevalence as its deployment
+target. The consequence is quantitative: at the frozen thresholds,
+FedProx's calibrated Brier (0.264) and ECE (0.496) are \emph{worse
+than the climatology's} (0.239, 0.470), i.e.\ at natural prevalence
+the neural posterior is not deployment-usable as a probability,
+while the XGBoost reference suffers the least (Brier 0.063, ECE
+0.115). Rebalanced training data invalidates naive threshold
+transfer: an $F_2$-optimal threshold at 49\% prevalence is
+semantically meaningless at 1.9\%. The correct deployment
+instrument, pending full recalibration, is the recall-at-fixed-FPR
+operating point, which is invariant to monotone miscalibration and
+to prevalence.
+
+\paragraph{The calibration-arm comparison is a clean negative.}
+Five calibration arms (raw, prior-shift, Platt, isotonic,
+temperature), each fit on the balanced validation set and applied
+once to the test set, with the arm selected by minimum validation
+Brier --- a proper scoring rule, so the selection itself is honest.
+The outcome: minimum validation Brier selects isotonic for all three
+neural models (validation Brier 0.012--0.025), and the selection is
+\emph{wrong} --- the selected arms' test Brier (0.352--0.541) is the
+worst of the five, because the balanced validation set rewards
+aggressive recalibration that the natural-prevalence test then
+punishes. No validation-fit decision layer survives the shift.
+
+\paragraph{Pooled recalibration collapses federation: a real
+finding.}
+Could a statistics-transport fix rescue the BatchNorm-carrying
+federated arms? The BN diagnostic's pooled arm (B) --- exact
+per-client statistics pooled by the law of total variance --- is the
+oracle for exactly that fix, and on the raw substrate it
+\emph{collapses} the federated arms to chance (0.500--0.501), even
+though in-partition the same oracle \emph{recovered} FedAvg from
+0.575 to 0.893. The instrument itself is validated: applied to the
+centralised raw MLP, where it should reconstruct the model's own
+statistics, it reproduces the ROC-AUC to within $6.8\times10^{-5}$
+(0.96864 vs 0.96870). So the collapse is a real finding, not a bug:
+pooling exact per-client normalisation statistics across six
+heterogeneous raw-prevalence clients inflates variance past the
+point where any single pooled normalisation ranks the test
+distribution. A pooled-statistics transport fix would not rescue
+federation on the raw substrate --- removing the BN layers (or
+transporting per-client buffers) is the class of fix that works,
+and the no-BN control of Section~\ref{sec:results} is its direct
+proof.
+
+\paragraph{What survives, end to end.}
+Ranking survives everywhere for the centralised arms and, once
+BatchNorm is removed, for the federated arms. Probabilities survive
+only for XGBoost. Thresholds frozen at balanced prevalence transfer
+for nothing. Same-region label inertia remains unbeaten at TSS.
+The deployability boundary is calibration, and on this benchmark it
+is drawn by the prevalence shift the cleaned export itself
+introduced.

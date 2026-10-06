@@ -1,15 +1,25 @@
-# paper/ — manuscript of record & audit artifacts
+# paper/ — the extended edition of record
 
-## Status (v4.11, 2026-10): R-FS9-R11 ACCEPT — SUSTAINED, 8.4/10 (the
-Round-13 condition discharged and verified at v4.10 — A1
-`arm_b_validated`, A3 the BatchNorm-under-federation attribution;
-the v4.11 pre-submission errata executed the panel's punch list:
-the stale journal-edition stamp, the two unpinned decisive artefacts,
-and six one-word-class wording fixes — nothing blocking)
+## Status (v4.12, 2026-10): the full/extended edition
+
+This directory is the **full edition** — the extended record of the
+study: the complete experiment apparatus, the LSTM/SMOTE/client
+studies, the SCAFFOLD consolidation appendix, and the configuration
+version-history table. The publishable edition is the trimmed
+12-page paper at `paper_trimmed/` (compiled to
+`submission/main.pdf`); both editions are kept by design. The v4.12
+revision responds to an independent external re-review (five
+findings, all accepted): the FedProx parity claim re-worded to
+"matching within recorded retrain nondeterminism", the
+validation-story prevalence explanation withdrawn in favour of the
+two testable candidate mechanisms (with the region-disjoint re-run
+kit committed at `docs/RUN_CARD_v4.12.md`), and all SCAFFOLD cells
+consolidated out of the main tables and conclusion into the
+appendix with their implementation status disclosed.
 
 | File | Status |
 |---|---|
-| `main.pdf` + `main.tex` + `sections/` + `refs.bib` | **The manuscript of record** (v4.11), compiled with `tectonic`. Every printed number regenerates from a committed artefact in `outputs/` — the standard the R-FS9 referee cycle (eleven dossiers, v3.9 reject-as-framed -> v4.5 accept-sustained 7.9/10 -> v4.7 accept-conditional 7.4/10 -> v4.10 register integration -> v4.11 accept-sustained 8.4/10) converged on. |
+| `main.pdf` + `main.tex` + `sections/` + `refs.bib` | **The extended edition of record** (v4.12, 65 pp), compiled with `tectonic`. Every printed number regenerates from a committed artefact in `outputs/`. |
 | `review.tex` | Source of the historical v2.x-era companion audit (findings B1-B25) that drove the `improvements` branch — kept as a historical document. Its compiled PDF and the superseded manuscript PDF were removed at v4.5 (R-FS9-R5 front-door finding; preserved in git history). |
 | `figures/` | The live figure set referenced by `main.tex` (8 figures). Root-level duplicate figures and the two unreferenced `figures/` leftovers were removed at v4.5; the results figures regenerate via `visualize_results.py` (writes `outputs/*.png`), the client/partition pair via `tools/make_fig_clients.py` / `tools/make_fig_partition.py` (the `scripts/fig_analysis.py` reference that stood here pointed at a path that does not exist in this repository — Dossier R-FS9-R7 B11). |
 

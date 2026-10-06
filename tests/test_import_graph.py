@@ -245,8 +245,12 @@ THIRD_PARTY_SCOPE = _third_party_scope()
 
 # Dossier R-FS9-R7 (B8): asserted descriptive counts — drift fails
 # loudly. Update DELIBERATELY when imports change.
-EXPECTED_FROM_IMPORTS = 336  # `from <local module> import NAME` names
-# (336 since v4.9.3: +1 — tests/test_raw_bn_diagnostic.py layer 3b's
+EXPECTED_FROM_IMPORTS = 338  # `from <local module> import NAME` names
+# (338 since v4.12: +2 — experiments/run_raw_nobn.py's run kit grew
+# its raw-substrate from-import from (build, CACHE) to
+# (build, CACHE, TRAIN_PARTS, load_labels) for the region-disjoint
+# validation carve (the external re-review's item 2);
+# 336 since v4.9.3: +1 — tests/test_raw_bn_diagnostic.py layer 3b's
 # dynamic guard does `from experiments.run_raw_nobn import
 # select_round_by_val_roc` (the ask-#9 crash regression guard, the
 # runner's helper exercised for real); 335 was the v4.9.2 figure:

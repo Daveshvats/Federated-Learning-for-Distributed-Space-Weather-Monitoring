@@ -495,9 +495,13 @@ def r10_static_layer():
           'ALGOS = ("fedavg", "fedprox")' in src3)
     check("A3 state files are separate from the BN arms' checkpoints "
           "and carry arch='nobn' (no programme collision, no foreign "
-          "resume)",
-          'f"nobn_{algo}_state.pt"' in src3 and
-          '"arch": "nobn"' in src3)
+          "resume; v4.12: namespaced per run mode — the region-disjoint "
+          "and seed-43 re-runs cannot collide with or resume the "
+          "seed-42 arms' state)",
+          'f"nobn{STATE_TAG}_{algo}_state.pt"' in src3 and
+          '"arch": "nobn"' in src3 and
+          '"state_tag": STATE_TAG' in src3 and
+          'st.get("state_tag", "") != STATE_TAG' in src3)
 
     # the comparability contract
     check("A3 evaluation mirrors run_raw_substrate.py section 5 "

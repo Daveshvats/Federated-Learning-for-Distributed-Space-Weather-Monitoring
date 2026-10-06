@@ -138,17 +138,18 @@ literature). The specific contributions are:
   federated \emph{MLP} arm degrades sharply (FedAvg detects zero of 65
   events --- 38 (58.5\%) under the diagnostic's batch-statistics
   treatment, the only evaluation with a usable validation operating
-  point, Section~\ref{sec:res-rawbn}; SCAFFOLD 0.768/0.057) while the same protocol with the
+  point, Section~\ref{sec:res-rawbn}) while the same protocol with the
   sequential SolarLSTM restores the federated standing (FedProx-LSTM
-  0.970/0.404; SCAFFOLD-LSTM the substrate's highest event-level
-  detection, 55/65 at 0.4 false-alarm windows per day --- an
-  implementation-case result, since the arm runs as the sign-inverted,
-  cold-start variant disclosed in Section~\ref{sec:method}) --- and an
+  0.970/0.404; the SCAFFOLD arms, whose implementation carries five
+  disclosed departures from the reference algorithm, are consolidated
+  as implementation-case results in Appendix~\ref{sec:app-scaffold})
+  --- and an
   architecture-only control re-attributes the split: replacing the
   MLP's three BatchNorm layers with the identity and changing nothing
-  else restores FedAvg to 0.963/0.366 and FedProx to 0.975/0.345, at
-  or above the sequence arms' ROC-AUC ranking (FedProx above the centralised
-  MLP on ROC-AUC), so the collapse is dominated by BatchNorm under
+  else restores FedAvg to 0.963/0.366 and FedProx to 0.975/0.345, level
+  with the sequence arms' ROC-AUC ranking (FedProx matching the
+  centralised MLP on ROC-AUC within recorded retrain
+  nondeterminism), so the collapse is dominated by BatchNorm under
   federation rather than by the flattened-feature representation.
   A second seed
   holds all four sequence arms within $\pm$0.005 ROC-AUC, and
