@@ -1,4 +1,4 @@
-# RUN CARD (rev. v4.13.1) — the external-review compute items (2) and (3)
+# RUN CARD (rev. v4.13.2) — the external-review compute items (2) and (3)
 
 The independent re-review of v4.11 asked for two small compute jobs
 that this sandbox cannot run (no GPU, no dataset cache). Both are
@@ -20,9 +20,20 @@ v4.9.4 artefacts. This card is the exact recipe.
   The full-fidelity JSON the run wrote has since LANDED (the owner
   paste, committed + sha256-frozen at v4.13.1 — see "Item 3
   follow-up" below): item 3 is fully closed, nothing owner-side.
-- **Item 2 (region-disjoint) is BLOCKED on a prerequisite, and the
-  card's own v4.12 instructions were un-pasteable.** Two causes,
-  both now fixed in this revision:
+- **Item 2 (region-disjoint): the prerequisite is GONE — the parse
+  metadata is now SHIPPED IN THE REPO (v4.13.2).** The four files
+  `raw/p1_meta.csv .. raw/p4_meta.csv` (the labels + NOAA-AR
+  column, regenerated from the public benchmark by streaming the
+  Dataverse archives through the exact parse semantics) are
+  committed and battery-pinned (tests/test_region_meta.py: sha256
+  byte-pins, audit-count checks, the 45,194-row slim-meta join with
+  100% label agreement, and the runner's own pre-flight/load
+  contract). **The owner recipe collapses to: git pull, then run
+  the command under "The run" below.** Steps 0-1 below are kept for
+  the record (and for anyone rebuilding from scratch); they are no
+  longer needed on your box.
+- **(Historical, v4.12.1:) Item 2 was blocked on two causes, both
+  fixed in that revision:**
   1. *PowerShell reserves the `<` character.* The v4.12 card wrote
      its recipe with `<path>`-style placeholders; pasted literally
      (as the owner did, transcript lines preserved at the end of
@@ -120,7 +131,7 @@ wsl -- bash -lc "find /tmp ~ -maxdepth 4 -name p1_meta.csv 2>/dev/null"
   are `partition1_instances.tar.gz` .. `partition4_instances.tar.gz`),
   extract them anywhere, then follow Case B.
 
-### Step 1 (Cases B/C only): regenerate the parse metadata
+### Step 1 (Cases B/C only; NOT NEEDED since v4.13.2 — the repo ships raw/p*_meta.csv): regenerate the parse metadata
 
 ```powershell
 # from the repo root (C:\Users\deves\Documents\sf9).

@@ -372,11 +372,13 @@ def paper_layer(sel):
     rc = _read(RUN_CARD)
     # v4.13.1: the card's item-3 follow-up flipped from "push the
     # JSON" (the recipe) to DONE (landed + sha256-frozen) — the pin
-    # follows the card state, never a stale recipe
-    check("run card rev. v4.13.1: item 3 executed with the verdict, "
+    # follows the card state, never a stale recipe. v4.13.2: the rev
+    # line bumped again (the parse metadata shipped in-repo); the
+    # item-3 facts are unchanged.
+    check("run card rev. v4.13.2: item 3 executed with the verdict, "
           "the JSON push marked DONE (landed, sha256-frozen), and "
           "the PowerShell-safe item-2 recipe ($parts) still intact",
-          "rev. v4.13.1" in rc and "parity holds" in rc and
+          "rev. v4.13.2" in rc and "parity holds" in rc and
           "JSON push" in rc and "DONE (v4.13.1" in rc and
           "No owner action remains" in rc and
           "git add outputs\\raw_nobn_eval_seed43.json" not in rc and

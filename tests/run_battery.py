@@ -120,7 +120,7 @@ ROOT = os.path.dirname(HERE)
 # Single source of truth for the log's title line. Dossier R-FS9-R3
 # (N2) caught a v4.2-era log whose title still read "(v4.1)" because
 # this string was hardcoded; bump BATTERY_VERSION with every release.
-BATTERY_VERSION = "v4.13.1"
+BATTERY_VERSION = "v4.13.2"
 
 # Default write path, versioned off BATTERY_VERSION. Dossier R-FS9-R4
 # (P2): the previous default was the un-versioned logs/test_battery.log
@@ -159,6 +159,7 @@ MODULES = [
     "tests/test_raw_lstm.py",
     "tests/test_raw_bn_diagnostic.py",
     "tests/test_region_disjoint.py",
+    "tests/test_region_meta.py",
     "tests/test_seed43_replication.py",
 ]
 

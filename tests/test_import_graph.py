@@ -113,6 +113,7 @@ EXPECTED_MODULES = frozenset({
     "tests.test_letters_manifest", "tests.test_pipeline_integrity",
     "tests.test_raw_bn_diagnostic", "tests.test_raw_lstm",
     "tests.test_raw_substrate", "tests.test_region_disjoint",
+    "tests.test_region_meta",
     "tests.test_seed43_replication",
     "tests.test_scaffold_algebra",
     "tests.test_submission_apparatus",
@@ -266,8 +267,11 @@ EXPECTED_FROM_IMPORTS = 340  # `from <local module> import NAME` names
 # learning/model via _load_torch_stack]; 309 was the v4.8-v4.9.1
 # figure: +10 from run_raw_bn_diagnostic.py and +2 bare-stem
 # from-imports that the C6 stem-map resolution counts)
-EXPECTED_PLAIN_IMPORTS = 44  # plain `import <local module>` statements
-# (44 since v4.12.1: +1 — tests/test_region_disjoint.py's `import
+EXPECTED_PLAIN_IMPORTS = 45  # plain `import <local module>` statements
+# (45 since v4.13.2: +1 — tests/test_region_meta.py's function-local
+# `import experiments.run_raw_nobn as runner` — the repo-shipped parse
+# metadata guard, exercising the runner's own pre-flight/load paths;
+# 44 since v4.12.1: +1 — tests/test_region_disjoint.py's `import
 # config as cfg`; 43 since v4.9.2: +3 from the two register runners — each runner's
 # `import config as cfg` plus run_raw_nobn.py's function-local
 # `import model as _model_mod` inside _load_torch_stack; 40 was the
