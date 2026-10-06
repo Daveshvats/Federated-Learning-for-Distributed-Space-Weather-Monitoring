@@ -136,7 +136,9 @@ literature). The specific contributions are:
   release's imputation and normalisation reproduced in-pipeline with
   train-only parameters) separates the arms decisively: every
   federated \emph{MLP} arm degrades sharply (FedAvg detects zero of 65
-  events; SCAFFOLD 0.768/0.057) while the same protocol with the
+  events --- 38 (58.5\%) under the diagnostic's batch-statistics
+  treatment, the only evaluation with a usable validation operating
+  point, Section~\ref{sec:res-rawbn}; SCAFFOLD 0.768/0.057) while the same protocol with the
   sequential SolarLSTM restores the federated standing (FedProx-LSTM
   0.970/0.404; SCAFFOLD-LSTM the substrate's highest event-level
   detection, 55/65 at 0.4 false-alarm windows per day --- an
@@ -145,7 +147,7 @@ literature). The specific contributions are:
   architecture-only control re-attributes the split: replacing the
   MLP's three BatchNorm layers with the identity and changing nothing
   else restores FedAvg to 0.963/0.366 and FedProx to 0.975/0.345, at
-  or above the sequence arms' ranking (FedProx above the centralised
+  or above the sequence arms' ROC-AUC ranking (FedProx above the centralised
   MLP on ROC-AUC), so the collapse is dominated by BatchNorm under
   federation rather than by the flattened-feature representation.
   A second seed

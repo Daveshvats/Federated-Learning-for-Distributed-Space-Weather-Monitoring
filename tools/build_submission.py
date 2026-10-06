@@ -21,7 +21,10 @@ structurally impossible:
 
 Declared transformations (the complete list of deviations):
   T1  journal front matter: re-ordered title, submission-edition note,
-      pdftitle metadata (title block composed here, not copied);
+      pdftitle metadata (title block composed here, not copied); the
+      edition stamp is read live from the battery's BATTERY_VERSION
+      (R-FS9-R11 P1: the stamp cannot trail the release — a hardcoded
+      v4.9 string survived two regenerations onto the v4.10 edition);
   T2  abstract pair carries metric names (made in the RECORD at v4.6,
       re-pinned at v4.10: paper/main.tex now reads "ROC-AUC 0.970 and
       PR-AUC 0.404" — the register A4/F1 metric-label correction; this
@@ -50,6 +53,29 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PAPER = os.path.join(ROOT, "paper")
 SUB = os.path.join(ROOT, "submission")
+
+
+def record_version():
+    """R-FS9-R11 P1 (root cause, the N2 lesson applied to the
+    generator): the submission stamp is single-sourced from the
+    battery's BATTERY_VERSION constant — the repository's version
+    register, bumped with every release — instead of being hardcoded
+    here, which is what left a stale 'v4.9' on the v4.10 journal
+    edition's title page and header comment while the README said
+    'current build: v4.10'."""
+    path = os.path.join(ROOT, "tests", "run_battery.py")
+    with open(path, encoding="utf-8") as f:
+        src = f.read()
+    m = re.search(r'BATTERY_VERSION\s*=\s*"([^"]+)"', src)
+    if not m:
+        raise SystemExit(
+            "BATTERY_VERSION not found in tests/run_battery.py — the "
+            "submission stamp is single-sourced from it (R-FS9-R11 "
+            "P1); refusing to emit an unversioned stamp")
+    return m.group(1)
+
+
+RECORD_VERSION = record_version()
 
 JOURNAL_TITLE = ("Federated Solar-Flare Prediction on SWAN-SF: "
                  "A Provenance, Leakage, and Evaluation-Protocol Audit")
@@ -164,7 +190,8 @@ def main():
         "%  JOURNAL SUBMISSION EDITION — GENERATED FILE, DO NOT EDIT\n"
         "%  " + JOURNAL_TITLE + "\n"
         "%  Regenerated programmatically from the repository record\n"
-        "%  (paper/) by tools/build_submission.py at v4.9, per Dossier\n"
+        "%  (paper/) by tools/build_submission.py at " + RECORD_VERSION
+        + ", per Dossier\n"
         "%  R-FS9-R6 register item 4. Every byte of the sections,\n"
         "%  figures, and refs.bib is a verbatim copy of the record;\n"
         "%  the only deviations are the declared transformations T1-T4\n"
@@ -201,7 +228,8 @@ def main():
         "    {\\small October 2026\\par}\n"
         "    \\vspace{0.9em}\n"
         "    {\\footnotesize\\textit{Journal submission edition — "
-        "regenerated from the repository record (v4.9); source: "
+        "regenerated from the repository record (" + RECORD_VERSION
+        + "); source: "
         "\\texttt{submission/src}, generator: "
         "\\texttt{tools/build\\_submission.py}}\\par}\n"
         "    \\vspace{1.4em}\n"

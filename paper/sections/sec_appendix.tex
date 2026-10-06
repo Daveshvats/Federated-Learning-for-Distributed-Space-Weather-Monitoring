@@ -17,7 +17,7 @@ reimplementation would likely rediscover the hard way.
 \setlength{\LTcapwidth}{\textwidth}
 \begin{longtable}{@{}p{0.09\textwidth} >{\raggedright\arraybackslash}p{0.42\textwidth} >{\raggedright\arraybackslash}p{0.43\textwidth}@{}}
 \caption{Documented stability fixes and protocol revisions across
-framework versions (v2.1--v4.9), as recorded in the released source.}
+framework versions (v2.1--v4.11), as recorded in the released source.}
 \label{tab:evolution}\\
 \toprule
 \textbf{Version} & \textbf{Diagnosed failure mode} & \textbf{Fix} \\
@@ -506,6 +506,32 @@ regenerated from the record (\texttt{tools/build\_submission.py},
 its T2 metric-name assertion re-pinned to the corrected PR-AUC
 label); the letters registry carries this revision's letter; battery
 version v4.10. \\
+v4.11 & Pre-submission errata (Dossier R-FS9-R11 — the
+register-integration verification round: verdict accept-sustained
+8.4/10, the Round-13 condition discharged, nothing blocking; the
+panel's punch list): the past-zero residual re-rounded to
+$-0.004$ (two sites, Section~\ref{sec:res-rawnobn} and the
+gap list of Section~\ref{sec:res-leakfree-discussion}); the 6.3
+sentence's ``both'' antecedent corrected to arm A alone; the bare
+``zero of 65'' sites companioned with the arm-C 38/65 cell (intro
+contribution 5, the event-level table's new arm-C row,
+Section~\ref{sec:res-raw}); the abstract's ``should reconstruct''
+restored and both ``ranking'' claims metric-scoped to ROC-AUC (the
+no-BN PR ordering inverts between the arms); 6.5 re-titled from the
+encoder rescue to the BatchNorm-free rescue; the FedAvg trajectory's
+final-step $+9\times10^{-6}$ uptick disclosed where ``monotonically''
+stood; the 6.7 gap list's sign convention unified (signed
+federated-minus-reference, every magnitude unchanged) & Apparatus
+(P1/P2/P7): the generator's version stamp single-sourced from
+\texttt{BATTERY\_VERSION} at generation time — the stale title-page
+string class is closed; raw-BN guard layer 5 pins both decisive
+artefacts by sha256 and the Table~\ref{tab:rawnobn} region's seven
+rows against live artefact-derived values (an in-range tamper of
+\texttt{raw\_nobn\_eval.json} or \texttt{arm\_b\_central\_sanity.json}
+now fails the battery), and a source-comparison guard enforces the
+arm-B machinery's byte-identity; submission regenerated (stamp
+v4.11); the letters registry carries this revision's letter; battery
+version v4.11. \\
 \end{longtable}
 \endgroup
 

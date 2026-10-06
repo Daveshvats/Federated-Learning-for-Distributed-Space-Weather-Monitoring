@@ -12,6 +12,18 @@ inline max(dict, key=dict) raised TypeError only after a full
 50-round arm had trained; string pins cannot prove a callable is
 right, execution can).
 
+v4.11 (Dossier R-FS9-R11 — the register-integration verification
+round, verdict accept-sustained 8.4/10, condition discharged): layer
+5 adds the pre-submission pins the panel's injection matrix proved
+missing at v4.10 — sha256 byte pins on the two decisive artefacts
+(an IN-RANGE tamper of either headline block passed the full
+battery), a content pin on the paper's Table 9 region derived live
+from the artefact (closing the coordinated two-sided paper+submission
+edit hole for the decisive table; the submission's copy is a verbatim
+record copy, byte-verified by test_submission_apparatus.py), and a
+source-comparison guard enforcing the arm-B machinery's disclosed
+byte-identity (P7).
+
 Why this test exists (owner-side content review, point 1; folded in at
 v4.8): the raw-substrate federated MLP arms were evaluated through the
 same untransported-BatchNorm evaluation path that the in-partition
@@ -151,6 +163,23 @@ ARTEFACT_SHA256 = (
 RERUN_PATH = os.path.join(ROOT, "outputs", "raw_substrate_rerun.json")
 RERUN_SHA256 = (
     "caca966a3b86b3127cfb1367a89ee7836dd98ec70bbf1440ea24c7ca6094b0a1")
+# v4.11 / Dossier R-FS9-R11 (P2): the two decisive artefacts of the
+# register integration — the panel's injection matrix proved, live,
+# that an in-range tamper of either headline block passed the full
+# battery at v4.10 (range and cross-reference guards cannot see it) —
+# now pinned under the same byte-identity convention as every other
+# frozen record.
+RAWNOBN_SHA256 = (
+    "96334bc6ac8922ecf5f9927d0f73cc4924bd1ddf254feeb914d28f25ec32f37c")
+ARMB_SANITY_SHA256 = (
+    "ad63c3b0712e1ced8ba0865a9026aefdd0e1bc1dbcc203265b64024578470a03")
+# v4.11 / P2b: the paper's Table 9 region, content-pinned below to
+# values derived live from the (sha-pinned) artefact.
+# v4.11 / P7: the arm-B machinery functions whose byte-identity the
+# runner's header discloses — true since v4.9.2, unenforced until now.
+PAPER_RESULTS_TEX = os.path.join(ROOT, "paper", "sections",
+                                 "sec_results.tex")
+ARM_B_MACHINERY = ("pool_client_stats", "set_bn_stats", "bn_modules")
 DISCLOSED_GATE_VERDICTS = {"fedavg_mlp": "MISMATCH",
                            "fedprox_mlp": "MISMATCH",
                            "scaffold_mlp": "MISMATCH"}
@@ -751,6 +780,111 @@ def r10_artefact_layer():
     return PASS, FAIL
 
 
+def r11_pin_layer():
+    """Layer 5 — the R-FS9-R11 pre-submission pins (P2 + P7).
+
+    The Round-14 dossier attacked the repository's own guarantees
+    with live mutations and found the two newest, most decisive
+    artefacts to be the least pinned objects in it: the guards that
+    existed fired exactly as designed (verdict alphabets, band
+    consistency, cross-references, the B4 SHA pin, the regeneration
+    byte-compare), but no byte identity existed for either decisive
+    artefact and no test pinned any Section 6.4 / Table 9 paper
+    number. This layer closes both holes; every fault it guards
+    against was verified by live injection at v4.11.
+    """
+    import ast
+    import hashlib
+
+    # ── P2a: byte identity of the two decisive artefacts ────────────
+    for path, pin, label in (
+            (ARTEFACT_A3, RAWNOBN_SHA256, "raw_nobn_eval.json"),
+            (ARTEFACT_A1, ARMB_SANITY_SHA256,
+             "arm_b_central_sanity.json")):
+        if not os.path.exists(path):
+            check(f"{label} present (R-FS9-R11 P2: the decisive "
+                  "artefacts are committed records of the register "
+                  "integration)", False, "(file absent)")
+            continue
+        with open(path, "rb") as f:
+            digest = hashlib.sha256(f.read()).hexdigest()
+        check(f"{label} sha256 matches the frozen record (R-FS9-R11 "
+              "P2 — the panel's in-range tamper of the headline "
+              "numbers now fails the battery)",
+              digest == pin, f"(got {digest[:16]}…)")
+
+    # ── P2b: the Table 9 region content pin ─────────────────────────
+    if not os.path.exists(PAPER_RESULTS_TEX):
+        check("paper/sections/sec_results.tex present (the Table 9 "
+              "content pin target)", False, "(file absent)")
+        return
+    with open(ARTEFACT_A3, encoding="utf-8") as f:
+        d = json.load(f)
+    with open(PAPER_RESULTS_TEX, encoding="utf-8") as f:
+        tex = f.read()
+    a = tex.find("\\label{sec:res-rawnobn}")
+    b = tex.find("\\end{table}", a)
+    region = tex[a:b] if (a != -1 and b != -1) else ""
+    check("Table 9 region located in the paper of record (the "
+          "subsection anchor to tab:rawnobn's table end)",
+          a != -1 and b != -1)
+    ref = d.get("reference_columns", {})
+    rows = (
+        ("FedAvg MLP (BatchNorm, published)",
+         ref["fedavg_mlp"]["roc_auc"], ref["fedavg_mlp"]["pr_auc"]),
+        ("FedAvg MLP (no BatchNorm, this control)",
+         d["fedavg"]["selected_checkpoint_test"]["test"]["roc_auc"],
+         d["fedavg"]["selected_checkpoint_test"]["test"]["pr_auc"]),
+        ("FedProx MLP (BatchNorm, published)",
+         ref["fedprox_mlp"]["roc_auc"], ref["fedprox_mlp"]["pr_auc"]),
+        ("FedProx MLP (no BatchNorm, this control)",
+         d["fedprox"]["selected_checkpoint_test"]["test"]["roc_auc"],
+         d["fedprox"]["selected_checkpoint_test"]["test"]["pr_auc"]),
+        ("Centralised MLP (reference)",
+         ref["centralized_mlp"]["roc_auc"],
+         ref["centralized_mlp"]["pr_auc"]),
+        ("FedAvg LSTM (reference)",
+         ref["fedavg_lstm"]["roc_auc"],
+         ref["fedavg_lstm"]["pr_auc"]),
+        ("FedProx LSTM (reference)",
+         ref["fedprox_lstm"]["roc_auc"],
+         ref["fedprox_lstm"]["pr_auc"]),
+    )
+    for label, roc, pr in rows:
+        expected = f"{label} & {roc:.3f} & {pr:.3f} \\\\"
+        check(f"Table 9 row content-pinned to the artefact (live-"
+              f"derived, never hand-typed): {label}",
+              expected in region, f"(expected {expected!r})")
+    n_params = d["fedavg"]["protocol"]["n_params"]
+    check("Table 9 region: no-BN parameter count matches the "
+          "artefact and the BN-baseline arithmetic "
+          "(29,377 − 448 = 28,929)",
+          n_params == 28929 and "28{,}929" in region and
+          "29{,}377" in region and 29377 - 28929 == 448)
+
+    # ── P7: the arm-B machinery's byte identity, enforced ───────────
+    def _fn_sources(path):
+        with open(path, encoding="utf-8") as fh:
+            src = fh.read()
+        tree = ast.parse(src)
+        return {n.name: ast.get_source_segment(src, n)
+                for n in ast.walk(tree)
+                if isinstance(n, ast.FunctionDef) and
+                n.name in ARM_B_MACHINERY}
+
+    a_srcs = _fn_sources(RUNNER_A1)
+    b_srcs = _fn_sources(RUNNER)
+    diverged = [k for k in ARM_B_MACHINERY
+                if not (k in a_srcs and k in b_srcs and
+                        a_srcs[k] == b_srcs[k])]
+    check("arm-B machinery byte-identical between "
+          "run_arm_b_central_sanity.py and run_raw_bn_diagnostic.py "
+          "(R-FS9-R11 P7 — the copy-paste disclosure, now enforced)",
+          not diverged,
+          f"(diverged or missing: {', '.join(diverged)})")
+    return PASS, FAIL
+
+
 def main():
     print("layer 1 — static contract pins (torch-free):")
     static_layer()
@@ -766,6 +900,9 @@ def main():
     print("layer 4 — R-FS9-R10 A1/A3 artefact validation "
           "(gated on presence, declared [SKIP] while owner-side):")
     r10_artefact_layer()
+    print("layer 5 — R-FS9-R11 pre-submission pins (P2 sha pins + "
+          "the Table 9 content pin, P7 source-identity guard):")
+    r11_pin_layer()
     print(f"RESULT: {PASS} passed, {FAIL} failed")
     sys.exit(1 if FAIL else 0)
 

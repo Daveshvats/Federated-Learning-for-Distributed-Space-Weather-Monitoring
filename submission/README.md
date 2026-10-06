@@ -2,7 +2,7 @@
 
 This directory is the **journal-formatted submission manuscript** of
 the SF9 paper, regenerated programmatically from the repository of
-record (current build: **v4.10**), per **Dossier R-FS9-R6, register
+record (current build: **v4.11**), per **Dossier R-FS9-R6, register
 item 4** (R8-6/R8-7/R8-8/R8-9/R8-10) and re-verified at **Dossier
 R-FS9-R7** (B1: the two v4.5-truncated bibliography entries restored
 and the rendered bibliography now guarded). The v4.10 regeneration
@@ -17,7 +17,12 @@ column re-framed as the validated proxy for the transport fix), the
 A3 no-BatchNorm raw-substrate federation (the collapse re-attributed
 to BatchNorm-under-federation), the abstract's scoped closure clause
 with the corrected PR-AUC metric label, the reordered persistence
-sentence, and the separated manifest sentence.
+sentence, and the separated manifest sentence. The v4.11
+regeneration carries the R-FS9-R11 pre-submission errata (the
+wording sweep and the companion cells) and stamps its edition from
+`BATTERY_VERSION` at generation time — the stamp can no longer trail
+the release (the v4.9-era string the R-FS9-R11 panel caught, closed
+at its root).
 
 ## Why this exists
 

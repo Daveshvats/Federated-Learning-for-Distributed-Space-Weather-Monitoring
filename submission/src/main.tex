@@ -2,7 +2,7 @@
 %  JOURNAL SUBMISSION EDITION — GENERATED FILE, DO NOT EDIT
 %  Federated Solar-Flare Prediction on SWAN-SF: A Provenance, Leakage, and Evaluation-Protocol Audit
 %  Regenerated programmatically from the repository record
-%  (paper/) by tools/build_submission.py at v4.9, per Dossier
+%  (paper/) by tools/build_submission.py at v4.11, per Dossier
 %  R-FS9-R6 register item 4. Every byte of the sections,
 %  figures, and refs.bib is a verbatim copy of the record;
 %  the only deviations are the declared transformations T1-T4
@@ -113,7 +113,7 @@
     \vspace{1.1em}
     {\small October 2026\par}
     \vspace{0.9em}
-    {\footnotesize\textit{Journal submission edition — regenerated from the repository record (v4.9); source: \texttt{submission/src}, generator: \texttt{tools/build\_submission.py}}\par}
+    {\footnotesize\textit{Journal submission edition — regenerated from the repository record (v4.11); source: \texttt{submission/src}, generator: \texttt{tools/build\_submission.py}}\par}
     \vspace{1.4em}
     {\color{black!85}\rule{\textwidth}{0.4pt}}
 \end{center}
@@ -153,13 +153,13 @@ leaves both FedAvg and FedProx stable. On the raw, unbalanced substrate
 the federated MLP collapse is BatchNorm-under-federation-conditional,
 and two controls establish it: the checkpoint-level BN diagnostic
 finds that pooled-statistics recalibration --- validated as an
-instrument on the centralised model, where it reconstructs the model's
-own statistics and preserves the ranking --- collapses every
+instrument on the centralised model, where it should reconstruct the model's
+own statistics and does preserve the ROC-AUC ranking --- collapses every
 federated arm to chance, so a pooled-statistics transport fix would
 not rescue federation there, while evaluation-time batch statistics
 leave the deficit standing; and a no-BatchNorm re-training, changing
 nothing else, restores the federated MLP to the sequence arms'
-ranking (FedAvg 0.963/0.366, FedProx 0.975/0.345, the latter above
+ROC-AUC ranking (FedAvg 0.963/0.366, FedProx 0.975/0.345, the latter above
 the centralised MLP on ROC-AUC; FedProx-LSTM, which also carries no
 BatchNorm, reaches ROC-AUC 0.970 and PR-AUC 0.404). Calibration, not
 detection, is

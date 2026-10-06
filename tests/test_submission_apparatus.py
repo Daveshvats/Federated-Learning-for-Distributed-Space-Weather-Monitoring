@@ -152,15 +152,15 @@ PINNED_ENTRIES = [
 # strings. Deliberately bump these when the documents legitimately
 # reflow (a disclosed recompile), never silently.
 PINNED_PAGE_COUNTS = {
-    os.path.join("paper", "main.pdf"): 62,
-    os.path.join("submission", "main.pdf"): 62,
+    os.path.join("paper", "main.pdf"): 63,
+    os.path.join("submission", "main.pdf"): 63,
 }
-# (62 since v4.10: the Round-13 register integration — the new no-BN
-# attribution-control subsection + Table 9, the arm-B validation
-# paragraph, the re-attributed encoder readings, and the appendix
-# v4.10 row reflowed the document by three pages — a disclosed
+# (63 since v4.11: the R-FS9-R11 pre-submission errata — the event-
+# level table's new FedAvg arm-C companion row, the three companioned
+# "zero of 65" sites, the sign-normalised gap list, and the appendix
+# v4.11 row reflowed the document by one page — a disclosed
 # recompile, the pin bumped deliberately per the B7 convention;
-# 59 at v4.9, 56 at v4.8, 55 at v4.5-v4.7)
+# 62 at v4.10, 59 at v4.9, 56 at v4.8, 55 at v4.5-v4.7)
 
 
 def read(path):
